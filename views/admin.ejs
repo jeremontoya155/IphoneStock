@@ -1,0 +1,22 @@
+<% include ./layout %>
+
+<h1 class="my-4">Agregar Producto</h1>
+<form action="/admin" method="POST">
+    <div class="form-group">
+        <label for="name">Nombre del Producto</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="form-group">
+        <label for="description">Descripción</label>
+        <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+    </div>
+    <div class="form-group">
+        <label for="price">Precio</label>
+        <input type="number" class="form-control" id="price" name="price" required>
+    </div>
+    <div class="form-group">
+        <label for="image">URL de la Imagen</label>
+        <input type="text" class="form-control" id="image" name="image" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Agregar Producto</button>
+</form>

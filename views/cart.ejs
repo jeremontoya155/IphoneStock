@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrito de Compras</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .card-deck .card {
+            min-width: 200px;
+            max-width: 250px;
+            margin: 10px;
+        }
+        .card img {
+            height: 150px;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Carrito de Compras</h1>
+        <div class="card-deck">
+            <% products.forEach(product => { %>
+                <div class="card">
+                    <img src="<%= product.image %>" class="card-img-top" alt="<%= product.name %>">
+                    <div class="card-body">
+                        <h5 class="card-title"><%= product.name %></h5>
+                        <p class="card-text">$<%= product.price %></p>
+                        <p class="card-text">Stock: <%= product.stock %></p>
+                        <form action="/buy/<%= product.id %>" method="POST">
+                            <button type="submit" class="btn btn-success btn-block" <%= product.stock <= 0 ? 'disabled' : '' %>>Comprar</button>
+                        </form>
+                    </div>
+                </div>
+            <% }); %>
+        </div>
+        <div class="text-center mt-4">
+            <a href="/" class="btn btn-secondary">Volver</a>
+        </div>
+    </div>
+</body>
+</html>
