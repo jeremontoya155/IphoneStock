@@ -3,6 +3,8 @@ require('dotenv').config();  // Cargar variables de entorno desde .env
 const express = require('express');
 const session = require('express-session');
 const { Pool } = require('pg');
+const multer = require('multer'); // Middleware para manejo de carga de archivos
+const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
@@ -43,7 +45,33 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
+// Middleware para manejar la carga de archivos con Multer
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, 'uploads/'); // Directorio donde se guardarán las imágenes
+        },
+        filename: function (req, file, cb) {
+            cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
+        }
+    }),
+    fileFilter: function (req, file, cb) {
+        checkFileType(file, cb);
+    }
+});
 
+// Función para validar tipos de archivo permitidos
+function checkFileType(file, cb) {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (extname && mimetype) {
+        return cb(null, true);
+    } else {
+        cb('Error: Solo se permiten imágenes (jpeg/jpg/png/gif)');
+    }
+}
 // Middleware para verificar si el usuario está autenticado
 function requireLogin(req, res, next) {
     if (req.session.userId) {
@@ -72,9 +100,6 @@ function requireAdmin(req, res, next) {
         res.redirect('/login');
     }
 }
-
-// Rutas
-
 // Ruta principal
 app.get('/', (req, res) => {
     pool.query('SELECT * FROM products', (err, result) => {
@@ -101,11 +126,14 @@ app.get('/edit/:id', requireAdmin, (req, res) => {
 });
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
-// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
-app.post('/edit/:id', requireAdmin, (req, res) => {
+app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
     const id = req.params.id;
-    const { name, description, img, price, stock } = req.body;
-    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5 WHERE id = $6', [name, description, img, price, stock, id], (err) => {
+    const { name, description, price, stock } = req.body;
+    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
+    if (req.file) {
+        imageUrl = '/uploads/' + req.file.filename; // Si se carga una nueva imagen, usar la ruta de Multer
+    }
+    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5 WHERE id = $6', [name, description, imageUrl, price, stock, id], (err) => {
         if (err) {
             console.error('Error al actualizar producto:', err);
             res.status(500).send('Error interno del servidor');
@@ -114,18 +142,16 @@ app.post('/edit/:id', requireAdmin, (req, res) => {
         res.redirect('/');
     });
 });
-
-
 // Ruta para agregar un nuevo producto (requiere autenticación de administrador)
 app.get('/new', requireAdmin, (req, res) => {
     res.render('new');
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-app.post('/new', requireAdmin, (req, res) => {
-    const { name, description, img, price, stock } = req.body;
-    pool.query('INSERT INTO products (name, description, img, price, stock) VALUES ($1, $2, $3, $4, $5)', [name, description, img, price, stock], (err) => {
+app.post('/new', requireAdmin, upload.single('image'), (req, res) => {
+    const { name, description, price, stock } = req.body;
+    const imageUrl = '/uploads/' + req.file.filename; // Ruta de la imagen cargada
+    pool.query('INSERT INTO products (name, description, img, price, stock) VALUES ($1, $2, $3, $4, $5)', [name, description, imageUrl, price, stock], (err) => {
         if (err) {
             console.error('Error al agregar nuevo producto:', err);
             res.status(500).send('Error interno del servidor');
@@ -134,7 +160,6 @@ app.post('/new', requireAdmin, (req, res) => {
         res.redirect('/');
     });
 });
-
 
 // Ruta para iniciar sesión
 app.get('/login', (req, res) => {
@@ -208,17 +233,23 @@ app.post('/buy/:id', (req, res) => {
                 res.redirect(whatsappUrl);
             });
         } else {
-            res.send('Producto no disponible');
+            SwalMixin.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Producto sin stock disponible',
+            });
+            res.redirect('/cart');
         }
     });
 });
 
-// Ruta para páginas no encontradas (404)
+// Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
 });
 
-// Iniciar el servidor
+// Iniciar servidor
 app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
+    console.log(`Servidor iniciado en http://localhost:${PORT}`);
 });
+
