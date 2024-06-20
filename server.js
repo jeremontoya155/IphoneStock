@@ -2,7 +2,7 @@ require('dotenv').config();  // Cargar variables de entorno desde .env
 
 const express = require('express');
 const session = require('express-session');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
@@ -36,8 +36,13 @@ app.use(session({
     saveUninitialized: true,
 }));
 
-// Conectar a la base de datos SQLite
-let db = new sqlite3.Database('./database.db');
+// Conectar a la base de datos PostgreSQL
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
 
 // Middleware para verificar si el usuario está autenticado
 function requireLogin(req, res, next) {
@@ -48,38 +53,59 @@ function requireLogin(req, res, next) {
     }
 }
 
+// Middleware para verificar si el usuario es administrador
+function requireAdmin(req, res, next) {
+    if (req.session.userId) {
+        pool.query('SELECT isAdmin FROM users WHERE id = $1', [req.session.userId], (err, result) => {
+            if (err) {
+                console.error('Error al verificar administrador:', err);
+                res.status(500).send('Error interno del servidor');
+                return;
+            }
+            if (result.rows.length > 0 && result.rows[0].isadmin) {
+                next();
+            } else {
+                res.send('Acceso denegado');
+            }
+        });
+    } else {
+        res.redirect('/login');
+    }
+}
+
 // Rutas
 
 // Ruta principal
 app.get('/', (req, res) => {
-    db.all('SELECT * FROM products', (err, rows) => {
+    pool.query('SELECT * FROM products', (err, result) => {
         if (err) {
             console.error('Error al obtener productos:', err);
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('index', { products: rows, isAdmin: req.session.isAdmin });
+        res.render('index', { products: result.rows, isAdmin: req.session.isAdmin });
     });
 });
 
 // Ruta para editar un producto (requiere autenticación de administrador)
 app.get('/edit/:id', requireAdmin, (req, res) => {
     const id = req.params.id;
-    db.get('SELECT * FROM products WHERE id = ?', [id], (err, row) => {
+    pool.query('SELECT * FROM products WHERE id = $1', [id], (err, result) => {
         if (err) {
             console.error('Error al obtener producto para edición:', err);
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('edit', { product: row });
+        res.render('edit', { product: result.rows[0] });
     });
 });
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
+// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, (req, res) => {
     const id = req.params.id;
-    const { name, description, image, price, stock } = req.body;
-    db.run('UPDATE products SET name = ?, description = ?, image = ?, price = ?, stock = ? WHERE id = ?', [name, description, image, price, stock, id], (err) => {
+    const { name, description, img, price, stock } = req.body;
+    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5 WHERE id = $6', [name, description, img, price, stock, id], (err) => {
         if (err) {
             console.error('Error al actualizar producto:', err);
             res.status(500).send('Error interno del servidor');
@@ -89,15 +115,17 @@ app.post('/edit/:id', requireAdmin, (req, res) => {
     });
 });
 
+
 // Ruta para agregar un nuevo producto (requiere autenticación de administrador)
 app.get('/new', requireAdmin, (req, res) => {
     res.render('new');
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
+// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, (req, res) => {
-    const { name, description, image, price, stock } = req.body;
-    db.run('INSERT INTO products (name, description, image, price, stock) VALUES (?, ?, ?, ?, ?)', [name, description, image, price, stock], (err) => {
+    const { name, description, img, price, stock } = req.body;
+    pool.query('INSERT INTO products (name, description, img, price, stock) VALUES ($1, $2, $3, $4, $5)', [name, description, img, price, stock], (err) => {
         if (err) {
             console.error('Error al agregar nuevo producto:', err);
             res.status(500).send('Error interno del servidor');
@@ -107,6 +135,7 @@ app.post('/new', requireAdmin, (req, res) => {
     });
 });
 
+
 // Ruta para iniciar sesión
 app.get('/login', (req, res) => {
     res.render('login');
@@ -115,15 +144,16 @@ app.get('/login', (req, res) => {
 // Ruta para procesar el formulario de inicio de sesión
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    db.get('SELECT * FROM users WHERE username = ? AND password = ?', [username, password], (err, user) => {
+    pool.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password], (err, result) => {
         if (err) {
             console.error('Error al buscar usuario:', err);
             res.status(500).send('Error interno del servidor');
             return;
         }
-        if (user) {
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
             req.session.userId = user.id;
-            req.session.isAdmin = user.isAdmin;
+            req.session.isAdmin = user.isadmin;
             res.redirect('/');
         } else {
             res.send('Credenciales incorrectas');
@@ -145,27 +175,28 @@ app.get('/logout', (req, res) => {
 
 // Ruta para carrito de compras
 app.get('/cart', (req, res) => {
-    db.all('SELECT * FROM products', (err, rows) => {
+    pool.query('SELECT * FROM products', (err, result) => {
         if (err) {
             console.error('Error al obtener productos para el carrito:', err);
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('cart', { products: rows });
+        res.render('cart', { products: result.rows });
     });
 });
 
 // Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
     const id = req.params.id;
-    db.get('SELECT * FROM products WHERE id = ?', [id], (err, product) => {
+    pool.query('SELECT * FROM products WHERE id = $1', [id], (err, result) => {
         if (err) {
             console.error('Error al obtener producto para compra:', err);
             res.status(500).send('Error interno del servidor');
             return;
         }
+        const product = result.rows[0];
         if (product.stock > 0) {
-            db.run('UPDATE products SET stock = stock - 1 WHERE id = ?', [id], (err) => {
+            pool.query('UPDATE products SET stock = stock - 1 WHERE id = $1', [id], (err) => {
                 if (err) {
                     console.error('Error al actualizar stock del producto:', err);
                     res.status(500).send('Error interno del servidor');
@@ -186,26 +217,6 @@ app.post('/buy/:id', (req, res) => {
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
 });
-
-// Middleware para verificar si el usuario es administrador
-function requireAdmin(req, res, next) {
-    if (req.session.userId) {
-        db.get('SELECT isAdmin FROM users WHERE id = ?', [req.session.userId], (err, user) => {
-            if (err) {
-                console.error('Error al verificar administrador:', err);
-                res.status(500).send('Error interno del servidor');
-                return;
-            }
-            if (user && user.isAdmin === 1) {
-                next();
-            } else {
-                res.send('Acceso denegado');
-            }
-        });
-    } else {
-        res.redirect('/login');
-    }
-}
 
 // Iniciar el servidor
 app.listen(PORT, () => {
