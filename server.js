@@ -148,9 +148,10 @@ app.get('/new', requireAdmin, (req, res) => {
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-app.post('/new', requireAdmin, upload.single('image'), (req, res) => {
-    const { name, description, price, stock } = req.body;
-    const imageUrl = '/uploads/' + req.file.filename; // Ruta de la imagen cargada
+// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
+app.post('/new', requireAdmin, (req, res) => {
+    const { name, description, price, stock, image } = req.body;
+    const imageUrl = image; // Utilizar la URL de la imagen proporcionada en el formulario
     pool.query('INSERT INTO products (name, description, img, price, stock) VALUES ($1, $2, $3, $4, $5)', [name, description, imageUrl, price, stock], (err) => {
         if (err) {
             console.error('Error al agregar nuevo producto:', err);
