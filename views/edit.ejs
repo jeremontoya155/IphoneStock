@@ -9,7 +9,7 @@
 <body>
     <div class="container">
         <h1 class="text-center">Editar Producto</h1>
-        <form action="/edit/<%= product.id %>" method="POST">
+        <form action="/edit/<%= product.id %>" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="name">Nombre</label>
                 <input type="text" class="form-control" id="name" name="name" value="<%= product.name %>" required>
@@ -33,6 +33,11 @@
             </div>
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
             <a href="/" class="btn btn-secondary">Cancelar</a>
+        </form>
+
+        <!-- Formulario para eliminar el producto -->
+        <form action="/delete/<%= product.id %>" method="POST" style="margin-top: 20px;">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este producto?');">Eliminar Producto</button>
         </form>
     </div>
 </body>

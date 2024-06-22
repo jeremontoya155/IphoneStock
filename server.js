@@ -244,6 +244,21 @@ app.post('/buy/:id', (req, res) => {
     });
 });
 
+
+// Ruta para eliminar un producto (requiere autenticación de administrador)
+app.post('/delete/:id', requireAdmin, (req, res) => {
+    const id = req.params.id;
+    pool.query('DELETE FROM products WHERE id = $1', [id], (err) => {
+        if (err) {
+            console.error('Error al eliminar producto:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.redirect('/');
+    });
+});
+
+
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
