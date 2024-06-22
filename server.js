@@ -88,12 +88,16 @@ function requireAdmin(req, res, next) {
             if (err) {
                 console.error('Error al verificar administrador:', err);
                 res.status(500).send('Error interno del servidor');
+                alert("Error de verifiacion de administrador")
+                res.redirect("/login")
                 return;
             }
             if (result.rows.length > 0 && result.rows[0].isadmin) {
                 next();
             } else {
                 res.send('Acceso denegado');
+                alert("Acceso incorrecto")
+                res.redirect("/login")
             }
         });
     } else {
@@ -163,10 +167,14 @@ app.post('/new', requireAdmin, (req, res) => {
 });
 
 // Ruta para iniciar sesión
+// Ruta para iniciar sesión
 app.get('/login', (req, res) => {
-    res.render('login');
+    res.render('login', { session: req.session });
 });
 
+
+// Ruta para procesar el formulario de inicio de sesión
+// Ruta para procesar el formulario de inicio de sesión
 // Ruta para procesar el formulario de inicio de sesión
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
@@ -182,10 +190,13 @@ app.post('/login', (req, res) => {
             req.session.isAdmin = user.isadmin;
             res.redirect('/');
         } else {
-            res.send('Credenciales incorrectas');
+            req.session.error = 'Credenciales incorrectas'; // Guardar el mensaje de error en la sesión
+            res.redirect('/login'); // Redirigir al usuario a la página de inicio de sesión
         }
     });
 });
+
+
 
 // Ruta para cerrar sesión
 app.get('/logout', (req, res) => {

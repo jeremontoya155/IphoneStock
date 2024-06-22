@@ -1,1 +1,0 @@
-ALTER TABLE products ADD COLUMN visible INTEGER DEFAULT 1;

@@ -1,0 +1,15 @@
+<!-- views/partials/productCard.ejs -->
+<div class="col-12 col-sm-6 col-md-4 mb-4">
+    <div class="card h-100">
+        <img src="<%= product.img %>" class="card-img-top" alt="<%= product.name %>">
+        <div class="card-body">
+            <h5 class="card-title"><%= product.name %></h5>
+            <p class="card-text"><%= product.description %></p>
+            <p class="card-text"><strong>Precio:</strong> $<%= product.price %></p>
+            <p class="card-text"><strong>Stock:</strong> <%= product.stock %></p>
+            <form action="/buy/<%= product.id %>" method="POST">
+                <button type="submit" class="btn btn-success btn-sm">Comprar</button>
+            </form>
+        </div>
+    </div>
+</div>

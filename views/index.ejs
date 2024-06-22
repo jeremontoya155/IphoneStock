@@ -5,58 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        body {
-            padding: 20px;
-        }
-        .table-container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-    </style>
+    <link rel="stylesheet" href="/css/index.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
 </head>
 <body>
+    <!-- Incluir Navbar -->
+    <%- include('partials/navbarUser') %>
+
     <div class="container">
         <div class="table-container">
             <h1 class="text-center mb-4">Lista de Productos</h1>
-            <table class="table table-striped table-bordered">
-                <thead class="thead-dark">
-                    <tr>
-                        <th>Imagen</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
-                        <th>Precio</th>
-                        <th>Stock</th>
-                        <% if (isAdmin) { %>
-                            <th>Acciones</th>
-                        <% } %>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% products.forEach(product => { %>
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="thead-dark">
                         <tr>
-                            <td><img src="<%= product.img %>"  alt="<%= product.name %>" style="width: 100px;"></td>
-                            <td><%= product.name %></td>
-                            <td><%= product.description %></td>
-                            <td>$<%= product.price %></td>
-                            <td><%= product.stock %></td>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
                             <% if (isAdmin) { %>
-                                <td>
-                                    <a href="/edit/<%= product.id %>" class="btn btn-sm btn-primary">Editar</a>
-                                </td>
+                                <th>Acciones</th>
                             <% } %>
                         </tr>
-                    <% }); %>
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        <% products.forEach(product => { %>
+                            <tr>
+                                <td data-label="Imagen"><img src="<%= product.img %>" alt="<%= product.name %>"></td>
+                                <td data-label="Nombre"><%= product.name %></td>
+                                <td data-label="Descripción"><%= product.description %></td>
+                                <td data-label="Precio">$<%= product.price %></td>
+                                <td data-label="Stock"><%= product.stock %></td>
+                                <% if (isAdmin) { %>
+                                    <td data-label="Acciones">
+                                        <a href="/edit/<%= product.id %>" class="btn btn-sm btn-primary">Editar</a>
+                                    </td>
+                                <% } %>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
             <% if (isAdmin) { %>
                 <a href="/new" class="btn btn-primary">Agregar nuevo</a>                
                 <br><br>
                 <a href="/logout" class="btn btn-danger">Cerrar sesión</a>
             <% } %>
             <a href="/cart" class="btn btn-info">Carrito de Compras</a>
-            
         </div>
     </div>
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

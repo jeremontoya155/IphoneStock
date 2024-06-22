@@ -5,42 +5,41 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito de Compras</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js"></script>
+
     <style>
-        .card-deck .card {
-            min-width: 200px;
-            max-width: 250px;
-            margin: 10px;
+        body {
+            padding-top: 56px;
+            padding-bottom: 20px;
         }
-        .card img {
-            height: 150px;
-            object-fit: cover;
+        .card-img-top {
+            width: 100%;
+            height: auto;
+        }
+        .navbar-brand i {
+            color: #007bff;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center my-4">Carrito de Compras</h1>
-        <div class="card-deck">
+    <!-- Incluir Navbar -->
+    <%- include('partials/navbarUser') %>
+
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Carrito de Compras</h1>
+        <div class="row">
             <% products.forEach(product => { %>
-                <div class="card">
-                    <img src="<%= product.img%>" class="card-img-top" alt="<%= product.name %>">
-                    <div class="card-body">
-                        <h5 class="card-title"><%= product.name %></h5>
-                        <p class="card-text">$<%= product.price %></p>
-                        <p class="card-text">Stock: <%= product.stock %></p>
-                        <form action="/buy/<%= product.id %>" method="POST">
-                            <button type="submit" class="btn btn-success btn-block" <%= product.stock <= 0 ? 'disabled' : '' %>>Comprar</button>
-                        </form>
-                    </div>
-                </div>
+                <%- include('partials/productCard', { product: product }) %>
             <% }); %>
         </div>
-        <div class="text-center mt-4">
-            <a href="/" class="btn btn-secondary">Volver</a>
-        </div>
+        <a href="/" class="btn btn-primary mt-3">Seguir comprando</a>
     </div>
 
-    <!-- Script para mostrar notificación con SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
