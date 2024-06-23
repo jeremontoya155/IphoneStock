@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carrito de Compras</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/carts.css">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
 
     <style>
@@ -28,7 +28,13 @@
 
     <div class="container mt-5">
         <h1 class="text-center mb-4">Carrito de Compras</h1>
-        <div class="row">
+
+        <!-- Campo de búsqueda -->
+        <div class="input-group mb-3">
+            <input id="search-input" type="text" class="form-control" placeholder="Buscar productos en el carrito...">
+        </div>
+
+        <div class="row" id="cart-items">
             <% products.forEach(product => { %>
                 <%- include('partials/productCard', { product: product }) %>
             <% }); %>
@@ -37,9 +43,26 @@
     </div>
 
 
-
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://stackpath.bootstrap.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>
+        // Función para filtrar los productos del carrito
+        document.getElementById('search-input').addEventListener('keyup', function() {
+            const searchValue = this.value.toLowerCase();
+            const items = document.querySelectorAll('#cart-items > div');
+
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+
+                if (text.includes(searchValue)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
