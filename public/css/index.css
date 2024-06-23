@@ -1,60 +1,71 @@
-
-body {
-padding-top: 56px;
-padding-bottom: 20px;
-background: linear-gradient(to bottom right, #f0f0f0, #ffffff); /* Definición del degradado */
-            /* Agregar efecto de difuminado */
-           
+.body {
+    padding-top: 56px;
+    padding-bottom: 20px;
+    background: linear-gradient(to bottom right, #f0f0f0, #ffffff);
+    /* Definición del degradado */
+    /* Agregar efecto de difuminado */
 }
-
 
 .table-container {
-max-width: 1000px;
-margin: 0 auto;
+    max-width: 1000px;
+    margin: 0 auto;
+    align-items: center;
+    text-align: center;
 }
-
-
 
 .table img {
-width: 100%;
-height: auto;
-max-width: 100px;
+    width: 100%;
+    height: auto;
+    max-width: 100px;
 }
+
 .navbar-brand i {
-color: #007bff;
+    color: #007bff;
 }
 @media (max-width: 767px) {
-.table-responsive {
-    border: 0;
-}
-.table {
-    width: 100%;
-    margin-bottom: 1rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    -ms-overflow-style: -ms-autohiding-scrollbar;
-    display: block;
-}
-.table thead {
-    display: none;
-}
-.table tr {
-    display: block;
-    margin-bottom: 0.625rem;
-}
-.table td {
-    display: block;
-    text-align: right;
-    font-size: 0.8em;
-    border-bottom: 1px solid #dee2e6;
-}
-.table td::before {
-    content: attr(data-label);
-    float: left;
-    text-transform: uppercase;
-    font-weight: bold;
-}
-.table td:last-child {
-    border-bottom: 0;
-}
+    .table-responsive {
+        border: 0;
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        margin: 0 auto; /* Centrar horizontalmente en dispositivos móviles */
+        display: table;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tbody,
+    .table tr {
+        display: table-row;
+        width: 100%;
+    }
+
+    .table td,
+    .table th {
+        text-align: center; /* Alinear el contenido al centro */
+        vertical-align: middle; /* Centrar verticalmente el contenido */
+        padding: 12px; /* Espaciado interior para las celdas */
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .table td::before,
+    .table th::before {
+        content: attr(data-label);
+        float: left;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .table td:last-child,
+    .table th:last-child {
+        border-bottom: 0;
+    }
+
+    .table img {
+        max-width: 80px; /* Ajuste el tamaño de la imagen para dispositivos móviles */
+    }
 }
