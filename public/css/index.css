@@ -2,7 +2,12 @@
 body {
 padding-top: 56px;
 padding-bottom: 20px;
+background: linear-gradient(to bottom right, #f0f0f0, #ffffff); /* Definición del degradado */
+            /* Agregar efecto de difuminado */
+           
 }
+
+
 .table-container {
 max-width: 1000px;
 margin: 0 auto;
