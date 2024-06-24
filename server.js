@@ -223,6 +223,9 @@ app.get('/cart', (req, res) => {
 });
 
 // Ruta para manejar la compra de productos
+
+// Ruta para manejar la compra de productos
+// Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
     const id = req.params.id;
     pool.query('SELECT * FROM products WHERE id = $1', [id], (err, result) => {
@@ -233,27 +236,18 @@ app.post('/buy/:id', (req, res) => {
         }
         const product = result.rows[0];
         if (product.stock > 0) {
-            pool.query('UPDATE products SET stock = stock - 1 WHERE id = $1', [id], (err) => {
-                if (err) {
-                    console.error('Error al actualizar stock del producto:', err);
-                    res.status(500).send('Error interno del servidor');
-                    return;
-                }
-                // Redirigir a WhatsApp con el mensaje prellenado
-                const message = `Compra realizada:\n\nModelo: ${product.name}\nCondición de batería: ${product.batteryCondition}\nPiezas originales: ${product.originalParts ? 'Sí' : 'No'}\nDetalle: ${product.description}`;
-                const whatsappUrl = `https://wa.me/${process.env.MY_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
-                res.redirect(whatsappUrl);
-            });
+            // Aquí puedes realizar cualquier otra acción que necesites sin modificar el stock
+            // Por ejemplo, redirigir a WhatsApp con el mensaje prellenado
+            const message = `Compra realizada:\n\nModelo: ${product.name}\nCondición de batería: ${product.batteryCondition}\nPiezas originales: ${product.originalParts ? 'Sí' : 'No'}\nDetalle: ${product.description}`;
+            const whatsappUrl = `https://wa.me/${process.env.MY_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
+            res.redirect(whatsappUrl);
         } else {
-            SwalMixin.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Producto sin stock disponible',
-            });
+            // Mostrar mensaje de error si el producto no tiene stock
             res.redirect('/cart');
         }
     });
 });
+
 
 
 // Ruta para eliminar un producto (requiere autenticación de administrador)

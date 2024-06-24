@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/carts.css">
     <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/modal.css">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
 
     <style>
@@ -18,7 +19,6 @@
             width: 100%;
             height: auto;
         }
-      
     </style>
 </head>
 <body>
@@ -35,7 +35,9 @@
 
         <div class="row" id="cart-items">
             <% products.forEach(product => { %>
-                <%- include('partials/productCard', { product: product }) %>
+                <% if (product.stock > 0) { %>
+                    <%- include('partials/productCard', { product: product }) %>
+                <% } %>
             <% }); %>
         </div>
         <a href="/" class="btn btn-primary mt-3">Seguir comprando</a>
@@ -60,6 +62,46 @@
                 } else {
                     item.style.display = 'none';
                 }
+            });
+        });
+
+        // Ocultar productos con stock igual a 0
+        document.addEventListener('DOMContentLoaded', function() {
+            const items = document.querySelectorAll('#cart-items > div');
+
+            items.forEach(item => {
+                const stock = parseInt(item.getAttribute('data-stock'), 10);
+
+                if (stock === 0) {
+                    item.style.display = 'none';
+                }
+            });
+        });
+
+        // Función para manejar las pestañas en el modal
+        function showTab(event, tabId) {
+            var i, tabcontent, tablinks;
+
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            tablinks = document.querySelectorAll(".product-detail-card .tabs button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            document.getElementById(tabId).style.display = "block";
+            event.currentTarget.className += " active";
+        }
+
+        // Mostrar la pestaña "General" por defecto
+        document.addEventListener('DOMContentLoaded', function() {
+            var defaultTabs = document.querySelectorAll('.tabs button.active');
+            defaultTabs.forEach(function(tab) {
+                var tabId = tab.getAttribute('onclick').match(/'([^']+)'/)[1];
+                document.getElementById(tabId).style.display = 'block';
             });
         });
     </script>
