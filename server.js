@@ -11,6 +11,26 @@ const cors = require('cors');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Configuración de Multer para almacenamiento de archivos
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) { 
+        cb(null, 'uploads/'); // Directorio donde se guardarán los archivos subidos
+    },
+    filename: function (req, file, cb) {
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
+    }
+});
+
+// Inicializar el middleware de Multer
+const upload = multer({ storage: storage });
+
+// Middleware para manejar la carga de archivos en una ruta específica
+app.post('/upload', upload.single('file'), (req, res) => {
+    // Esta función se ejecutará después de que se haya subido el archivo
+    res.send('Archivo subido exitosamente');
+});
+
+
 // Configuración de SweetAlert2
 const Swal = require('sweetalert2');
 const SwalMixin = Swal.mixin({
@@ -46,19 +66,19 @@ const pool = new Pool({
     }
 });
 // Middleware para manejar la carga de archivos con Multer
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: function (req, file, cb) {
-            cb(null, 'uploads/'); // Directorio donde se guardarán las imágenes
-        },
-        filename: function (req, file, cb) {
-            cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
-        }
-    }),
-    fileFilter: function (req, file, cb) {
-        checkFileType(file, cb);
-    }
-});
+// const upload = multer({
+//     storage: multer.diskStorage({
+//         destination: function (req, file, cb) {
+//             cb(null, 'uploads/'); // Directorio donde se guardarán las imágenes
+//         },
+//         filename: function (req, file, cb) {
+//             cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
+//         }
+//     }),
+//     fileFilter: function (req, file, cb) {
+//         checkFileType(file, cb);
+//     }
+// });
 
 // Función para validar tipos de archivo permitidos
 function checkFileType(file, cb) {
@@ -105,16 +125,27 @@ function requireAdmin(req, res, next) {
     }
 }
 // Ruta principal
+// Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {
-    pool.query('SELECT * FROM products', (err, result) => {
-        if (err) {
-            console.error('Error al obtener productos:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.render('index', { products: result.rows, isAdmin: req.session.isAdmin });
+    let productsQuery = 'SELECT * FROM products';
+    let carouselQuery = 'SELECT * FROM carousel';
+
+    // Ejecutar ambas consultas en paralelo usando Promise.all
+    Promise.all([
+        pool.query(productsQuery).then(result => result.rows),
+        pool.query(carouselQuery).then(result => result.rows)
+    ])
+    .then(([products, carouselItems]) => {
+        // Renderizar la vista index.ejs con los productos y los elementos del carrusel
+        res.render('index', { products: products, carouselItems: carouselItems, isAdmin: req.session.isAdmin });
+    })
+    .catch(err => {
+        console.error('Error al obtener datos:', err);
+        res.status(500).send('Error interno del servidor');
     });
 });
+
+
 
 // Ruta para editar un producto (requiere autenticación de administrador)
 app.get('/edit/:id', requireAdmin, (req, res) => {
@@ -238,7 +269,7 @@ app.post('/buy/:id', (req, res) => {
         if (product.stock > 0) {
             // Aquí puedes realizar cualquier otra acción que necesites sin modificar el stock
             // Por ejemplo, redirigir a WhatsApp con el mensaje prellenado
-            const message = `Compra realizada:\n\nModelo: ${product.name}\nCondición de batería: ${product.batteryCondition}\nPiezas originales: ${product.originalParts ? 'Sí' : 'No'}\nDetalle: ${product.description}`;
+            const message = `Solicitud:\n\nModelo: ${product.name}\nCondición de batería: ${product.batteryCondition}\nPiezas originales: ${product.originalParts ? 'Sí' : 'No'}\nDetalle: ${product.description}`;
             const whatsappUrl = `https://wa.me/${process.env.MY_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
             res.redirect(whatsappUrl);
         } else {
@@ -260,6 +291,79 @@ app.post('/delete/:id', requireAdmin, (req, res) => {
             return;
         }
         res.redirect('/');
+    });
+});
+
+// Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
+// Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
+app.get('/edit-carousel', requireAdmin, (req, res) => {
+    pool.query('SELECT * FROM carousel', (err, result) => {
+        if (err) {
+            console.error('Error al obtener elementos del carrusel:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.render('edit-carousel', { carouselItems: result.rows });
+    });
+});
+
+app.post('/edit-carousel', requireAdmin, upload.single('image'), (req, res) => {
+    const { id, text, color1, color2 } = req.body;
+    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
+
+    // Verificar si se subió una nueva imagen
+    if (req.file) {
+        imageUrl = '/uploads/' + req.file.filename; // Utilizar la nueva imagen subida
+    }
+
+    // Consultar la imagen actual para manejar el caso donde no se sube una nueva
+    pool.query('SELECT img FROM carousel WHERE id = $1', [id], (err, result) => {
+        if (err) {
+            console.error('Error al obtener imagen actual del carrusel:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+
+        // Si no se subió una nueva imagen, mantener la imagen existente
+        if (!req.file && result.rows.length > 0) {
+            imageUrl = result.rows[0].img;
+        }
+
+        // Insertar o actualizar el elemento del carrusel en la base de datos
+        if (id) {
+            // Si hay un ID, actualizamos
+            pool.query('UPDATE carousel SET text = $1, img = $2, color1 = $3, color2 = $4 WHERE id = $5', [text, imageUrl, color1, color2, id], (err) => {
+                if (err) {
+                    console.error('Error al actualizar elemento del carrusel:', err);
+                    res.status(500).send('Error interno del servidor');
+                    return;
+                }
+                res.redirect('/edit-carousel');
+            });
+        } else {
+            // Si no hay un ID, insertamos un nuevo elemento
+            pool.query('INSERT INTO carousel (text, img, color1, color2) VALUES ($1, $2, $3, $4)', [text, imageUrl, color1, color2], (err) => {
+                if (err) {
+                    console.error('Error al agregar nuevo elemento al carrusel:', err);
+                    res.status(500).send('Error interno del servidor');
+                    return;
+                }
+                res.redirect('/edit-carousel');
+            });
+        }
+    });
+});
+
+// Ruta para eliminar un elemento del carrusel
+app.post('/delete-carousel', requireAdmin, (req, res) => {
+    const { id } = req.body;
+    pool.query('DELETE FROM carousel WHERE id = $1', [id], (err) => {
+        if (err) {
+            console.error('Error al eliminar elemento del carrusel:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.redirect('/edit-carousel');
     });
 });
 

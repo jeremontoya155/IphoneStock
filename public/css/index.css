@@ -69,3 +69,52 @@
         max-width: 80px; /* Ajuste el tamaño de la imagen para dispositivos móviles */
     }
 }
+
+.carousel-item {
+    position: relative;
+    height:25em /* Ajusta la altura según tus necesidades */
+}
+
+.carousel-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+}
+
+.carousel-caption {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(to right, #color1, #color2);
+    opacity: 0.8;
+    padding: 20px;
+    color: #fff;
+}
+
+
+.carousel-caption h5 {
+    font-size: 2rem; /* Tamaño del texto */
+    font-weight: bold; /* Peso de la fuente */
+    margin: 0;
+    text-align: left; /* Alinea el texto a la izquierda */
+}
+
+@media (max-width: 768px) {
+    .carousel-caption {
+        padding: 10px; /* Ajusta el padding para dispositivos móviles */
+        display: block !important; /* Asegura que la caption sea visible */
+    }
+
+    .carousel-caption h5 {
+        font-size: 1.5rem; /* Ajusta el tamaño del texto en dispositivos móviles */
+    }
+}
