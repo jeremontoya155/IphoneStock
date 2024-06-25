@@ -5,8 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio de Sesión</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            padding-top: 56px;
+        }
+    </style>
 </head>
 <body>
+    <!-- Incluir Navbar -->
+    <%- include('partials/navbar') %>
+
     <div class="container">
         <h1 class="text-center">Inicio de Sesión</h1>
         <form action="/login" method="POST">
@@ -21,5 +30,23 @@
             <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
         </form>
     </div>
+
+    <!-- Verificar si hay un mensaje de error en la sesión -->
+    <% if (session.error) { %>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: '<%= session.error %>',
+            });
+            <%
+                session.error = null;
+            %>
+        </script>
+    <% } %>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>
