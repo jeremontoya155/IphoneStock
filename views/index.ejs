@@ -2,9 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-   
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
@@ -18,13 +16,16 @@
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
 
     <div class="container my-2 py-2">
+        <h1 class="text-center mb-4">BIENVENIDOS</h1>
+        <h2 class="text-center mb-4"><img 
+            style="width: 8em;" src="imgs/logoNegro.png" alt=""></h2>
 
-        <h1 class="text-center my-4">LISTADO</h1>
+        <!-- Incluir el carousel -->
         <%- include('partials/carousel', { carouselItems: carouselItems }) %> <!-- Asegúrate de que la ruta 'partials/carousel' sea correcta y pasando los datos necesarios -->
 
+        <!-- Incluir sección 'about' -->
+        <%- include('partials/about', { about: about }) %> <!-- Pasar el objeto `about` -->
 
-        <%- include('partials/about') %>
-        
         <!-- Botones según el rol -->
         <div class="text-center mb-4">
             <% if (isAdmin) { %>
@@ -66,12 +67,13 @@
                 </div>
                 <div class="mb-3">
                     <a href="/new" class="btn btn-primary mr-2">Agregar Nuevo</a>
-                    <a href="/logout" class="btn btn-danger mr-2">Cerrar Sesión</a>
-                    <a href="/edit-carousel" class="btn btn-danger mr-2">Editar carrusel</a>
-                    <button id="download-btn" class="btn btn-secondary">Descargar Registros</button>
+                    <a href="/edit-carousel" class="btn btn-primary mr-2">Editar carrusel</a>
+                    <a href="/edit-about" class="btn btn-primary">Editar About</a>
+                    <button id="download-btn" class="btn btn-success">Descargar Registros</button>
+                    
                 </div>
             <% } else { %>
-                <a href="/cart" class="btn btn-info mr-2">Carrito de Compras</a>
+                <a href="/cart" class="btn btn-info mr-2">VER  CATALOGO</a>
             <% } %>
         </div>
     </div>

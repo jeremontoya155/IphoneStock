@@ -124,26 +124,64 @@ function requireAdmin(req, res, next) {
         res.redirect('/login');
     }
 }
+
+// Ruta para obtener la URL de la primera imagen
+app.get('/logoImageUrl', (req, res) => {
+    pool.query('SELECT imagen1 FROM imagenes LIMIT 1', (err, result) => {
+        if (err) {
+            console.error('Error al obtener la URL de la primera imagen:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        
+        if (result.rows.length === 0) {
+            res.status(404).send('No se encontró la URL de la primera imagen');
+            return;
+        }
+
+        const { imagen1 } = result.rows[0];
+        res.send({ imageUrl: imagen1 });
+    });
+});
+
+
+app.get('/about', (req, res) => {
+    pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
+        if (err) {
+            console.error('Error al obtener datos de la tabla about:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+
+        const about = result.rows[0] || { titulo: '', texto: '', imagen: '' }; // Valores por defecto en caso de que no haya datos
+        res.render('about', { about });
+    });
+});
+
+
 // Ruta principal
 // Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {
     let productsQuery = 'SELECT * FROM products';
     let carouselQuery = 'SELECT * FROM carousel';
+    const aboutQuery = 'SELECT * FROM about LIMIT 1';
 
-    // Ejecutar ambas consultas en paralelo usando Promise.all
     Promise.all([
         pool.query(productsQuery).then(result => result.rows),
-        pool.query(carouselQuery).then(result => result.rows)
+        pool.query(carouselQuery).then(result => result.rows),
+        pool.query(aboutQuery).then(result => result.rows),
     ])
-    .then(([products, carouselItems]) => {
-        // Renderizar la vista index.ejs con los productos y los elementos del carrusel
-        res.render('index', { products: products, carouselItems: carouselItems, isAdmin: req.session.isAdmin });
+    .then(([products, carouselItems, aboutResult]) => {
+        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
+
+        res.render('index', { products: products, carouselItems: carouselItems, about, isAdmin: req.session.isAdmin });
     })
     .catch(err => {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
     });
 });
+
 
 
 
@@ -156,9 +194,43 @@ app.get('/edit/:id', requireAdmin, (req, res) => {
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('edit', { product: result.rows[0] });
+        res.render('edit', { product: result.rows[0],isAdmin: req.session.isAdmin });
     });
 });
+
+
+//editar el about
+app.get('/edit-about', requireAdmin, (req, res) => {
+    pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
+        if (err) {
+            console.error('Error al obtener datos de la tabla about:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        const about = result.rows.length > 0 ? result.rows[0] : { titulo: '', texto: '', imagen: '' };
+        res.render('editAbout', { about,isAdmin: req.session.isAdmin });
+    });
+});
+
+//procesar el edit
+app.post('/edit-about', requireAdmin, upload.single('image'), (req, res) => {
+    const { titulo, texto } = req.body;
+    let imagen = req.body.imagen; // Por defecto, la URL se toma del formulario
+
+    if (req.file) {
+        imagen = '/uploads/' + req.file.filename; // Si se carga una nueva imagen, usar la ruta de Multer
+    }
+
+    pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3', [titulo, texto, imagen], (err) => {
+        if (err) {
+            console.error('Error al actualizar contenido de about:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.redirect('/');
+    });
+});
+
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
@@ -179,7 +251,7 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
 });
 // Ruta para agregar un nuevo producto (requiere autenticación de administrador)
 app.get('/new', requireAdmin, (req, res) => {
-    res.render('new');
+    res.render('new',{isAdmin: req.session.isAdmin});
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
@@ -200,7 +272,7 @@ app.post('/new', requireAdmin, (req, res) => {
 // Ruta para iniciar sesión
 // Ruta para iniciar sesión
 app.get('/login', (req, res) => {
-    res.render('login', { session: req.session });
+    res.render('login', { session: req.session ,isAdmin: req.session.isAdmin});
 });
 
 
@@ -249,7 +321,7 @@ app.get('/cart', (req, res) => {
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('cart', { products: result.rows });
+        res.render('cart', { products: result.rows,isAdmin: req.session.isAdmin });
     });
 });
 
@@ -303,7 +375,7 @@ app.get('/edit-carousel', requireAdmin, (req, res) => {
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('edit-carousel', { carouselItems: result.rows });
+        res.render('edit-carousel', { carouselItems: result.rows ,isAdmin: req.session.isAdmin});
     });
 });
 

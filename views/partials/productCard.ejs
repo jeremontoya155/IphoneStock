@@ -8,7 +8,7 @@
         <p class="availability"><%= product.stock %> disponibles</p>
         <div class="button-group">
             <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
-                <button type="submit" class="btn btn-buy">Comprar</button>
+                <button type="submit" class="btn btn-buy">Consultar</button>
             </form>
             <button type="button" class="btn btn-ver-mas-small" data-toggle="modal" data-target="#productModal<%= product.id %>">Ver más</button>
         </div>

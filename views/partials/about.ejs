@@ -1,13 +1,12 @@
 <div class="container my-4">
     <div class="row">
         <div class="col-md-6 mb-4 mb-md-0">
-            <h2 class="mb-3">Sobre Nosotros</h2>
-            <p class="mb-3">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla viverra justo sit amet convallis venenatis.</p>
-            <p>Mauris accumsan sodales tellus, a tempor tortor fermentum non. Sed pretium feugiat massa, et posuere neque blandit at.</p>
+            <h2 class="mb-3"><%= about.titulo %></h2>
+            <p class="mb-3"><%= about.texto %></p>
         </div>
         <div class="col-md-6">
             <div class="text-center">
-                <img src="https://www.apple.com/newsroom/images/product/iphone/standard/Apple_iPhone-11-Pro_Matte-Glass-Back_091019_big.jpg.large.jpg" class="img-fluid shadow" alt="Imagen sobre nosotros">
+                <img src="<%= about.imagen %>" class="img-fluid shadow" alt="Imagen sobre nosotros">
             </div>
         </div>
     </div>

@@ -9,8 +9,11 @@
                 <a class="nav-link" href="/">Inicio</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/cart">Carrito de Compras</a>
+                <a class="nav-link" href="/cart">Catalogo</a>
             </li>
+            <% if (isAdmin) { %>
+                <a href="/logout" class="btn btn-danger mr-2">Cerrar Sesión</a>
+                <% } %>
         </ul>
     </div>
 </nav>
