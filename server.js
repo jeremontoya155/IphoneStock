@@ -235,12 +235,12 @@ app.post('/edit-about', requireAdmin, upload.single('image'), (req, res) => {
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock } = req.body;
+    const { name, description, price, stock, bateria , almacenamiento } = req.body;
     let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
     if (req.file) {
         imageUrl = '/uploads/' + req.file.filename; // Si se carga una nueva imagen, usar la ruta de Multer
     }
-    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5 WHERE id = $6', [name, description, imageUrl, price, stock, id], (err) => {
+    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $7 , almacenamiento = $8  WHERE id = $6', [name, description, imageUrl, price, stock, id,bateria,almacenamiento], (err) => {
         if (err) {
             console.error('Error al actualizar producto:', err);
             res.status(500).send('Error interno del servidor');
@@ -257,9 +257,9 @@ app.get('/new', requireAdmin, (req, res) => {
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, (req, res) => {
-    const { name, description, price, stock, image } = req.body;
+    const { name, description, price, stock, image, bateria, almacenamiento } = req.body;
     const imageUrl = image; // Utilizar la URL de la imagen proporcionada en el formulario
-    pool.query('INSERT INTO products (name, description, img, price, stock) VALUES ($1, $2, $3, $4, $5)', [name, description, imageUrl, price, stock], (err) => {
+    pool.query('INSERT INTO products (name, description, img, price, stock , bateria , almacenamiento) VALUES ($1, $2, $3, $4, $5 , $6 , $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento], (err) => {
         if (err) {
             console.error('Error al agregar nuevo producto:', err);
             res.status(500).send('Error interno del servidor');
