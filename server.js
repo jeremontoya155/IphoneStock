@@ -171,17 +171,20 @@ app.get('/', (req, res) => {
     let productsQuery = 'SELECT * FROM products';
     let carouselQuery = 'SELECT * FROM carousel';
     const aboutQuery = 'SELECT * FROM about LIMIT 1';
+    const imagesQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener imagen2
 
     Promise.all([
         pool.query(productsQuery).then(result => result.rows),
         pool.query(carouselQuery).then(result => result.rows),
         pool.query(aboutQuery).then(result => result.rows),
-        pool.query('SELECT imagen1 FROM imagenes LIMIT 1').then(result => result.rows[0].imagen1) // Obtener imagen1 aquí
+        pool.query(imagesQuery).then(result => result.rows[0]) // Obtener imagen1 y imagen2 aquí
     ])
-    .then(([products, carouselItems, aboutResult, logoUrl]) => {
+    .then(([products, carouselItems, aboutResult, images]) => {
         const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
+        const logoUrl = images.imagen1; // Asignar imagen1 como logoUrl
+        const imagen2Url = images.imagen2; // Obtener imagen2
 
-        res.render('index', { products, carouselItems, about, logoUrl, isAdmin: req.session.isAdmin });
+        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin });
     })
     .catch(err => {
         console.error('Error al obtener datos:', err);
@@ -342,17 +345,19 @@ app.get('/logout', (req, res) => {
 app.get('/cart', (req, res) => {
     let productsQuery = 'SELECT * FROM products';
     const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const logoQuery = 'SELECT imagen1 FROM imagenes LIMIT 1'; // Query para obtener la imagen del logo
+    const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener las imágenes
 
     Promise.all([
         pool.query(productsQuery).then(result => result.rows),
         pool.query(aboutQuery).then(result => result.rows),
-        pool.query(logoQuery).then(result => result.rows[0].imagen1) // Obtener imagen1 (logo) aquí
+        pool.query(logoQuery).then(result => result.rows[0]) // Obtener imagen1 (logo) y imagen2 aquí
     ])
-    .then(([products, aboutResult, logoUrl]) => {
+    .then(([products, aboutResult, images]) => {
         const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
+        const logoUrl = images.imagen1; // URL de imagen1 (logo)
+        const imagenUrl2 = images.imagen2; // URL de imagen2
 
-        res.render('cart', { products, about, logoUrl, isAdmin: req.session.isAdmin });
+        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
     })
     .catch(err => {
         console.error('Error al obtener productos para el carrito:', err);

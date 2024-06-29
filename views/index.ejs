@@ -17,8 +17,7 @@
 
     <div class="container my-2 py-2">
         <h1 class="text-center mb-4">BIENVENIDOS</h1>
-        <h2 class="text-center mb-4"><img 
-            style="width: 8em;" src="imgs/logoNegro.png" alt=""></h2>
+        <h2 class="text-center mb-4"><img style="width: 8em;" src="<%= imagen2Url %>" alt=""></h2>
 
         <!-- Incluir el carousel -->
         <%- include('partials/carousel', { carouselItems: carouselItems }) %> <!-- Asegúrate de que la ruta 'partials/carousel' sea correcta y pasando los datos necesarios -->
@@ -69,17 +68,15 @@
                     <a href="/new" class="btn btn-primary mr-2">Agregar Nuevo</a>
                     <a href="/edit-carousel" class="btn btn-primary mr-2">Editar carrusel</a>
                     <a href="/edit-about" class="btn btn-primary">Editar About</a>
-                    <a href="/edit-images" class="btn btn-primary">Editar Logo</a>
+                    <a href="/edit-images" class="btn btn-primary">Editar Imágenes</a>
                     <button id="download-btn" class="btn btn-success">Descargar Registros</button>
-                    
                 </div>
             <% } else { %>
-                <a href="/cart" class="btn btn-info mr-2">VER  CATALOGO</a>
+                <a href="/cart" class="btn btn-info mr-2">VER CATÁLOGO</a>
             <% } %>
         </div>
     </div>
 
-    
     <!-- Incluir el footer -->
     <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
 
