@@ -1,0 +1,29 @@
+<!-- views/editImages.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Imágenes</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
+
+    <div class="container">
+        <h1 class="text-center">Editar Imágenes</h1>
+        <form action="/edit-images" method="POST">
+            <div class="form-group">
+                <label for="imagen1">URL de Imagen 1</label>
+                <input type="text" class="form-control" id="imagen1" name="imagen1" value="<%= imagenes.imagen1 %>" required>
+            </div>
+            <div class="form-group">
+                <label for="imagen2">URL de Imagen 2</label>
+                <input type="text" class="form-control" id="imagen2" name="imagen2" value="<%= imagenes.imagen2 %>" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <a href="/" class="btn btn-secondary">Cancelar</a>
+        </form>
+    </div>
+</body>
+</html>

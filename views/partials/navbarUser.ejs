@@ -1,6 +1,11 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark ">
-    <a class="navbar-brand" href="/"><img src="/imgs/logonnuevo.png" height="50" class="py-0" alt="Logo"></a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <% if (typeof logoUrl !== 'undefined' && logoUrl) { %>
+        <a class="navbar-brand" href="/">
+            <img src="<%= logoUrl %>" height="50" class="py-0" alt="Logo">
+        </a>
+    <% } %>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navbarNav">
@@ -9,11 +14,16 @@
                 <a class="nav-link" href="/">Inicio</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="/cart">Catalogo</a>
+                <a class="nav-link" href="/cart">Catálogo</a>
             </li>
             <% if (isAdmin) { %>
-                <a href="/logout" class="btn btn-danger mr-2">Cerrar Sesión</a>
-                <% } %>
+                <li class="nav-item">
+                    <a href="/edit-about" class="nav-link">Editar About</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/logout" class="btn btn-danger mr-2">Cerrar Sesión</a>
+                </li>
+            <% } %>
         </ul>
     </div>
 </nav>

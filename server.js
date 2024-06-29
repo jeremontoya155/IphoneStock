@@ -126,6 +126,9 @@ function requireAdmin(req, res, next) {
 }
 
 // Ruta para obtener la URL de la primera imagen
+// Ruta para obtener la URL de la primera imagen
+// Ruta para obtener la URL de la primera imagen
+// Ruta para obtener la URL de la primera imagen (logo)
 app.get('/logoImageUrl', (req, res) => {
     pool.query('SELECT imagen1 FROM imagenes LIMIT 1', (err, result) => {
         if (err) {
@@ -140,11 +143,13 @@ app.get('/logoImageUrl', (req, res) => {
         }
 
         const { imagen1 } = result.rows[0];
-        res.send({ imageUrl: imagen1 });
+        res.send(imagen1); // Devolver la URL directamente
     });
 });
 
 
+
+// Ruta para la página "about"
 app.get('/about', (req, res) => {
     pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
         if (err) {
@@ -154,12 +159,13 @@ app.get('/about', (req, res) => {
         }
 
         const about = result.rows[0] || { titulo: '', texto: '', imagen: '' }; // Valores por defecto en caso de que no haya datos
-        res.render('about', { about });
+        res.render('about', { about, isAdmin: req.session.isAdmin });
     });
 });
 
 
 // Ruta principal
+// Ruta principal para renderizar la página principal
 // Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {
     let productsQuery = 'SELECT * FROM products';
@@ -170,16 +176,34 @@ app.get('/', (req, res) => {
         pool.query(productsQuery).then(result => result.rows),
         pool.query(carouselQuery).then(result => result.rows),
         pool.query(aboutQuery).then(result => result.rows),
+        pool.query('SELECT imagen1 FROM imagenes LIMIT 1').then(result => result.rows[0].imagen1) // Obtener imagen1 aquí
     ])
-    .then(([products, carouselItems, aboutResult]) => {
+    .then(([products, carouselItems, aboutResult, logoUrl]) => {
         const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
 
-        res.render('index', { products: products, carouselItems: carouselItems, about, isAdmin: req.session.isAdmin });
+        res.render('index', { products, carouselItems, about, logoUrl, isAdmin: req.session.isAdmin });
     })
     .catch(err => {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
     });
+});
+
+
+
+// Ruta para mostrar el formulario de edición de imágenes
+app.get('/edit-images', requireAdmin, async (req, res) => {
+    const result = await pool.query('SELECT * FROM imagenes WHERE id = $1', [1]); // Asumiendo que solo tienes un registro con ID 1
+    const imagenes = result.rows[0];
+    res.render('editImages', { isAdmin: true, imagenes: { imagen1: 'url1', imagen2: 'url2' } });
+
+});
+
+// Ruta para manejar la actualización de las URLs de las imágenes
+app.post('/edit-images', requireAdmin, async (req, res) => {
+    const { imagen1, imagen2 } = req.body;
+    await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
+    res.redirect('/');
 });
 
 
@@ -271,8 +295,9 @@ app.post('/new', requireAdmin, (req, res) => {
 
 // Ruta para iniciar sesión
 // Ruta para iniciar sesión
+// Ruta para el inicio de sesión
 app.get('/login', (req, res) => {
-    res.render('login', { session: req.session ,isAdmin: req.session.isAdmin});
+    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
 });
 
 
@@ -315,15 +340,26 @@ app.get('/logout', (req, res) => {
 
 // Ruta para carrito de compras
 app.get('/cart', (req, res) => {
-    pool.query('SELECT * FROM products', (err, result) => {
-        if (err) {
-            console.error('Error al obtener productos para el carrito:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.render('cart', { products: result.rows,isAdmin: req.session.isAdmin });
+    let productsQuery = 'SELECT * FROM products';
+    const aboutQuery = 'SELECT * FROM about LIMIT 1';
+    const logoQuery = 'SELECT imagen1 FROM imagenes LIMIT 1'; // Query para obtener la imagen del logo
+
+    Promise.all([
+        pool.query(productsQuery).then(result => result.rows),
+        pool.query(aboutQuery).then(result => result.rows),
+        pool.query(logoQuery).then(result => result.rows[0].imagen1) // Obtener imagen1 (logo) aquí
+    ])
+    .then(([products, aboutResult, logoUrl]) => {
+        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
+
+        res.render('cart', { products, about, logoUrl, isAdmin: req.session.isAdmin });
+    })
+    .catch(err => {
+        console.error('Error al obtener productos para el carrito:', err);
+        res.status(500).send('Error interno del servidor');
     });
 });
+
 
 // Ruta para manejar la compra de productos
 
