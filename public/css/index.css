@@ -108,6 +108,9 @@
     text-align: left; /* Alinea el texto a la izquierda */
 }
 
+
+
+
 @media (max-width: 768px) {
     .carousel-caption {
         padding: 10px; /* Ajusta el padding para dispositivos móviles */

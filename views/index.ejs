@@ -6,6 +6,7 @@
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <!-- <link rel="stylesheet" href="/css/button.css"> Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <!-- Incluir la librería SheetJS -->
@@ -73,9 +74,35 @@
                 </div>
             <% } else { %>
                 <a href="/cart" class="btn btn-info mr-2">VER CATÁLOGO</a>
+                <!-- <a href="/cart" class="button-link">
+                    <button class="button mr-2">
+                      <div class="bgContainer">
+                        <span>Hover</span>
+                        <span>Hover</span>
+                      </div>
+                      <div class="arrowContainer">
+                        <svg
+                          width="25"
+                          height="25"
+                          viewBox="0 0 45 38"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M43.7678 20.7678C44.7441 19.7915 44.7441 18.2085 43.7678 17.2322L27.8579 1.32233C26.8816 0.34602 25.2986 0.34602 24.3223 1.32233C23.346 2.29864 23.346 3.88155 24.3223 4.85786L38.4645 19L24.3223 33.1421C23.346 34.1184 23.346 35.7014 24.3223 36.6777C25.2986 37.654 26.8816 37.654 27.8579 36.6777L43.7678 20.7678ZM0 21.5L42 21.5V16.5L0 16.5L0 21.5Z"
+                            fill="black"
+                          ></path>
+                        </svg>
+                      </div>
+                    </button>
+                  </a> -->
+                  
             <% } %>
         </div>
     </div>
+
+    
+      
 
     <!-- Incluir el footer -->
     <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
@@ -83,6 +110,6 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="/js/index.js"></script>
+    <script src="/js/main.js"></script>
 </body>
 </html>

@@ -1,5 +1,4 @@
 require('dotenv').config();  // Cargar variables de entorno desde .env
-
 const express = require('express');
 const session = require('express-session');
 const { Pool } = require('pg');
@@ -52,11 +51,14 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors()); // Middleware para permitir CORS
 
 // Configurar middleware para manejar sesiones
+const sessionSecret = process.env.SESSION_SECRET ;
+
 app.use(session({
-    secret: 'secret-key',
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: true,
 }));
+
 
 // Conectar a la base de datos PostgreSQL
 const pool = new Pool({
@@ -65,41 +67,9 @@ const pool = new Pool({
         rejectUnauthorized: false
     }
 });
-// Middleware para manejar la carga de archivos con Multer
-// const upload = multer({
-//     storage: multer.diskStorage({
-//         destination: function (req, file, cb) {
-//             cb(null, 'uploads/'); // Directorio donde se guardarán las imágenes
-//         },
-//         filename: function (req, file, cb) {
-//             cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
-//         }
-//     }),
-//     fileFilter: function (req, file, cb) {
-//         checkFileType(file, cb);
-//     }
-// });
 
-// Función para validar tipos de archivo permitidos
-function checkFileType(file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
 
-    if (extname && mimetype) {
-        return cb(null, true);
-    } else {
-        cb('Error: Solo se permiten imágenes (jpeg/jpg/png/gif)');
-    }
-}
-// Middleware para verificar si el usuario está autenticado
-function requireLogin(req, res, next) {
-    if (req.session.userId) {
-        next();
-    } else {
-        res.redirect('/login');
-    }
-}
+
 
 // Middleware para verificar si el usuario es administrador
 function requireAdmin(req, res, next) {
@@ -125,9 +95,12 @@ function requireAdmin(req, res, next) {
     }
 }
 
-// Ruta para obtener la URL de la primera imagen
-// Ruta para obtener la URL de la primera imagen
-// Ruta para obtener la URL de la primera imagen
+//TODOS LOS GET
+// Ruta para el inicio de sesión
+app.get('/login', (req, res) => {
+    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
+});
+
 // Ruta para obtener la URL de la primera imagen (logo)
 app.get('/logoImageUrl', (req, res) => {
     pool.query('SELECT imagen1 FROM imagenes LIMIT 1', (err, result) => {
@@ -147,6 +120,18 @@ app.get('/logoImageUrl', (req, res) => {
     });
 });
 
+// Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
+
+app.get('/edit-carousel', requireAdmin, (req, res) => {
+    pool.query('SELECT * FROM carousel', (err, result) => {
+        if (err) {
+            console.error('Error al obtener elementos del carrusel:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.render('edit-carousel', { carouselItems: result.rows ,isAdmin: req.session.isAdmin});
+    });
+});
 
 
 // Ruta para la página "about"
@@ -164,8 +149,7 @@ app.get('/about', (req, res) => {
 });
 
 
-// Ruta principal
-// Ruta principal para renderizar la página principal
+
 // Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {
     let productsQuery = 'SELECT * FROM products';
@@ -202,13 +186,31 @@ app.get('/edit-images', requireAdmin, async (req, res) => {
 
 });
 
-// Ruta para manejar la actualización de las URLs de las imágenes
-app.post('/edit-images', requireAdmin, async (req, res) => {
-    const { imagen1, imagen2 } = req.body;
-    await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
-    res.redirect('/');
-});
 
+
+// Ruta para carrito de compras
+app.get('/cart', (req, res) => {
+    let productsQuery = 'SELECT * FROM products';
+    const aboutQuery = 'SELECT * FROM about LIMIT 1';
+    const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener las imágenes
+
+    Promise.all([
+        pool.query(productsQuery).then(result => result.rows),
+        pool.query(aboutQuery).then(result => result.rows),
+        pool.query(logoQuery).then(result => result.rows[0]) // Obtener imagen1 (logo) y imagen2 aquí
+    ])
+    .then(([products, aboutResult, images]) => {
+        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
+        const logoUrl = images.imagen1; // URL de imagen1 (logo)
+        const imagenUrl2 = images.imagen2; // URL de imagen2
+
+        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
+    })
+    .catch(err => {
+        console.error('Error al obtener productos para el carrito:', err);
+        res.status(500).send('Error interno del servidor');
+    });
+});
 
 
 
@@ -226,6 +228,20 @@ app.get('/edit/:id', requireAdmin, (req, res) => {
 });
 
 
+// Ruta para cerrar sesión
+app.get('/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            console.error('Error al cerrar sesión:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.redirect('/');
+    });
+});
+
+
+
 //editar el about
 app.get('/edit-about', requireAdmin, (req, res) => {
     pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
@@ -236,6 +252,49 @@ app.get('/edit-about', requireAdmin, (req, res) => {
         }
         const about = result.rows.length > 0 ? result.rows[0] : { titulo: '', texto: '', imagen: '' };
         res.render('editAbout', { about,isAdmin: req.session.isAdmin });
+    });
+});
+
+
+// Ruta para agregar un nuevo producto (requiere autenticación de administrador)
+app.get('/new', requireAdmin, (req, res) => {
+    res.render('new',{isAdmin: req.session.isAdmin});
+});
+
+// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
+app.post('/new', requireAdmin, (req, res) => {
+    const { name, description, price, stock, image, bateria, almacenamiento } = req.body;
+    const imageUrl = image; // Utilizar la URL de la imagen proporcionada en el formulario
+    pool.query('INSERT INTO products (name, description, img, price, stock , bateria , almacenamiento) VALUES ($1, $2, $3, $4, $5 , $6 , $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento], (err) => {
+        if (err) {
+            console.error('Error al agregar nuevo producto:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        res.redirect('/');
+    });
+});
+
+
+
+// Ruta para procesar el formulario de inicio de sesión
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    pool.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password], (err, result) => {
+        if (err) {
+            console.error('Error al buscar usuario:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
+            req.session.userId = user.id;
+            req.session.isAdmin = user.isadmin;
+            res.redirect('/');
+        } else {
+            req.session.error = 'Credenciales incorrectas'; // Guardar el mensaje de error en la sesión
+            res.redirect('/login'); // Redirigir al usuario a la página de inicio de sesión
+        }
     });
 });
 
@@ -276,99 +335,8 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
         res.redirect('/');
     });
 });
-// Ruta para agregar un nuevo producto (requiere autenticación de administrador)
-app.get('/new', requireAdmin, (req, res) => {
-    res.render('new',{isAdmin: req.session.isAdmin});
-});
-
-// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-// Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-app.post('/new', requireAdmin, (req, res) => {
-    const { name, description, price, stock, image, bateria, almacenamiento } = req.body;
-    const imageUrl = image; // Utilizar la URL de la imagen proporcionada en el formulario
-    pool.query('INSERT INTO products (name, description, img, price, stock , bateria , almacenamiento) VALUES ($1, $2, $3, $4, $5 , $6 , $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento], (err) => {
-        if (err) {
-            console.error('Error al agregar nuevo producto:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.redirect('/');
-    });
-});
-
-// Ruta para iniciar sesión
-// Ruta para iniciar sesión
-// Ruta para el inicio de sesión
-app.get('/login', (req, res) => {
-    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
-});
 
 
-// Ruta para procesar el formulario de inicio de sesión
-// Ruta para procesar el formulario de inicio de sesión
-// Ruta para procesar el formulario de inicio de sesión
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    pool.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password], (err, result) => {
-        if (err) {
-            console.error('Error al buscar usuario:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        if (result.rows.length > 0) {
-            const user = result.rows[0];
-            req.session.userId = user.id;
-            req.session.isAdmin = user.isadmin;
-            res.redirect('/');
-        } else {
-            req.session.error = 'Credenciales incorrectas'; // Guardar el mensaje de error en la sesión
-            res.redirect('/login'); // Redirigir al usuario a la página de inicio de sesión
-        }
-    });
-});
-
-
-
-// Ruta para cerrar sesión
-app.get('/logout', (req, res) => {
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error al cerrar sesión:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.redirect('/');
-    });
-});
-
-// Ruta para carrito de compras
-app.get('/cart', (req, res) => {
-    let productsQuery = 'SELECT * FROM products';
-    const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener las imágenes
-
-    Promise.all([
-        pool.query(productsQuery).then(result => result.rows),
-        pool.query(aboutQuery).then(result => result.rows),
-        pool.query(logoQuery).then(result => result.rows[0]) // Obtener imagen1 (logo) y imagen2 aquí
-    ])
-    .then(([products, aboutResult, images]) => {
-        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
-        const logoUrl = images.imagen1; // URL de imagen1 (logo)
-        const imagenUrl2 = images.imagen2; // URL de imagen2
-
-        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
-    })
-    .catch(err => {
-        console.error('Error al obtener productos para el carrito:', err);
-        res.status(500).send('Error interno del servidor');
-    });
-});
-
-
-// Ruta para manejar la compra de productos
-
-// Ruta para manejar la compra de productos
 // Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
     const id = req.params.id;
@@ -407,18 +375,7 @@ app.post('/delete/:id', requireAdmin, (req, res) => {
     });
 });
 
-// Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
 // Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
-app.get('/edit-carousel', requireAdmin, (req, res) => {
-    pool.query('SELECT * FROM carousel', (err, result) => {
-        if (err) {
-            console.error('Error al obtener elementos del carrusel:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.render('edit-carousel', { carouselItems: result.rows ,isAdmin: req.session.isAdmin});
-    });
-});
 
 app.post('/edit-carousel', requireAdmin, upload.single('image'), (req, res) => {
     const { id, text, color1, color2 } = req.body;
@@ -480,6 +437,12 @@ app.post('/delete-carousel', requireAdmin, (req, res) => {
     });
 });
 
+// Ruta para manejar la actualización de las URLs de las imágenes
+app.post('/edit-images', requireAdmin, async (req, res) => {
+    const { imagen1, imagen2 } = req.body;
+    await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
+    res.redirect('/');
+});
 
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
