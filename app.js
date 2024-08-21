@@ -114,8 +114,10 @@ app.get('/edit/:id', requireAdmin, (req, res) => {
 
 // Ruta para el inicio de sesión
 app.get('/login', (req, res) => {
-    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
+    res.render('login', { logoUrl, session: req.session, isAdmin: req.session.isAdmin });
 });
+
+
 
 // Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {

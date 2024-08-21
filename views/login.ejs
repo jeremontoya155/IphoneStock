@@ -4,28 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio de Sesión</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/styles.css">
     <style>
         
     </style>
 </head>
-<body>
+<div class="login-page">
     <!-- Incluir Navbar -->
-    <%- include('partials/navbarUser') %>
+    <!-- <%- include('partials/navbarUser') %> -->
 
-    <div class="container">
-        <h1 class="text-center">Inicio de Sesión</h1>
-        <form action="/login" method="POST">
+    <div class="login-container">
+        <div class="logo">
+            <!-- Aquí podrías agregar tu logo -->
+            <% if (typeof logoUrl !== 'undefined' && logoUrl) { %>
+                <img src="<%= logoUrl %>" height="50" class="py-0" alt="Logo">
+             <% } %>
+        </div>
+        <form action="/login" method="POST" class="login-form">
             <div class="form-group">
-                <label for="username">Usuario</label>
-                <input type="text" class="form-control" id="username" name="username" required>
+                <label for="username" class="sr-only">Usuario</label>
+                <input type="username" class="form-control" id="username" name="username" placeholder="Usuario" required>
             </div>
             <div class="form-group">
-                <label for="password">Contraseña</label>
-                <input type="password" class="form-control" id="password" name="password" required>
+                <label for="password" class="sr-only">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
             </div>
-            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+            
+            <button type="submit" class="btn-login">Ingresar</button>
+
+            <div class="signup-link">
+                <p>No tenés cuenta? <a href="#">Contactate acá</a></p>
+            </div>
         </form>
     </div>
 
@@ -46,5 +57,5 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-</body>
+</div class="login-page">
 </html>

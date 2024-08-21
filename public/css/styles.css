@@ -1,4 +1,82 @@
 /* Reset CSS */
+.login-page {
+    background: linear-gradient(135deg, #ff6f61, #de5078);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Arial', sans-serif;
+}
+
+.btn-login {
+    background-color: #340634;
+    color: #fff;
+    border-radius: 25px;
+    margin-top: 10px;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    font-size: 1.1rem;
+    transition: background-color 0.3s ease;
+}
+
+.btn-login:hover {
+    background-color: #5a0b5a;
+}
+
+.login-container {
+    background: #fff;
+    padding: 2rem 2rem 0;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 100%;
+    max-width: 310px;
+}
+
+.logo img {
+    width: 100px;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control {
+    border-radius: 25px;
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    width: 100%;
+}
+
+.form-links {
+    margin-bottom: 1rem;
+    text-align: right;
+}
+
+.btn {
+    background-color: #340634;
+    color: #fff;
+    border-radius: 25px;
+    padding: 10px 20px;
+    border: none;
+}
+
+.signup-link {
+    margin-top: 1rem;
+}
+
+.signup-link a {
+    color: #340634;
+    text-decoration: none;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -14,13 +92,13 @@
   
   /* Navbar Styling */
   .navbar {
-    background-color: #fff;
+    background-color: #ffffff;
     padding: 1rem 2rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   .navbar a {
-    color: #333;
+    color: #ff0000;
     text-decoration: none;
     margin-right: 1rem;
     font-weight: 500;
