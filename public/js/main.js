@@ -49,3 +49,9 @@ document.getElementById('download-btn').addEventListener('click', function() {
     // Descargar el archivo Excel
     XLSX.writeFile(workbook, 'productos.xlsx');
 });
+
+document.getElementById('.menu-toggle').addEventListener('click', function () {
+    console.log("boton");
+    this.classList.toggle('active');
+    document.getElementById('.custom-navbar').classList.toggle('active');
+});
