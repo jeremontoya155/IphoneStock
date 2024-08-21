@@ -1,120 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-    <title>Carrito de Compras</title>
-    <!-- <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"> -->
-    <link rel="stylesheet" href="/css/carts.css">
-    <link rel="stylesheet" href="/css/index.css">
+    <title>Lista de Productos</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/modal.css">
+    <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <!-- <link rel="stylesheet" href="/css/button.css"> Asegúrate de que la ruta a index.css sea correcta -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"> <!-- Incluir Font Awesome -->
-
     <!-- Incluir la librería SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-
     <style>
-        
         .card-img-top {
             width: 100%;
             height: auto;
         }
     </style>
 </head>
+
 <body>
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-    <div class="container ">
-        <h1 class="text-center mb-4">
-            CATALOGO
-        </h1>
+        <div class="container ">
+            <h1 class="text-center mb-4">
+                CATALOGO
+            </h1>
 
-        <h2 class="text-center mb-4"><img style="width: 8em;" src="<%= imagenUrl2 %>" alt=""></h2>
+            <h2 class="text-center mb-4"><img style="width: 8em;" src="<%= imagenUrl2 %>" alt=""></h2>
 
-        <!-- Campo de búsqueda -->
-        <div class="input-group mb-3">
-            <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+            <!-- Campo de búsqueda -->
+            <div class="input-group mb-3">
+                <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+            </div>
+
+            <section class="featured-products">
+                <h2>Productos Destacados</h2>
+                <div class="products-container row" id="cart-items">
+                    <% products.forEach(product=> { %>
+                        <% if (product.stock> 0) { %>
+                            <%- include('partials/productCard', { product: product }) %>
+                                <% } %>
+                                    <% }); %>
+                </div>
+        </div>
+        </section>
+
         </div>
 
-        <div class="row" id="cart-items">
-            <% products.forEach(product => { %>
-                <% if (product.stock > 0) { %>
-                    <%- include('partials/productCard', { product: product }) %>
-                <% } %>
-            <% }); %>
-        </div>
-     
-    </div>
-
-    <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
+        <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
 
 
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrap.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <script src="/js/main.js"></script><!--  -->
+            <script>
+                // Función para filtrar los productos del carrito
+                document.getElementById('search-input').addEventListener('keyup', function () {
+                    const searchValue = this.value.toLowerCase();
+                    const items = document.querySelectorAll('#cart-items > div');
 
-    <script>
-        // Función para filtrar los productos del carrito
-        document.getElementById('search-input').addEventListener('keyup', function() {
-            const searchValue = this.value.toLowerCase();
-            const items = document.querySelectorAll('#cart-items > div');
+                    items.forEach(item => {
+                        const text = item.textContent.toLowerCase();
 
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
+                        if (text.includes(searchValue)) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
 
-                if (text.includes(searchValue)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
+                // Ocultar productos con stock igual a 0
+                document.addEventListener('DOMContentLoaded', function () {
+                    const items = document.querySelectorAll('#cart-items > div');
+
+                    items.forEach(item => {
+                        const stock = parseInt(item.getAttribute('data-stock'), 10);
+
+                        if (stock === 0) {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Función para manejar las pestañas en el modal
+                function showTab(event, tabId) {
+                    var i, tabcontent, tablinks;
+
+                    tabcontent = document.getElementsByClassName("tab-content");
+                    for (i = 0; i < tabcontent.length; i++) {
+                        tabcontent[i].style.display = "none";
+                    }
+
+                    tablinks = document.querySelectorAll(".product-detail-card .tabs button");
+                    for (i = 0; i < tablinks.length; i++) {
+                        tablinks[i].className = tablinks[i].className.replace(" active", "");
+                    }
+
+                    document.getElementById(tabId).style.display = "block";
+                    event.currentTarget.className += " active";
                 }
-            });
-        });
 
-        // Ocultar productos con stock igual a 0
-        document.addEventListener('DOMContentLoaded', function() {
-            const items = document.querySelectorAll('#cart-items > div');
-
-            items.forEach(item => {
-                const stock = parseInt(item.getAttribute('data-stock'), 10);
-
-                if (stock === 0) {
-                    item.style.display = 'none';
-                }
-            });
-        });
-
-        // Función para manejar las pestañas en el modal
-        function showTab(event, tabId) {
-            var i, tabcontent, tablinks;
-
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
-                tabcontent[i].style.display = "none";
-            }
-
-            tablinks = document.querySelectorAll(".product-detail-card .tabs button");
-            for (i = 0; i < tablinks.length; i++) {
-                tablinks[i].className = tablinks[i].className.replace(" active", "");
-            }
-
-            document.getElementById(tabId).style.display = "block";
-            event.currentTarget.className += " active";
-        }
-
-        // Mostrar la pestaña "General" por defecto
-        document.addEventListener('DOMContentLoaded', function() {
-            var defaultTabs = document.querySelectorAll('.tabs button.active');
-            defaultTabs.forEach(function(tab) {
-                var tabId = tab.getAttribute('onclick').match(/'([^']+)'/)[1];
-                document.getElementById(tabId).style.display = 'block';
-            });
-        });
-    </script>
+                // Mostrar la pestaña "General" por defecto
+                document.addEventListener('DOMContentLoaded', function () {
+                    var defaultTabs = document.querySelectorAll('.tabs button.active');
+                    defaultTabs.forEach(function (tab) {
+                        var tabId = tab.getAttribute('onclick').match(/'([^']+)'/)[1];
+                        document.getElementById(tabId).style.display = 'block';
+                    });
+                });
+            </script>
 </body>
+
 </html>
