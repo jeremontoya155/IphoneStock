@@ -1,29 +1,37 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="custom-navbar" id="custom-navbar">
     <% if (typeof logoUrl !== 'undefined' && logoUrl) { %>
-        <a class="navbar-brand" href="/">
-            <img src="<%= logoUrl %>" height="50" class="py-0" alt="Logo">
+        <a class="brand-logo" href="/">
+            <img src="<%= logoUrl %>" alt="Logo">
         </a>
     <% } %>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
-        aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
+        <span class="menu-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-                <a class="nav-link" href="/">Inicio</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/cart">Catálogo</a>
-            </li>
+    <div class="navbar-menu">
+        <ul>
+            <li><a href="/">Inicio</a></li>
+            <li><a href="/cart">Catálogo</a></li>
             <% if (isAdmin) { %>
-                <li class="nav-item">
-                    <a href="/edit-about" class="nav-link">Editar About</a>
-                </li>
-                <li class="nav-item">
-                    <a href="/logout" class="btn btn-danger mr-2">Cerrar Sesión</a>
-                </li>
+                <li><a href="/edit-about">Editar About</a></li>
             <% } %>
         </ul>
     </div>
 </nav>
+<script>
+    const menuToggle = document.querySelector('.menu-toggle');
+    const navbar = document.querySelector('.custom-navbar');
+
+    // Manejar el clic en el botón de menú
+    menuToggle.addEventListener('click', function() {
+        this.classList.toggle('active');
+        navbar.classList.toggle('active');
+    });
+
+    // Cerrar el menú cuando se hace clic fuera de él
+    document.addEventListener('click', function(event) {
+        if (!navbar.contains(event.target) && !menuToggle.contains(event.target)) {
+            menuToggle.classList.remove('active');
+            navbar.classList.remove('active');
+        }
+    });
+</script>
