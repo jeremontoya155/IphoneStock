@@ -1,17 +1,6 @@
 
 /* Navbar personalizado */
-.custom-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 1rem;
-    background-color: white;
-    border-bottom: 1px solid #ddd;
-}
 
-.brand-logo img {
-    height: 30px;
-}
 
 .menu-toggle {
     background: none;
