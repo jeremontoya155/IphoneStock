@@ -1,6 +1,6 @@
 /* CSS personalizado para mejorar la apariencia */
-body {
-    padding-top: 56px;
+.cart-container {
+    margin-top: 65px;
     padding-bottom: 20px;
     background-color: #f8f9fa; /* Color de fondo */
 }

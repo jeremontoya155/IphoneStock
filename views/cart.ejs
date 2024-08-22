@@ -7,6 +7,8 @@
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/carts.css">
+
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
     <!-- <link rel="stylesheet" href="/css/button.css"> Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -26,7 +28,7 @@
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-        <div class="container ">
+        <div class="container cart-container ">
             <h2 class="catalogo-title">
                 CATALOGO
             </h2>
@@ -43,9 +45,15 @@
                 <!-- Filtro por modelo -->
                 <select id="model-filter" class="form-control mb-2">
                     <option value="">Todos los modelos</option>
-                    <option value="IPhone 15">IPhone 15</option>
-                    <option value="IPhone 14">IPhone 14</option>
-                    <!-- Agrega más opciones según tus modelos disponibles -->
+                    <% let uniqueModels=new Set(); products.forEach(product=> {
+                        if (product.stock > 0 && !uniqueModels.has(product.name)) {
+                        uniqueModels.add(product.name);
+                        %>
+
+                        <option value="<%= product.name.toLowerCase() %>">
+                            <%= product.name %>
+                        </option>
+                        <% } }); %>
                 </select>
 
                 <!-- Filtro por porcentaje mínimo de batería -->
@@ -95,12 +103,12 @@
                 document.getElementById('model-filter').addEventListener('change', function () {
                     const modelValue = this.value.toLowerCase(); // Captura el valor del select
                     const items = document.querySelectorAll('.product-card');
-/* 
-                    const items = document.querySelectorAll('#cart-items > div'); */
+                    /* 
+                                        const items = document.querySelectorAll('#cart-items > div'); */
                     console.log(modelValue);
 
                     items.forEach(item => {
-                        const productModel = item.querySelector('.product-name').textContent.toLowerCase(); // Ahora usamos la clase product-name
+                        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim() // Ahora usamos la clase product-name
                         console.log(productModel)
 
                         if (modelValue === '' || productModel === modelValue) {
