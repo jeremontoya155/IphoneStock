@@ -86,13 +86,12 @@
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 15px;
+  padding: 5px;
   text-align: center;
   display: flex;
   height: 430px;
   width: 180px;
   flex-direction: column;
-  flex: 1;
   justify-content: space-between;
 }
 
@@ -106,6 +105,13 @@
     .product-card {
         flex-basis: calc(50% - 20px); /* Cards ocupan 50% del contenedor en móviles */
         max-width: calc(50% - 20px); /* Asegura que el ancho máximo sea 50% */
+    }
+}
+
+@media (max-width: 480px) {
+    .product-card {
+        flex-basis: 100%; 
+        max-width: 80%;
     }
 }
 
