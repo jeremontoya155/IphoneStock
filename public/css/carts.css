@@ -10,3 +10,10 @@ body {
 }
 /* Estilos para las Cards de Productos */
 
+.catalogo-title {
+    text-align: center;
+}
+
+.catalogo-logo {
+      text-align: center;
+}

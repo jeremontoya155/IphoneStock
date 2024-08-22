@@ -27,15 +27,29 @@
     <%- include('partials/navbarUser') %>
 
         <div class="container ">
-            <h1 class="text-center mb-4">
+            <h2 class="catalogo-title">
                 CATALOGO
-            </h1>
-
-            <h2 class="text-center mb-4"><img style="width: 8em;" src="<%= imagenUrl2 %>" alt=""></h2>
+            </h2>
+            <div class="catalogo-logo">
+                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
+            </div>
 
             <!-- Campo de búsqueda -->
             <div class="input-group mb-3">
                 <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+            </div>
+            <!-- Filtros adicionales -->
+            <div class="filters mb-3">
+                <!-- Filtro por modelo -->
+                <select id="model-filter" class="form-control mb-2">
+                    <option value="">Todos los modelos</option>
+                    <option value="IPhone 15">IPhone 15</option>
+                    <option value="IPhone 14">IPhone 14</option>
+                    <!-- Agrega más opciones según tus modelos disponibles -->
+                </select>
+
+                <!-- Filtro por porcentaje mínimo de batería -->
+                <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
             </div>
 
             <section class="featured-products">
@@ -64,6 +78,7 @@
                 document.getElementById('search-input').addEventListener('keyup', function () {
                     const searchValue = this.value.toLowerCase();
                     const items = document.querySelectorAll('#cart-items > div');
+                    console.log(searchValue);
 
                     items.forEach(item => {
                         const text = item.textContent.toLowerCase();
@@ -75,6 +90,27 @@
                         }
                     });
                 });
+
+                // Filtro por modelo
+                document.getElementById('model-filter').addEventListener('change', function () {
+                    const modelValue = this.value.toLowerCase(); // Captura el valor del select
+                    const items = document.querySelectorAll('.product-card');
+/* 
+                    const items = document.querySelectorAll('#cart-items > div'); */
+                    console.log(modelValue);
+
+                    items.forEach(item => {
+                        const productModel = item.querySelector('.product-name').textContent.toLowerCase(); // Ahora usamos la clase product-name
+                        console.log(productModel)
+
+                        if (modelValue === '' || productModel === modelValue) {
+                            item.style.display = '';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                });
+
 
                 // Ocultar productos con stock igual a 0
                 document.addEventListener('DOMContentLoaded', function () {

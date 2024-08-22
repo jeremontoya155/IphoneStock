@@ -1,4 +1,5 @@
 /* Reset CSS */
+@import 'carts.css';
 
 /* LOGIN */
 .login-page {
@@ -86,7 +87,7 @@
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 5px;
+  padding: 15px;
   text-align: center;
   display: flex;
   height: 430px;
@@ -381,7 +382,6 @@
 .product-card p {
   font-size: 1rem;
   color: #555;
-  margin-bottom: 15px;
 }
 
 .btn-buy {
