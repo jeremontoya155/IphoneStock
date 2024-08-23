@@ -12,8 +12,11 @@
       <div class="battery-status">
         <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
         <p class="bateria">
-          <%= product.bateria %>%
+          <span class="bateria-num"> 
+            <%= product.bateria %> 
+          </span>%
         </p>
+        
       </div>
       <button type="button" class="btn-ver-mas-small" data-toggle="modal"
         data-target="#productModal<%= product.id %>">Ver más</button>

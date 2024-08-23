@@ -35,7 +35,7 @@
             <div class="catalogo-logo">
                 <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
             </div>
-
+            
             <!-- Campo de búsqueda -->
             <div class="input-group mb-3">
                 <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
@@ -103,8 +103,7 @@
                 document.getElementById('model-filter').addEventListener('change', function () {
                     const modelValue = this.value.toLowerCase(); // Captura el valor del select
                     const items = document.querySelectorAll('.product-card');
-                    /* 
-                                        const items = document.querySelectorAll('#cart-items > div'); */
+                    
                     console.log(modelValue);
 
                     items.forEach(item => {
@@ -115,6 +114,24 @@
                             item.style.display = '';
                         } else {
                             item.style.display = 'none';
+                        }
+                    });
+                });
+
+                // Filtro bateria
+                document.getElementById('battery-filter').addEventListener('change', function () {
+                    const bateryFilterValue = this.value.toLowerCase();
+                    const items = document.querySelectorAll('.product-card');
+
+                    items.forEach(item => {
+                        console.log(bateryFilterValue);
+                        const productBatery = parseInt(item.querySelector('.bateria-num').textContent)
+                        console.log(productBatery);
+
+                        if (productBatery < bateryFilterValue) {
+                            item.style.display = 'none';
+                        } else {
+                            item.style.display = '';
                         }
                     });
                 });
