@@ -98,7 +98,23 @@ function requireAdmin(req, res, next) {
 //TODOS LOS GET
 // Ruta para el inicio de sesión
 app.get('/login', (req, res) => {
-    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
+    pool.query('SELECT imagen2 FROM imagenes LIMIT 1', (err, result) => {
+        if (err) {
+            console.error('Error al obtener la URL de la primera imagen:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        
+        if (result.rows.length === 0) {
+            res.status(404).send('No se encontró la URL de la primera imagen');
+            return;
+        }
+
+        const { imagen2 } = result.rows[0];
+        res.render('login', { session: req.session, isAdmin: req.session.isAdmin,logoUrl:imagen2 });
+    });
+    
+   
 });
 
 // Ruta para obtener la URL de la primera imagen (logo)
