@@ -35,7 +35,7 @@
             <div class="catalogo-logo">
                 <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
             </div>
-            
+
             <!-- Campo de búsqueda -->
             <div class="input-group mb-3">
                 <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
@@ -49,7 +49,6 @@
                         if (product.stock > 0 && !uniqueModels.has(product.name)) {
                         uniqueModels.add(product.name);
                         %>
-
                         <option value="<%= product.name.toLowerCase() %>">
                             <%= product.name %>
                         </option>
@@ -58,7 +57,11 @@
 
                 <!-- Filtro por porcentaje mínimo de batería -->
                 <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+
+                <!-- Botón de buscar -->
+                <button id="filter-button" class="btn btn-primary">Buscar</button>
             </div>
+
 
             <section class="featured-products">
                 <h2>Productos Destacados</h2>
@@ -83,72 +86,49 @@
             <script src="/js/main.js"></script><!--  -->
             <script>
                 // Función para filtrar los productos del carrito
-                document.getElementById('search-input').addEventListener('keyup', function () {
-                    const searchValue = this.value.toLowerCase();
-                    const items = document.querySelectorAll('#cart-items > div');
-                    console.log(searchValue);
+                // Función para filtrar productos
+                // Función para filtrar productos
+                function filterProducts() {
+                    const searchValue = document.getElementById('search-input').value.toLowerCase().trim();
+                    const modelValue = document.getElementById('model-filter').value.toLowerCase().trim();
+                    const batteryFilterValue = parseInt(document.getElementById('battery-filter').value) || 0;
+                    const items = document.querySelectorAll('.product-card');
 
                     items.forEach(item => {
                         const text = item.textContent.toLowerCase();
+                        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim();
+                        const productBattery = parseInt(item.querySelector('.bateria-num').textContent.trim());
 
-                        if (text.includes(searchValue)) {
+                        // Aplicar todos los filtros combinados
+                        const matchesSearch = text.includes(searchValue);
+                        const matchesModel = modelValue === '' || productModel === modelValue;
+                        const matchesBattery = productBattery >= batteryFilterValue;
+
+                        // Mostrar u ocultar el producto basado en todos los criterios
+                        if (matchesSearch && matchesModel && matchesBattery) {
                             item.style.display = '';
                         } else {
                             item.style.display = 'none';
                         }
                     });
+                }
+
+                // Asignar la función al botón de búsqueda
+                document.getElementById('filter-button').addEventListener('click', filterProducts);
+
+                // Opcional: Si también quieres permitir el filtrado al presionar "Enter"
+                document.getElementById('search-input').addEventListener('keyup', function (event) {
+                    if (event.key === 'Enter') {
+                        filterProducts();
+                    }
                 });
-
-                // Filtro por modelo
-                document.getElementById('model-filter').addEventListener('change', function () {
-                    const modelValue = this.value.toLowerCase(); // Captura el valor del select
-                    const items = document.querySelectorAll('.product-card');
-                    
-                    console.log(modelValue);
-
-                    items.forEach(item => {
-                        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim() // Ahora usamos la clase product-name
-                        console.log(productModel)
-
-                        if (modelValue === '' || productModel === modelValue) {
-                            item.style.display = '';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                });
-
-                // Filtro bateria
-                document.getElementById('battery-filter').addEventListener('change', function () {
-                    const bateryFilterValue = this.value.toLowerCase();
-                    const items = document.querySelectorAll('.product-card');
-
-                    items.forEach(item => {
-                        console.log(bateryFilterValue);
-                        const productBatery = parseInt(item.querySelector('.bateria-num').textContent)
-                        console.log(productBatery);
-
-                        if (productBatery < bateryFilterValue) {
-                            item.style.display = 'none';
-                        } else {
-                            item.style.display = '';
-                        }
-                    });
+                document.getElementById('battery-filter').addEventListener('keyup', function (event) {
+                    if (event.key === 'Enter') {
+                        filterProducts();
+                    }
                 });
 
 
-                // Ocultar productos con stock igual a 0
-                document.addEventListener('DOMContentLoaded', function () {
-                    const items = document.querySelectorAll('#cart-items > div');
-
-                    items.forEach(item => {
-                        const stock = parseInt(item.getAttribute('data-stock'), 10);
-
-                        if (stock === 0) {
-                            item.style.display = 'none';
-                        }
-                    });
-                });
 
                 // Función para manejar las pestañas en el modal
                 function showTab(event, tabId) {
