@@ -38,11 +38,13 @@
 
             <!-- Campo de búsqueda -->
             <div class="input-group mb-3">
+
                 <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
             </div>
             <!-- Filtros adicionales -->
             <div class="filters mb-3">
                 <!-- Filtro por modelo -->
+                <label for="model-filter">Modelo</label>
                 <select id="model-filter" class="form-control mb-2">
                     <option value="">Todos los modelos</option>
                     <% let uniqueModels=new Set(); products.forEach(product=> {
@@ -56,6 +58,7 @@
                 </select>
 
                 <!-- Filtro por porcentaje mínimo de batería -->
+                <label for="battery-filter">Batería</label>
                 <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
 
                 <!-- Botón de buscar -->
@@ -64,7 +67,6 @@
 
 
             <section class="featured-products">
-                <h2>Productos Destacados</h2>
                 <div class="products-container row" id="cart-items">
                     <% products.forEach(product=> { %>
                         <% if (product.stock> 0) { %>
