@@ -175,7 +175,6 @@ app.get('/edit-carousel', requireAdmin, (req, res) => {
         res.render('edit-carousel', { carouselItems: result.rows, isAdmin: req.session.isAdmin });
     });
 });
-
 // Ruta para la página "about"
 app.get('/about', (req, res) => {
     pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
@@ -403,37 +402,59 @@ app.post('/delete/:id', requireAdmin, async (req, res) => {
 });
 
 // Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
-app.post('/edit-carousel', requireAdmin, upload.single('image'), async (req, res) => {
+// Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
+app.post('/edit-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), (req, res) => {
     const { id, text, color1, color2 } = req.body;
-    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
+    let imageUrl = req.body.image; 
+    let mobileImageUrl = req.body.mobileImage; 
 
-    // Verificar si se subió una nueva imagen
-    if (req.file) {
-        imageUrl = req.file.path; // Utilizar la nueva imagen subida a Cloudinary
+    // Si se subió una nueva imagen, usarla
+    if (req.files['image']) {
+        imageUrl = req.files['image'][0].path;  // Utiliza la URL de Cloudinary
+    }
+    if (req.files['mobileImage']) {
+        mobileImageUrl = req.files['mobileImage'][0].path;  // Utiliza la URL de Cloudinary
     }
 
-    // Consultar la imagen actual para manejar el caso donde no se sube una nueva
-    try {
-        const result = await pool.query('SELECT img FROM carousel WHERE id = $1', [id]);
+    // Consultar las imágenes actuales para manejar el caso donde no se suben nuevas imágenes
+    pool.query('SELECT img, imagenMobile FROM carousel WHERE id = $1', [id], (err, result) => {
+        if (err) {
+            console.error('Error al obtener imagen actual del carrusel:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
 
-        // Si no se subió una nueva imagen, mantener la imagen existente
-        if (!req.file && result.rows.length > 0) {
+        if (!req.files['image'] && result.rows.length > 0) {
             imageUrl = result.rows[0].img;
         }
+        if (!req.files['mobileImage'] && result.rows.length > 0) {
+            mobileImageUrl = result.rows[0].imagenmobile;
+        }
 
-        // Insertar o actualizar el elemento del carrusel en la base de datos
         if (id) {
             // Si hay un ID, actualizamos
-            await pool.query('UPDATE carousel SET text = $1, img = $2, color1 = $3, color2 = $4 WHERE id = $5', [text, imageUrl, color1, color2, id]);
+            pool.query('UPDATE carousel SET text = $1, img = $2, imagenMobile = $3, color1 = $4, color2 = $5 WHERE id = $6', [text, imageUrl, mobileImageUrl, color1, color2, id], (err) => {
+                if (err) {
+                    console.error('Error al actualizar elemento del carrusel:', err);
+                    res.status(500).send('Error interno del servidor');
+                    return;
+                }
+                res.redirect('/edit-carousel');
+            });
         } else {
             // Si no hay un ID, insertamos un nuevo elemento
-            await pool.query('INSERT INTO carousel (text, img, color1, color2) VALUES ($1, $2, $3, $4)', [text, imageUrl, color1, color2]);
-        }
-        res.redirect('/edit-carousel');
-    } catch (err) {
-        console.error('Error al agregar o actualizar elemento del carrusel:', err);
+         // Si no hay un ID, insertamos un nuevo elemento
+pool.query('INSERT INTO carousel (text, img, imagenMobile, color1, color2) VALUES ($1, $2, $3, $4, $5)', [text, imageUrl, mobileImageUrl, color1, color2], (err) => {
+    if (err) {
+        console.error('Error al agregar nuevo elemento al carrusel:', err);
         res.status(500).send('Error interno del servidor');
+        return;
     }
+    res.redirect('/edit-carousel');
+});
+
+        }
+    });
 });
 
 // Ruta para eliminar un elemento del carrusel
