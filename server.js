@@ -175,6 +175,8 @@ app.get('/edit-carousel', requireAdmin, (req, res) => {
         res.render('edit-carousel', { carouselItems: result.rows, isAdmin: req.session.isAdmin });
     });
 });
+
+
 // Ruta para la página "about"
 app.get('/about', (req, res) => {
     pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
@@ -402,60 +404,66 @@ app.post('/delete/:id', requireAdmin, async (req, res) => {
 });
 
 // Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
-// Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
-app.post('/edit-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), (req, res) => {
+app.post('/edit-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), async (req, res) => {
     const { id, text, color1, color2 } = req.body;
-    let imageUrl = req.body.image; 
-    let mobileImageUrl = req.body.mobileImage; 
+    let imageUrl;
+    let mobileImageUrl;
 
-    // Si se subió una nueva imagen, usarla
-    if (req.files['image']) {
-        imageUrl = req.files['image'][0].path;  // Utiliza la URL de Cloudinary
-    }
-    if (req.files['mobileImage']) {
-        mobileImageUrl = req.files['mobileImage'][0].path;  // Utiliza la URL de Cloudinary
-    }
-
-    // Consultar las imágenes actuales para manejar el caso donde no se suben nuevas imágenes
-    pool.query('SELECT img, imagenMobile FROM carousel WHERE id = $1', [id], (err, result) => {
-        if (err) {
-            console.error('Error al obtener imagen actual del carrusel:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
+    try {
+        // Verificar si el ID es válido
+        if (!id) {
+            return res.status(400).send('ID inválido');
         }
 
-        if (!req.files['image'] && result.rows.length > 0) {
-            imageUrl = result.rows[0].img;
-        }
-        if (!req.files['mobileImage'] && result.rows.length > 0) {
-            mobileImageUrl = result.rows[0].imagenmobile;
+        // Consultar las imágenes actuales para manejar el caso donde se suben nuevas imágenes
+        const currentImagesQuery = await pool.query('SELECT img, imagenMobile FROM carousel WHERE id = $1', [id]);
+
+        // Verificar si se encontró un registro
+        if (currentImagesQuery.rows.length === 0) {
+            return res.status(404).send('Elemento no encontrado');
         }
 
-        if (id) {
-            // Si hay un ID, actualizamos
-            pool.query('UPDATE carousel SET text = $1, img = $2, imagenMobile = $3, color1 = $4, color2 = $5 WHERE id = $6', [text, imageUrl, mobileImageUrl, color1, color2, id], (err) => {
-                if (err) {
-                    console.error('Error al actualizar elemento del carrusel:', err);
-                    res.status(500).send('Error interno del servidor');
-                    return;
-                }
-                res.redirect('/edit-carousel');
-            });
+        const currentImages = currentImagesQuery.rows[0];
+
+        // Si se subió una nueva imagen normal, eliminar la existente y guardar la nueva
+        if (req.files['image']) {
+            if (currentImages.img) {
+                const publicId = currentImages.img.split('/').pop().split('.')[0]; // Obtener el public_id de Cloudinary
+                await cloudinary.uploader.destroy(publicId); // Eliminar la imagen de Cloudinary
+            }
+            imageUrl = req.files['image'][0].path;  // Guardar la URL de la nueva imagen
         } else {
-            // Si no hay un ID, insertamos un nuevo elemento
-         // Si no hay un ID, insertamos un nuevo elemento
-pool.query('INSERT INTO carousel (text, img, imagenMobile, color1, color2) VALUES ($1, $2, $3, $4, $5)', [text, imageUrl, mobileImageUrl, color1, color2], (err) => {
-    if (err) {
-        console.error('Error al agregar nuevo elemento al carrusel:', err);
+            imageUrl = currentImages.img; // Mantener la imagen existente si no se sube una nueva
+        }
+
+        // Si se subió una nueva imagen móvil, eliminar la existente y guardar la nueva
+        if (req.files['mobileImage']) {
+            if (currentImages.imagenmobile) {
+                const publicId = currentImages.imagenmobile.split('/').pop().split('.')[0]; // Obtener el public_id de Cloudinary
+                await cloudinary.uploader.destroy(publicId); // Eliminar la imagen móvil de Cloudinary
+            }
+            mobileImageUrl = req.files['mobileImage'][0].path;  // Guardar la URL de la nueva imagen móvil
+        } else {
+            mobileImageUrl = currentImages.imagenmobile; // Mantener la imagen existente si no se sube una nueva
+        }
+
+        // Actualizar el registro en la base de datos
+        await pool.query(
+            'UPDATE carousel SET text = $1, img = $2, imagenMobile = $3, color1 = $4, color2 = $5 WHERE id = $6',
+            [text, imageUrl, mobileImageUrl, color1, color2, id]
+        );
+
+        res.redirect('/edit-carousel');
+    } catch (err) {
+        console.error('Error al actualizar el carrusel:', err);
         res.status(500).send('Error interno del servidor');
-        return;
     }
-    res.redirect('/edit-carousel');
 });
 
-        }
-    });
-});
+
+
+
+
 
 // Ruta para eliminar un elemento del carrusel
 app.post('/delete-carousel', requireAdmin, async (req, res) => {
