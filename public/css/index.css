@@ -108,7 +108,11 @@
     text-align: left; /* Alinea el texto a la izquierda */
 }
 
-
+.editar-carousel {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 2rem;
+}
 
 
 @media (max-width: 768px) {

@@ -126,8 +126,18 @@
 .product-image-container {
   border-radius: 10px;
   background-color: #f9f9f9;
-  height: 65%;
+  height: 65%; /* Mantiene la altura original del contenedor */
+  position: relative;
+  overflow: hidden; /* Asegura que la imagen no se desborde del contenedor */
 }
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit:scale-down; /* Ajusta la imagen para que cubra todo el contenedor sin distorsionarse */
+  border-radius: 10px; /* Mantiene los bordes redondeados */
+}
+
 
 .btn-ver-mas-small {
   font-size: 1rem;
@@ -143,7 +153,7 @@
   padding: 10px;
   text-align: center;
 }
-.ver-mas a {
+.btn-generico {
   background-color: #800020; 
     color: #fff; 
     border: none; 
@@ -152,22 +162,21 @@
     cursor: pointer; 
     border-radius: 5px;
     width: 180px;
+    text-decoration: none;
+    margin: 5px 15px;
+    text-align: center;
 }
 
-.ver-mas a:hover {
+.btn-generico:hover {
  background-color: #ff4a4a;
+ text-decoration: none;
+ color: white;
 }
 
 .btn-ver-mas-small:hover {
   color: #ff4a4a;
 }
 
-.product-image {
-  height: 100%;
-  max-width: 100%;
-  aspect-ratio: 16/4;
-
-}
 
 .product-details h3 {
   font-size: 1.5rem;
@@ -461,10 +470,6 @@
   color: #333;
 }
 
-/* Sección del carousel */
-.carousel-section {
-  margin-bottom: 40px;
-}
 
 /* Sección de productos destacados */
 .featured-products {
@@ -532,30 +537,6 @@ body {
   color: #333;
 }
 
-/* Navbar Styling */
-/* .navbar {
-  background-color: #ffffff;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar a {
-  color: #ff0000;
-  text-decoration: none;
-  margin-right: 1rem;
-  font-weight: 500;
-}
-
-.navbar a:hover {
-  color: #0070c9;
-}
- */
-/* Main Content Styling */
-.container {
-  max-width: 1200px;
-  margin: 0;
-  padding: 0 2rem;
-}
 
 h1,
 h2,
