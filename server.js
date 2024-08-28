@@ -489,6 +489,35 @@ app.post('/edit-images', requireAdmin, async (req, res) => {
     }
 });
 
+
+// Ruta para agregar un nuevo elemento al carrusel
+app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), async (req, res) => {
+    const { text, color1, color2 } = req.body;
+    let imageUrl;
+    let mobileImageUrl;
+
+    try {
+        if (req.files['image']) {
+            imageUrl = req.files['image'][0].path; // Guardar la URL de la nueva imagen
+        }
+        if (req.files['mobileImage']) {
+            mobileImageUrl = req.files['mobileImage'][0].path; // Guardar la URL de la nueva imagen móvil
+        }
+
+        // Insertar el nuevo elemento en la base de datos
+        await pool.query(
+            'INSERT INTO carousel (text, img, imagenMobile, color1, color2) VALUES ($1, $2, $3, $4, $5)',
+            [text, imageUrl, mobileImageUrl, color1, color2]
+        );
+
+        res.redirect('/edit-carousel');
+    } catch (err) {
+        console.error('Error al agregar el nuevo elemento al carrusel:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
