@@ -138,6 +138,50 @@
   border-radius: 10px; /* Mantiene los bordes redondeados */
 }
 
+/* Ocultar la imagen de escritorio por defecto */
+.img-desktop {
+  display: none;
+}
+
+/* Mostrar la imagen de escritorio solo en pantallas grandes */
+@media (min-width: 768px) {
+  .img-desktop {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .img-mobile {
+    display: none;
+  }
+}
+
+/* Mostrar la imagen móvil solo en pantallas pequeñas */
+@media (max-width: 767px) {
+  .img-mobile {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Asegurar que el contenedor tenga una posición relativa para que funcione el centrado absoluto */
+.carousel-item {
+  position: relative;
+  height: 400px; /* Ajusta la altura del carrusel según lo necesites */
+  overflow: hidden; /* Asegura que la imagen no se desborde */
+}
+
+
 
 .btn-ver-mas-small {
   font-size: 1rem;
