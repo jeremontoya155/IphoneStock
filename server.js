@@ -350,17 +350,21 @@ app.post('/edit-about', requireAdmin, upload.single('image'), async (req, res) =
 });
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
+// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
     const { name, description, price, stock, bateria, almacenamiento } = req.body;
-    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
+    let imageUrl = req.body.image; // Mantener la URL actual de la imagen
 
     if (req.file) {
         imageUrl = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
     }
 
     try {
-        await pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $7, almacenamiento = $8 WHERE id = $6', [name, description, imageUrl, price, stock, id, bateria, almacenamiento]);
+        await pool.query(
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7 WHERE id = $8',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, id]
+        );
         res.redirect('/');
     } catch (err) {
         console.error('Error al actualizar producto:', err);
