@@ -5,13 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Editar About</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <link rel="stylesheet" href="/css/styles.css">
+
 </head>
 <body>
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
 
     <div class="container my-5">
         <h1 class="text-center">Editar About</h1>
-        <form action="/edit-about" method="post">
+        <form action="/edit-about" method="post" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="titulo">Título</label>
                 <input type="text" class="form-control" id="titulo" name="titulo" value="<%= about.titulo %>">
@@ -21,8 +24,8 @@
                 <textarea class="form-control" id="texto" name="texto" rows="5"><%= about.texto %></textarea>
             </div>
             <div class="form-group">
-                <label for="imagen">URL de la Imagen</label>
-                <input type="text" class="form-control" id="imagen" name="imagen" value="<%= about.imagen %>">
+                <label for="imagen">Imagen (archivo)</label>
+                <input type="file" class="form-control" id="imagen" name="imagen" accept="image/*">
                 <img src="<%= about.imagen %>" class="img-fluid mt-3" alt="Imagen actual">
             </div>
             <button type="submit" class="btn btn-primary">Guardar cambios</button>

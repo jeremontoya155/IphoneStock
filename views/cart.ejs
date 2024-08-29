@@ -7,6 +7,8 @@
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/carts.css">
+    <link rel="stylesheet" href="/css/modal.css">
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
     <!-- <link rel="stylesheet" href="/css/button.css"> Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
@@ -26,20 +28,45 @@
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-        <div class="container ">
-            <h1 class="text-center mb-4">
+        <div class="container cart-container ">
+            <h2 class="catalogo-title">
                 CATALOGO
-            </h1>
-
-            <h2 class="text-center mb-4"><img style="width: 8em;" src="<%= imagenUrl2 %>" alt=""></h2>
+            </h2>
+            <div class="catalogo-logo">
+                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
+            </div>
 
             <!-- Campo de búsqueda -->
             <div class="input-group mb-3">
+
                 <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
             </div>
+            <!-- Filtros adicionales -->
+            <div class="filters mb-3">
+                <!-- Filtro por modelo -->
+                <label for="model-filter">Modelo</label>
+                <select id="model-filter" class="form-control mb-2">
+                    <option value="">Todos los modelos</option>
+                    <% let uniqueModels=new Set(); products.forEach(product=> {
+                        if (product.stock > 0 && !uniqueModels.has(product.name)) {
+                        uniqueModels.add(product.name);
+                        %>
+                        <option value="<%= product.name.toLowerCase() %>">
+                            <%= product.name %>
+                        </option>
+                        <% } }); %>
+                </select>
+
+                <!-- Filtro por porcentaje mínimo de batería -->
+                <label for="battery-filter">Batería</label>
+                <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+
+                <!-- Botón de buscar -->
+                <button id="filter-button" class="btn btn-primary">Buscar</button>
+            </div>
+
 
             <section class="featured-products">
-                <h2>Productos Destacados</h2>
                 <div class="products-container row" id="cart-items">
                     <% products.forEach(product=> { %>
                         <% if (product.stock> 0) { %>
@@ -61,33 +88,49 @@
             <script src="/js/main.js"></script><!--  -->
             <script>
                 // Función para filtrar los productos del carrito
-                document.getElementById('search-input').addEventListener('keyup', function () {
-                    const searchValue = this.value.toLowerCase();
-                    const items = document.querySelectorAll('#cart-items > div');
+                // Función para filtrar productos
+                // Función para filtrar productos
+                function filterProducts() {
+                    const searchValue = document.getElementById('search-input').value.toLowerCase().trim();
+                    const modelValue = document.getElementById('model-filter').value.toLowerCase().trim();
+                    const batteryFilterValue = parseInt(document.getElementById('battery-filter').value) || 0;
+                    const items = document.querySelectorAll('.product-card');
 
                     items.forEach(item => {
                         const text = item.textContent.toLowerCase();
+                        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim();
+                        const productBattery = parseInt(item.querySelector('.bateria-num').textContent.trim());
 
-                        if (text.includes(searchValue)) {
+                        // Aplicar todos los filtros combinados
+                        const matchesSearch = text.includes(searchValue);
+                        const matchesModel = modelValue === '' || productModel === modelValue;
+                        const matchesBattery = productBattery >= batteryFilterValue;
+
+                        // Mostrar u ocultar el producto basado en todos los criterios
+                        if (matchesSearch && matchesModel && matchesBattery) {
                             item.style.display = '';
                         } else {
                             item.style.display = 'none';
                         }
                     });
+                }
+
+                // Asignar la función al botón de búsqueda
+                document.getElementById('filter-button').addEventListener('click', filterProducts);
+
+                // Opcional: Si también quieres permitir el filtrado al presionar "Enter"
+                document.getElementById('search-input').addEventListener('keyup', function (event) {
+                    if (event.key === 'Enter') {
+                        filterProducts();
+                    }
+                });
+                document.getElementById('battery-filter').addEventListener('keyup', function (event) {
+                    if (event.key === 'Enter') {
+                        filterProducts();
+                    }
                 });
 
-                // Ocultar productos con stock igual a 0
-                document.addEventListener('DOMContentLoaded', function () {
-                    const items = document.querySelectorAll('#cart-items > div');
 
-                    items.forEach(item => {
-                        const stock = parseInt(item.getAttribute('data-stock'), 10);
-
-                        if (stock === 0) {
-                            item.style.display = 'none';
-                        }
-                    });
-                });
 
                 // Función para manejar las pestañas en el modal
                 function showTab(event, tabId) {

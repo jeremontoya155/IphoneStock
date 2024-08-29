@@ -9,5 +9,9 @@
                 <img src="<%= about.imagen %>" class="img-fluid shadow" alt="Imagen sobre nosotros">
             </div>
         </div>
+        <% if (isAdmin) { %>
+                    <a href="/edit-images" class="btn-generico">Cambiar Logo</a>
+                    <a href="/edit-about" class="btn-generico">Editar About</a>
+                    <% }; %>
     </div>
 </div>

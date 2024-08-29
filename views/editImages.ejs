@@ -1,4 +1,3 @@
-<!-- views/editImages.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,20 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Imágenes</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <link rel="stylesheet" href="/css/styles.css">
+
 </head>
 <body>
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
 
     <div class="container">
         <h1 class="text-center">Editar Imágenes</h1>
-        <form action="/edit-images" method="POST">
+        <form action="/edit-images" method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="imagen1">URL LOGO</label>
-                <input type="text" class="form-control" id="imagen1" name="imagen1" value="<%= imagenes.imagen1 %>" required>
+                <label for="imagen1">LOGO (archivo)</label>
+                <input type="file" class="form-control" id="imagen1" name="imagen1" accept="image/*" required>
+                <img src="<%= imagenes.imagen1 %>" alt="Imagen actual" class="img-fluid mt-2">
             </div>
             <div class="form-group">
-                <label for="imagen2">URL CUERPO</label>
-                <input type="text" class="form-control" id="imagen2" name="imagen2" value="<%= imagenes.imagen2 %>" required>
+                <label for="imagen2">CUERPO (archivo)</label>
+                <input type="file" class="form-control" id="imagen2" name="imagen2" accept="image/*" required>
+                <img src="<%= imagenes.imagen2 %>" alt="Imagen actual" class="img-fluid mt-2">
             </div>
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
             <a href="/" class="btn btn-secondary">Cancelar</a>
@@ -27,3 +31,4 @@
     </div>
 </body>
 </html>
+

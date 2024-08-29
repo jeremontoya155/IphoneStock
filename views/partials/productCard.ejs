@@ -3,7 +3,7 @@
     <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
   </div>
   <div class="product-details">
-    <h3>
+    <h3 class="product-name"> 
       <%= product.name %>
     </h3>
     <p class="price">USD <%= product.price %>
@@ -12,7 +12,9 @@
       <div class="battery-status">
         <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
         <p class="bateria">
-          <%= product.bateria %>%
+          <span class="bateria-num"> 
+            <%= product.bateria %> 
+          </span>%
         </p>
       </div>
       <button type="button" class="btn-ver-mas-small" data-toggle="modal"
@@ -38,10 +40,6 @@
       <div class="modal-body">
         <p class="price">$<%= product.price %>
         </p>
-        <div class="tabs">
-          <button class="active" onclick="showTab(event, 'general<%= product.id %>')">Ficha Tecnica</button>
-
-        </div>
         <div id="general<%= product.id %>" class="tab-content active">
           <% product.description.split('\n').forEach(function(line) { %>
             <% var parts=line.split(':'); %>

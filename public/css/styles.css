@@ -1,4 +1,5 @@
 /* Reset CSS */
+@import 'carts.css';
 
 /* LOGIN */
 .login-page {
@@ -39,6 +40,7 @@
 
 .logo img {
   width: 100px;
+  height: 100px;
   margin-bottom: 1.5rem;
 }
 
@@ -48,9 +50,10 @@
 
 .form-control {
   border-radius: 25px;
-  padding: 10px 20px;
+  padding: 0px 20px;
   border: 1px solid #ccc;
   width: 100%;
+  height: 2.5rem;
 }
 
 .form-links {
@@ -92,7 +95,6 @@
   height: 430px;
   width: 180px;
   flex-direction: column;
-  flex: 1;
   justify-content: space-between;
 }
 
@@ -109,17 +111,77 @@
     }
 }
 
+@media (max-width: 480px) {
+    .product-card {
+      flex-basis: calc(50% - 20px); /* Cards ocupan 50% del contenedor en móviles */
+      max-width: calc(50% - 20px);
+    }
+}
+
 .product-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
 }
 
 .product-image-container {
-  padding: 15px;
   border-radius: 10px;
   background-color: #f9f9f9;
-  height: 65%;
+  height: 65%; /* Mantiene la altura original del contenedor */
+  position: relative;
+  overflow: hidden; /* Asegura que la imagen no se desborde del contenedor */
 }
+
+.product-image {
+  width: 100%;
+  height: 100%;
+  object-fit:scale-down; /* Ajusta la imagen para que cubra todo el contenedor sin distorsionarse */
+  border-radius: 10px; /* Mantiene los bordes redondeados */
+}
+
+/* Ocultar la imagen de escritorio por defecto */
+.img-desktop {
+  display: none;
+}
+
+/* Mostrar la imagen de escritorio solo en pantallas grandes */
+@media (min-width: 768px) {
+  .img-desktop {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .img-mobile {
+    display: none;
+  }
+}
+
+/* Mostrar la imagen móvil solo en pantallas pequeñas */
+@media (max-width: 767px) {
+  .img-mobile {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Asegurar que el contenedor tenga una posición relativa para que funcione el centrado absoluto */
+.carousel-item {
+  position: relative;
+  height: 400px; /* Ajusta la altura del carrusel según lo necesites */
+  overflow: hidden; /* Asegura que la imagen no se desborde */
+}
+
+
 
 .btn-ver-mas-small {
   font-size: 1rem;
@@ -131,17 +193,34 @@
   cursor: pointer;
   padding: 0;
 }
+.ver-mas {
+  padding: 10px;
+  text-align: center;
+}
+.btn-generico {
+  background-color: #800020; 
+    color: #fff; 
+    border: none; 
+    padding: 5px 20px; 
+    font-size: 16px; 
+    cursor: pointer; 
+    border-radius: 5px;
+    width: 180px;
+    text-decoration: none;
+    margin: 5px 15px;
+    text-align: center;
+}
+
+.btn-generico:hover {
+ background-color: #ff4a4a;
+ text-decoration: none;
+ color: white;
+}
 
 .btn-ver-mas-small:hover {
-  color: #ff6b6b;
+  color: #ff4a4a;
 }
 
-.product-image {
-  height: 100%;
-  max-width: 100%;
-  aspect-ratio: 16/4;
-
-}
 
 .product-details h3 {
   font-size: 1.5rem;
@@ -195,6 +274,98 @@
   color: #ff6b6b;
 }
 
+/* Estilos generales para el modal */
+/* Estilos generales para el modal */
+.modal-dialog {
+  max-width: 600px; /* Limita el ancho máximo en pantallas grandes */
+  margin: 1.75rem auto;
+}
+
+.modal-content {
+  background-color: #fff;
+  border-radius: 10px; /* Bordes redondeados */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+  padding: 20px; /* Espaciado interno */
+  margin-top: 60px;
+  max-height: 80vh;
+  overflow-y: scroll;
+}
+
+.modal-header {
+  border-bottom: none;
+  text-align: center; /* Centrar el contenido del header */
+}
+
+.modal-title {
+  font-size: 22px;
+  font-weight: bold;
+  color: #333;
+  margin: 0;
+}
+
+.modal-body {
+  padding: 20px;
+  text-align: center;
+}
+
+.modal-body img.img-fluid {
+  max-width: 100%; /* Asegura que la imagen no exceda el contenedor */
+  height: auto;
+  margin-bottom: 20px;
+  border-radius: 8px; /* Bordes redondeados en la imagen */
+}
+
+.modal-body p {
+  margin: 10px 0;
+  font-size: 16px;
+  color: #555;
+}
+
+.modal-body p span {
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-footer {
+  border-top: none;
+  display: flex;
+  justify-content: center; /* Centra el botón */
+  padding-top: 10px;
+}
+
+.modal-footer .btn {
+  background-color: #800020; /* Color de fondo similar al botón de la card */
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+}
+
+.modal-footer .btn:hover {
+  background-color: #a32c2c; /* Color más claro al pasar el mouse */
+}
+
+/* Responsividad para pantallas pequeñas */
+@media (max-width: 768px) {
+  .modal-dialog {
+      max-width: 90%; /* Ocupa casi todo el ancho en móviles */
+  }
+
+  .modal-content {
+      padding: 15px;
+  }
+
+  .modal-body p {
+      font-size: 16px;
+  }
+
+  .modal-footer {
+      flex-direction: column;
+  }
+}
+
+
 /* Navbar personalizado */
 .custom-navbar {
   display: flex;
@@ -203,11 +374,12 @@
   padding: 0.2rem 1rem;
   background-color: white;
   border-bottom: 1px solid #06060681;
-  border-radius: 15px;
+  border-bottom-right-radius: 15px;
   z-index: 10000;
   position: fixed;
   width: 100%;
   top: 0;
+  height: 50px;
   right: 0;
 }
 
@@ -217,7 +389,6 @@
 
 .brand-logo img {
   height: 50px;
-  background-color: black;
 }
 
 .menu-toggle {
@@ -343,10 +514,6 @@
   color: #333;
 }
 
-/* Sección del carousel */
-.carousel-section {
-  margin-bottom: 40px;
-}
 
 /* Sección de productos destacados */
 .featured-products {
@@ -375,7 +542,6 @@
 .product-card p {
   font-size: 1rem;
   color: #555;
-  margin-bottom: 15px;
 }
 
 .btn-buy {
@@ -394,8 +560,7 @@
 
 /* Sección About */
 .about-section {
-  margin-top: 40px;
-  padding: 20px;
+  padding: 0 20px;
   background-color: #f9f9f9;
   border-radius: 10px;
 }
@@ -416,30 +581,6 @@ body {
   color: #333;
 }
 
-/* Navbar Styling */
-/* .navbar {
-  background-color: #ffffff;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar a {
-  color: #ff0000;
-  text-decoration: none;
-  margin-right: 1rem;
-  font-weight: 500;
-}
-
-.navbar a:hover {
-  color: #0070c9;
-}
- */
-/* Main Content Styling */
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-}
 
 h1,
 h2,

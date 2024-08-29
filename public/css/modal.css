@@ -6,6 +6,96 @@ body {
     color: #333;
 }
 
+/* Estilos generales para el modal */
+
+/* Estilos generales para el modal */
+.modal-dialog {
+    max-width: 600px; /* Limita el ancho máximo en pantallas grandes */
+    margin: 1.75rem auto;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 10px; /* Bordes redondeados */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    padding: 20px; /* Espaciado interno */
+}
+
+.modal-header {
+    border-bottom: none;
+    text-align: center; /* Centrar el contenido del header */
+}
+
+.modal-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.modal-body {
+    padding: 20px;
+    text-align: center;
+}
+
+.modal-body img.img-fluid {
+    max-width: 100%; /* Asegura que la imagen no exceda el contenedor */
+    height: auto;
+    margin-bottom: 20px;
+    border-radius: 8px; /* Bordes redondeados en la imagen */
+}
+
+.modal-body p {
+    margin: 10px 0;
+    font-size: 16px;
+    color: #555;
+}
+
+.modal-body p span {
+    font-weight: bold;
+    color: #333;
+}
+
+.modal-footer {
+    border-top: none;
+    display: flex;
+    justify-content: center; /* Centra el botón */
+    padding-top: 10px;
+}
+
+.modal-footer .btn {
+    background-color: #800020; /* Color de fondo similar al botón de la card */
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+.modal-footer .btn:hover {
+    background-color: #a32c2c; /* Color más claro al pasar el mouse */
+}
+
+/* Responsividad para pantallas pequeñas */
+@media (max-width: 768px) {
+    .modal-dialog {
+        max-width: 90%; /* Ocupa casi todo el ancho en móviles */
+    }
+
+    .modal-content {
+        padding: 15px;
+    }
+
+    .modal-body p {
+        font-size: 16px;
+    }
+
+    .modal-footer {
+        flex-direction: column;
+    }
+}
+
+
 .product-detail-card {
     background-color: #fff;
     border: 1px solid #ddd;
@@ -19,12 +109,6 @@ body {
     color: red;
     font-size: 24px;
     margin-bottom: 20px;
-}
-
-.product-detail-card h5.modal-title {
-    font-size: 22px;
-    margin: 0;
-    margin-bottom: 10px;
 }
 
 .product-detail-card .tabs {
@@ -60,22 +144,4 @@ body {
 
 .product-detail-card .tab-content.active {
     display: block;
-}
-
-.product-detail-card .modal-body {
-    padding: 20px;
-}
-
-.product-detail-card .modal-body p {
-    margin: 10px 0;
-    font-size: 14px;
-}
-
-.product-detail-card .modal-body p span {
-    font-weight: bold;
-}
-
-.product-detail-card .modal-footer {
-    padding: 10px;
-    text-align: right;
 }

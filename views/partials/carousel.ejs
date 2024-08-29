@@ -1,29 +1,24 @@
 <div id="carouselExampleIndicators" class="carousel slide my-4" data-ride="carousel">
     <ol class="carousel-indicators">
         <% carouselItems.forEach((item, index) => { %>
+            <% console.log(item) %>
             <li data-target="#carouselExampleIndicators" data-slide-to="<%= index %>" class="<%= index === 0 ? 'active' : '' %>"></li>
         <% }); %>
     </ol>
     <div class="carousel-inner">
         <% carouselItems.forEach((item, index) => { %>
             <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
-                <img src="<%= item.img %>" class="d-block w-100" alt="<%= item.alt %>">
-                <div class="carousel-caption d-none d-md-block" style="background: linear-gradient(to right, <%= item.color1 %>, <%= item.color2 %>);">
+                <!-- Imagen para pantallas grandes -->
+                <img src="<%= item.img %>" class="img-desktop" alt="<%= item.alt %>">
+                
+                <!-- Imagen para dispositivos móviles -->
+                <img src="<%= item.imagenmobile %>" class="img-mobile" alt="<%= item.alt %>">
+
+                <div class="carousel-caption" style="background: linear-gradient(to right, <%= item.color1 %>, <%= item.color2 %>);">
                     <h5><%= item.text %></h5>
                     <a href="/cart" class="btn btn-info mr-2">VER EN CATALOGO</a>
                 </div>
-
-                
-                
             </div>
         <% }); %>
     </div>
-    <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
-        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-        <span class="sr-only">Previous</span>
-    </a>
-    <a class="carousel-control-next" href="#carouselExampleIndicators" role="button" data-slide="next">
-        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-        <span class="sr-only">Next</span>
-    </a>
 </div>

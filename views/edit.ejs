@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Producto</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <link rel="stylesheet" href="/css/styles.css">
+
 </head>
 <body>
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
@@ -21,10 +24,13 @@
                 <textarea class="form-control" id="description" name="description" rows="3" required><%= product.description %></textarea>
             </div>
             <div class="form-group">
-                <label for="image">Imagen (URL o archivo)</label>
-                <input type="text" class="form-control" id="image" name="image" value="<%= product.img %>" required>
-                <small id="imageHelp" class="form-text text-muted">Puedes ingresar una URL de imagen o subir un archivo (JPG, PNG, GIF).</small>
+                <label for="image">Imagen (archivo)</label>
+                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                <small id="imageHelp" class="form-text text-muted">Puedes subir un archivo de imagen (JPG, PNG, GIF).</small>
+                <img src="<%= product.img %>" alt="Imagen actual" class="img-fluid mt-2">
+                <input type="hidden" name="image" value="<%= product.img %>"> <!-- Este campo oculto asegura que la URL de la imagen actual se envíe si no se sube una nueva -->
             </div>
+            
             <div class="form-group">
                 <label for="price">Precio</label>
                 <input type="number" class="form-control" id="price" name="price" value="<%= product.price %>" required>

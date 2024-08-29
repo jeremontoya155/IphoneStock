@@ -6,29 +6,67 @@ const multer = require('multer'); // Middleware para manejo de carga de archivos
 const path = require('path');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configuración de Multer para almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) { 
-        cb(null, 'uploads/'); // Directorio donde se guardarán los archivos subidos
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname)); // Nombre del archivo con timestamp
+
+// Middleware para bloquear rutas específicas
+app.use((req, res, next) => {
+    const blockedPaths = [
+        '/wp-includes/pomo/wp-login.php',
+        '/wp-includes/fonts/wp-login.php',
+        '/wp-includes/customize/wp-login.php',
+        '/.tmb/wp-login.php',
+        '/.well-known/pki-validation/wp-login.php',
+        '/cgi-bin/wp-login.php',
+        '/images/wp-login.php',
+        '/wp-admin/css/wp-login.php',
+        '/wp-admin/images/wp-login.php',
+        '/wp-admin/',
+        '/wp-login.php'
+    ];
+
+    // Bloquea las rutas mencionadas
+    if (blockedPaths.includes(req.path) || req.path === '/wp-login.php') {
+        res.status(403).send('Access forbidden');
+    } else {
+        next();
     }
 });
 
-// Inicializar el middleware de Multer
-const upload = multer({ storage: storage });
-
-// Middleware para manejar la carga de archivos en una ruta específica
-app.post('/upload', upload.single('file'), (req, res) => {
-    // Esta función se ejecutará después de que se haya subido el archivo
-    res.send('Archivo subido exitosamente');
+// Configurar Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUD_NAME,
+    api_key: process.env.API_KEY,
+    api_secret: process.env.API_SECRET,
 });
 
+// Configuración de Multer para almacenamiento en Cloudinary
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'uploads', // Carpeta en Cloudinary
+        format: async (req, file) => 'png', // Puedes cambiar el formato si es necesario
+        public_id: (req, file) => file.fieldname + '-' + Date.now(), // Nombre del archivo en Cloudinary
+    },
+});
+
+const upload = multer({ storage: storage });
+
+// Middleware para manejar la carga de archivos en una ruta específica y almacenar el enlace en la base de datos
+app.post('/upload', upload.single('file'), async (req, res) => {
+    try {
+        const imageUrl = req.file.path; // URL de la imagen en Cloudinary
+        await pool.query('INSERT INTO imagenes (imagen1) VALUES ($1)', [imageUrl]); // Inserta la URL en la base de datos
+        res.send('Archivo subido exitosamente y URL almacenada en la base de datos');
+    } catch (error) {
+        console.error('Error al subir la imagen o guardar la URL:', error);
+        res.status(500).send('Error interno del servidor');
+    }
+});
 
 // Configuración de SweetAlert2
 const Swal = require('sweetalert2');
@@ -51,14 +89,13 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors()); // Middleware para permitir CORS
 
 // Configurar middleware para manejar sesiones
-const sessionSecret = process.env.SESSION_SECRET ;
+const sessionSecret = process.env.SESSION_SECRET;
 
 app.use(session({
     secret: sessionSecret,
     resave: false,
     saveUninitialized: true,
 }));
-
 
 // Conectar a la base de datos PostgreSQL
 const pool = new Pool({
@@ -68,9 +105,6 @@ const pool = new Pool({
     }
 });
 
-
-
-
 // Middleware para verificar si el usuario es administrador
 function requireAdmin(req, res, next) {
     if (req.session.userId) {
@@ -78,16 +112,12 @@ function requireAdmin(req, res, next) {
             if (err) {
                 console.error('Error al verificar administrador:', err);
                 res.status(500).send('Error interno del servidor');
-                alert("Error de verifiacion de administrador")
-                res.redirect("/login")
                 return;
             }
             if (result.rows.length > 0 && result.rows[0].isadmin) {
                 next();
             } else {
                 res.send('Acceso denegado');
-                alert("Acceso incorrecto")
-                res.redirect("/login")
             }
         });
     } else {
@@ -98,7 +128,21 @@ function requireAdmin(req, res, next) {
 //TODOS LOS GET
 // Ruta para el inicio de sesión
 app.get('/login', (req, res) => {
-    res.render('login', { session: req.session, isAdmin: req.session.isAdmin });
+    pool.query('SELECT imagen2 FROM imagenes LIMIT 1', (err, result) => {
+        if (err) {
+            console.error('Error al obtener la URL de la primera imagen:', err);
+            res.status(500).send('Error interno del servidor');
+            return;
+        }
+        
+        if (result.rows.length === 0) {
+            res.status(404).send('No se encontró la URL de la primera imagen');
+            return;
+        }
+
+        const { imagen2 } = result.rows[0];
+        res.render('login', { session: req.session, isAdmin: req.session.isAdmin, logoUrl: imagen2 });
+    });
 });
 
 // Ruta para obtener la URL de la primera imagen (logo)
@@ -121,7 +165,6 @@ app.get('/logoImageUrl', (req, res) => {
 });
 
 // Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
-
 app.get('/edit-carousel', requireAdmin, (req, res) => {
     pool.query('SELECT * FROM carousel', (err, result) => {
         if (err) {
@@ -129,7 +172,7 @@ app.get('/edit-carousel', requireAdmin, (req, res) => {
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('edit-carousel', { carouselItems: result.rows ,isAdmin: req.session.isAdmin});
+        res.render('edit-carousel', { carouselItems: result.rows, isAdmin: req.session.isAdmin });
     });
 });
 
@@ -147,8 +190,6 @@ app.get('/about', (req, res) => {
         res.render('about', { about, isAdmin: req.session.isAdmin });
     });
 });
-
-
 
 // Ruta principal para renderizar la página principal
 app.get('/', (req, res) => {
@@ -176,17 +217,12 @@ app.get('/', (req, res) => {
     });
 });
 
-
-
 // Ruta para mostrar el formulario de edición de imágenes
 app.get('/edit-images', requireAdmin, async (req, res) => {
     const result = await pool.query('SELECT * FROM imagenes WHERE id = $1', [1]); // Asumiendo que solo tienes un registro con ID 1
     const imagenes = result.rows[0];
-    res.render('editImages', { isAdmin: true, imagenes: { imagen1: 'url1', imagen2: 'url2' } });
-
+    res.render('editImages', { isAdmin: true, imagenes });
 });
-
-
 
 // Ruta para carrito de compras
 app.get('/cart', (req, res) => {
@@ -212,8 +248,6 @@ app.get('/cart', (req, res) => {
     });
 });
 
-
-
 // Ruta para editar un producto (requiere autenticación de administrador)
 app.get('/edit/:id', requireAdmin, (req, res) => {
     const id = req.params.id;
@@ -223,10 +257,9 @@ app.get('/edit/:id', requireAdmin, (req, res) => {
             res.status(500).send('Error interno del servidor');
             return;
         }
-        res.render('edit', { product: result.rows[0],isAdmin: req.session.isAdmin });
+        res.render('edit', { product: result.rows[0], isAdmin: req.session.isAdmin });
     });
 });
-
 
 // Ruta para cerrar sesión
 app.get('/logout', (req, res) => {
@@ -240,9 +273,7 @@ app.get('/logout', (req, res) => {
     });
 });
 
-
-
-//editar el about
+// Editar el about
 app.get('/edit-about', requireAdmin, (req, res) => {
     pool.query('SELECT * FROM about LIMIT 1', (err, result) => {
         if (err) {
@@ -251,30 +282,32 @@ app.get('/edit-about', requireAdmin, (req, res) => {
             return;
         }
         const about = result.rows.length > 0 ? result.rows[0] : { titulo: '', texto: '', imagen: '' };
-        res.render('editAbout', { about,isAdmin: req.session.isAdmin });
+        res.render('editAbout', { about, isAdmin: req.session.isAdmin });
     });
 });
-
 
 // Ruta para agregar un nuevo producto (requiere autenticación de administrador)
 app.get('/new', requireAdmin, (req, res) => {
-    res.render('new',{isAdmin: req.session.isAdmin});
+    res.render('new', { isAdmin: req.session.isAdmin });
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
-app.post('/new', requireAdmin, (req, res) => {
-    const { name, description, price, stock, image, bateria, almacenamiento } = req.body;
-    const imageUrl = image; // Utilizar la URL de la imagen proporcionada en el formulario
-    pool.query('INSERT INTO products (name, description, img, price, stock , bateria , almacenamiento) VALUES ($1, $2, $3, $4, $5 , $6 , $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento], (err) => {
-        if (err) {
-            console.error('Error al agregar nuevo producto:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.redirect('/');
-    });
-});
+app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
+    const { name, description, price, stock, bateria, almacenamiento } = req.body;
+    let imageUrl;
 
+    if (req.file) {
+        imageUrl = req.file.path; // La URL de la imagen subida a Cloudinary
+    }
+
+    try {
+        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento) VALUES ($1, $2, $3, $4, $5, $6, $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento]);
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error al agregar nuevo producto:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
 
 
 // Ruta para procesar el formulario de inicio de sesión
@@ -298,44 +331,46 @@ app.post('/login', (req, res) => {
     });
 });
 
-//procesar el edit
-app.post('/edit-about', requireAdmin, upload.single('image'), (req, res) => {
+// Procesar el edit-about
+app.post('/edit-about', requireAdmin, upload.single('image'), async (req, res) => {
     const { titulo, texto } = req.body;
     let imagen = req.body.imagen; // Por defecto, la URL se toma del formulario
 
     if (req.file) {
-        imagen = '/uploads/' + req.file.filename; // Si se carga una nueva imagen, usar la ruta de Multer
+        imagen = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
     }
 
-    pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3', [titulo, texto, imagen], (err) => {
-        if (err) {
-            console.error('Error al actualizar contenido de about:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
+    try {
+        await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3', [titulo, texto, imagen]);
         res.redirect('/');
-    });
+    } catch (err) {
+        console.error('Error al actualizar contenido de about:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
-
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
-app.post('/edit/:id', requireAdmin, upload.single('image'), (req, res) => {
+// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
+app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock, bateria , almacenamiento } = req.body;
-    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
-    if (req.file) {
-        imageUrl = '/uploads/' + req.file.filename; // Si se carga una nueva imagen, usar la ruta de Multer
-    }
-    pool.query('UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $7 , almacenamiento = $8  WHERE id = $6', [name, description, imageUrl, price, stock, id,bateria,almacenamiento], (err) => {
-        if (err) {
-            console.error('Error al actualizar producto:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.redirect('/');
-    });
-});
+    const { name, description, price, stock, bateria, almacenamiento } = req.body;
+    let imageUrl = req.body.image; // Mantener la URL actual de la imagen
 
+    if (req.file) {
+        imageUrl = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
+    }
+
+    try {
+        await pool.query(
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7 WHERE id = $8',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, id]
+        );
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error al actualizar producto:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
 
 // Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
@@ -360,89 +395,132 @@ app.post('/buy/:id', (req, res) => {
     });
 });
 
-
-
 // Ruta para eliminar un producto (requiere autenticación de administrador)
-app.post('/delete/:id', requireAdmin, (req, res) => {
+app.post('/delete/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
-    pool.query('DELETE FROM products WHERE id = $1', [id], (err) => {
-        if (err) {
-            console.error('Error al eliminar producto:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
+    try {
+        await pool.query('DELETE FROM products WHERE id = $1', [id]);
         res.redirect('/');
-    });
+    } catch (err) {
+        console.error('Error al eliminar producto:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 // Ruta para editar y agregar elementos al carrusel (requiere autenticación de administrador)
-
-app.post('/edit-carousel', requireAdmin, upload.single('image'), (req, res) => {
+app.post('/edit-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), async (req, res) => {
     const { id, text, color1, color2 } = req.body;
-    let imageUrl = req.body.image; // Por defecto, la URL se toma del formulario
+    let imageUrl;
+    let mobileImageUrl;
 
-    // Verificar si se subió una nueva imagen
-    if (req.file) {
-        imageUrl = '/uploads/' + req.file.filename; // Utilizar la nueva imagen subida
-    }
-
-    // Consultar la imagen actual para manejar el caso donde no se sube una nueva
-    pool.query('SELECT img FROM carousel WHERE id = $1', [id], (err, result) => {
-        if (err) {
-            console.error('Error al obtener imagen actual del carrusel:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
+    try {
+        // Verificar si el ID es válido
+        if (!id) {
+            return res.status(400).send('ID inválido');
         }
 
-        // Si no se subió una nueva imagen, mantener la imagen existente
-        if (!req.file && result.rows.length > 0) {
-            imageUrl = result.rows[0].img;
+        // Consultar las imágenes actuales para manejar el caso donde se suben nuevas imágenes
+        const currentImagesQuery = await pool.query('SELECT img, imagenMobile FROM carousel WHERE id = $1', [id]);
+
+        // Verificar si se encontró un registro
+        if (currentImagesQuery.rows.length === 0) {
+            return res.status(404).send('Elemento no encontrado');
         }
 
-        // Insertar o actualizar el elemento del carrusel en la base de datos
-        if (id) {
-            // Si hay un ID, actualizamos
-            pool.query('UPDATE carousel SET text = $1, img = $2, color1 = $3, color2 = $4 WHERE id = $5', [text, imageUrl, color1, color2, id], (err) => {
-                if (err) {
-                    console.error('Error al actualizar elemento del carrusel:', err);
-                    res.status(500).send('Error interno del servidor');
-                    return;
-                }
-                res.redirect('/edit-carousel');
-            });
+        const currentImages = currentImagesQuery.rows[0];
+
+        // Si se subió una nueva imagen normal, eliminar la existente y guardar la nueva
+        if (req.files['image']) {
+            if (currentImages.img) {
+                const publicId = currentImages.img.split('/').pop().split('.')[0]; // Obtener el public_id de Cloudinary
+                await cloudinary.uploader.destroy(publicId); // Eliminar la imagen de Cloudinary
+            }
+            imageUrl = req.files['image'][0].path;  // Guardar la URL de la nueva imagen
         } else {
-            // Si no hay un ID, insertamos un nuevo elemento
-            pool.query('INSERT INTO carousel (text, img, color1, color2) VALUES ($1, $2, $3, $4)', [text, imageUrl, color1, color2], (err) => {
-                if (err) {
-                    console.error('Error al agregar nuevo elemento al carrusel:', err);
-                    res.status(500).send('Error interno del servidor');
-                    return;
-                }
-                res.redirect('/edit-carousel');
-            });
+            imageUrl = currentImages.img; // Mantener la imagen existente si no se sube una nueva
         }
-    });
+
+        // Si se subió una nueva imagen móvil, eliminar la existente y guardar la nueva
+        if (req.files['mobileImage']) {
+            if (currentImages.imagenmobile) {
+                const publicId = currentImages.imagenmobile.split('/').pop().split('.')[0]; // Obtener el public_id de Cloudinary
+                await cloudinary.uploader.destroy(publicId); // Eliminar la imagen móvil de Cloudinary
+            }
+            mobileImageUrl = req.files['mobileImage'][0].path;  // Guardar la URL de la nueva imagen móvil
+        } else {
+            mobileImageUrl = currentImages.imagenmobile; // Mantener la imagen existente si no se sube una nueva
+        }
+
+        // Actualizar el registro en la base de datos
+        await pool.query(
+            'UPDATE carousel SET text = $1, img = $2, imagenMobile = $3, color1 = $4, color2 = $5 WHERE id = $6',
+            [text, imageUrl, mobileImageUrl, color1, color2, id]
+        );
+
+        res.redirect('/edit-carousel');
+    } catch (err) {
+        console.error('Error al actualizar el carrusel:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
+
+
+
+
+
 // Ruta para eliminar un elemento del carrusel
-app.post('/delete-carousel', requireAdmin, (req, res) => {
+app.post('/delete-carousel', requireAdmin, async (req, res) => {
     const { id } = req.body;
-    pool.query('DELETE FROM carousel WHERE id = $1', [id], (err) => {
-        if (err) {
-            console.error('Error al eliminar elemento del carrusel:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
+    try {
+        await pool.query('DELETE FROM carousel WHERE id = $1', [id]);
         res.redirect('/edit-carousel');
-    });
+    } catch (err) {
+        console.error('Error al eliminar elemento del carrusel:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 // Ruta para manejar la actualización de las URLs de las imágenes
 app.post('/edit-images', requireAdmin, async (req, res) => {
     const { imagen1, imagen2 } = req.body;
-    await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
-    res.redirect('/');
+    try {
+        await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
+        res.redirect('/');
+    } catch (err) {
+        console.error('Error al actualizar URLs de las imágenes:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
+
+
+// Ruta para agregar un nuevo elemento al carrusel
+app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), async (req, res) => {
+    const { text, color1, color2 } = req.body;
+    let imageUrl;
+    let mobileImageUrl;
+
+    try {
+        if (req.files['image']) {
+            imageUrl = req.files['image'][0].path; // Guardar la URL de la nueva imagen
+        }
+        if (req.files['mobileImage']) {
+            mobileImageUrl = req.files['mobileImage'][0].path; // Guardar la URL de la nueva imagen móvil
+        }
+
+        // Insertar el nuevo elemento en la base de datos
+        await pool.query(
+            'INSERT INTO carousel (text, img, imagenMobile, color1, color2) VALUES ($1, $2, $3, $4, $5)',
+            [text, imageUrl, mobileImageUrl, color1, color2]
+        );
+
+        res.redirect('/edit-carousel');
+    } catch (err) {
+        console.error('Error al agregar el nuevo elemento al carrusel:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
 
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
@@ -453,4 +531,3 @@ app.use((req, res, next) => {
 app.listen(PORT, () => {
     console.log(`Servidor iniciado en http://localhost:${PORT}`);
 });
-

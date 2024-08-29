@@ -1,6 +1,6 @@
 /* CSS personalizado para mejorar la apariencia */
-body {
-    padding-top: 56px;
+.cart-container {
+    margin-top: 65px;
     padding-bottom: 20px;
     background-color: #f8f9fa; /* Color de fondo */
 }
@@ -10,3 +10,53 @@ body {
 }
 /* Estilos para las Cards de Productos */
 
+.catalogo-title {
+    text-align: center;
+}
+
+.catalogo-logo {
+      text-align: center;
+}
+
+.filters {
+    display: flex;
+    align-items: center; /* Alinea verticalmente al centro */
+    justify-content: space-between; /* Espacio entre los filtros y el botón */
+    gap: 10px; /* Espaciado entre los elementos */
+}
+
+#filter-button {
+    background-color: #800020; /* Color de fondo */
+    color: #fff; /* Color del texto */
+    border: none; /* Quitar bordes */
+    padding: 5px 20px; /* Relleno interno del botón */
+    font-size: 16px; /* Tamaño del texto */
+    cursor: pointer; /* Cambia el cursor a un puntero al pasar sobre el botón */
+    border-radius: 5px; /* Bordes redondeados */
+    margin-left: auto;
+    justify-content: center;
+    align-items: center;
+
+}
+
+#filter-button:hover {
+    background-color: #a32c2c; /* Color más claro al pasar el mouse */
+}
+
+
+/* Media Query para pantallas móviles */
+@media (max-width: 768px) {
+    .filters {
+        flex-direction: column; /* Apila los elementos verticalmente */
+        align-items: stretch; /* Asegura que los elementos llenen todo el ancho */
+    }
+
+    #filter-button {
+        margin-left: 0; /* Reinicia el margen izquierdo */
+        width: 100%; /* El botón ocupa el 100% del ancho */
+    }
+
+    select, input {
+        width: 100%; /* Los filtros también ocupan el 100% del ancho */
+    }
+}
