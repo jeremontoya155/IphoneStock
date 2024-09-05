@@ -41,11 +41,17 @@
                     <section class="featured-products">
                         <h2>Productos Destacados</h2>
                         <div class="products-container row" id="cart-items">
-                            <% products.forEach(product=> { %>
-                                <% if (product.stock> 0) { %>
+                            <% 
+                            // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente
+                            const sortedProducts = products.filter(product => product.price > 0).sort((a, b) => a.price - b.price);
+                            
+                            // Mostrar solo los 6 productos más baratos
+                            sortedProducts.slice(0, 6).forEach(product => { 
+                            %>
+                                <% if (product.stock > 0) { %>
                                     <%- include('partials/productCard', { product: product }) %>
-                                        <% } %>
-                                            <% }); %>
+                                <% } %>
+                            <% }); %>
                         </div>
         </div>
         <div class="ver-mas">
