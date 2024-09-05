@@ -373,6 +373,7 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
 });
 
 // Ruta para manejar la compra de productos
+// Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
     const id = req.params.id;
     pool.query('SELECT * FROM products WHERE id = $1', [id], (err, result) => {
@@ -383,10 +384,13 @@ app.post('/buy/:id', (req, res) => {
         }
         const product = result.rows[0];
         if (product.stock > 0) {
-            // Aquí puedes realizar cualquier otra acción que necesites sin modificar el stock
-            // Por ejemplo, redirigir a WhatsApp con el mensaje prellenado
-            const message = `Solicitud:\n\nModelo: ${product.name}\nCondición de batería: ${product.batteryCondition}\nPiezas originales: ${product.originalParts ? 'Sí' : 'No'}\nDetalle: ${product.description}`;
+            // Generar el mensaje con solo el nombre del modelo, precio y porcentaje de batería
+            const message = `Solicitud de compra:\n\nModelo: ${product.name}\nPrecio: $${product.price}\nBatería: ${product.bateria}%`;
+
+            // Crear la URL de WhatsApp con el mensaje generado
             const whatsappUrl = `https://wa.me/${process.env.MY_PHONE_NUMBER}?text=${encodeURIComponent(message)}`;
+            
+            // Redirigir al usuario a WhatsApp con el mensaje prellenado
             res.redirect(whatsappUrl);
         } else {
             // Mostrar mensaje de error si el producto no tiene stock
@@ -394,6 +398,7 @@ app.post('/buy/:id', (req, res) => {
         }
     });
 });
+
 
 // Ruta para eliminar un producto (requiere autenticación de administrador)
 app.post('/delete/:id', requireAdmin, async (req, res) => {
