@@ -96,31 +96,63 @@
     width: 180px;
     flex-direction: column;
     justify-content: space-between;
+  }/* Asegura que el iframe sea responsivo */
+
+/* Contenedor responsivo para iframe */
+.iframe-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 75%; /* Ajusta el valor según sea necesario para móvil */
+  height: 0;
+  overflow: hidden;
+}
+
+.iframe-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Ajusta el tamaño del iframe para pantallas más grandes */
+@media (min-width: 768px) {
+  .iframe-container {
+    padding-bottom: 40%; /* Relación de aspecto ajustada para pantallas grandes */
   }
+}
+
+
 
   @media (max-width: 768px) {
     .products-container {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: center; /* Centra las cards en dispositivos móviles */
-      }
-      
-      .product-card {
-          flex-basis: calc(50% - 20px); /* Cards ocupan 50% del contenedor en móviles */
-          max-width: calc(50% - 20px); /* Asegura que el ancho máximo sea 50% */
-      }
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      /* Centra las cards en dispositivos móviles */
+    }
+
+    .product-card {
+      flex-basis: calc(50% - 20px);
+      /* Cards ocupan 50% del contenedor en móviles */
+      max-width: calc(50% - 20px);
+      /* Asegura que el ancho máximo sea 50% */
+    }
   }
 
   @media (max-width: 480px) {
-      .product-card {
-        flex-basis: calc(50% - 20px); /* Cards ocupan 50% del contenedor en móviles */
-        max-width: calc(50% - 20px);
-      }
+    .product-card {
+      flex-basis: calc(50% - 20px);
+      /* Cards ocupan 50% del contenedor en móviles */
+      max-width: calc(50% - 20px);
+    }
   }
 
   .product-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
   }
 
 
@@ -138,12 +170,14 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+      object-fit: cover;
+      /* Ajusta la imagen para que cubra todo el contenedor */
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
     }
+
     .img-mobile {
       display: none;
     }
@@ -155,7 +189,8 @@
       display: block;
       width: 100%;
       height: 100%;
-      object-fit: cover; /* Ajusta la imagen para que cubra todo el contenedor */
+      object-fit: cover;
+      /* Ajusta la imagen para que cubra todo el contenedor */
       position: absolute;
       top: 50%;
       left: 50%;
@@ -166,8 +201,10 @@
   /* Asegurar que el contenedor tenga una posición relativa para que funcione el centrado absoluto */
   .carousel-item {
     position: relative;
-    height: 400px; /* Ajusta la altura del carrusel según lo necesites */
-    overflow: hidden; /* Asegura que la imagen no se desborde */
+    height: 400px;
+    /* Ajusta la altura del carrusel según lo necesites */
+    overflow: hidden;
+    /* Asegura que la imagen no se desborde */
   }
 
 
@@ -182,32 +219,35 @@
     cursor: pointer;
     padding: 0;
   }
+
   .ver-mas {
     padding: 10px;
     text-align: center;
   }
+
   .btn-generico {
-    background-color: #800020; 
-      color: #fff; 
-      border: none; 
-      padding: 5px 20px; 
-      font-size: 16px; 
-      cursor: pointer; 
-      border-radius: 5px;
-      width: 180px;
-      text-decoration: none;
-      margin: 5px 15px;
-      text-align: center;
+    background-color: #800020;
+    color: #fff;
+    border: none;
+    padding: 5px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 180px;
+    text-decoration: none;
+    margin: 5px 15px;
+    text-align: center;
   }
 
   .btn-generico:hover {
-  background-color: #ff4a4a;
-  text-decoration: none;
-  color: white;
+    background-color: #ff4a4a;
+    text-decoration: none;
+    color: white;
   }
 
   .btn-ver-mas-small:hover {
-    color: #ff4a4a;
+    color: #f7f7f7;
+    background-color: #ff4a4a;
   }
 
 
@@ -257,100 +297,46 @@
     color: #ff4a4a;
     text-decoration: none;
     font-weight: bold;
+    border-radius: 5px;
+    padding: 2px;
   }
 
-  .btn-ver-mas-small:hover {
-    color: #ff6b6b;
-  }
+
 
   /* Estilos generales para el modal */
-  /* Estilos generales para el modal */
-  .modal-dialog {
-    max-width: 600px; /* Limita el ancho máximo en pantallas grandes */
-    margin: 1.75rem auto;
-  }
 
-  .modal-content {
-    background-color: #fff;
-    border-radius: 10px; /* Bordes redondeados */
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Sombra suave */
-    padding: 20px; /* Espaciado interno */
-    margin-top: 60px;
-    max-height: 80vh;
-    overflow-y: scroll;
-  }
-
-  .modal-header {
-    border-bottom: none;
-    text-align: center; /* Centrar el contenido del header */
-  }
-
-  .modal-title {
-    font-size: 22px;
-    font-weight: bold;
-    color: #333;
-    margin: 0;
-  }
-
-  .modal-body {
-    padding: 20px;
-    text-align: center;
-  }
-
-  .modal-body img.img-fluid {
-    max-width: 100%; /* Asegura que la imagen no exceda el contenedor */
-    height: auto;
-    margin-bottom: 20px;
-    border-radius: 8px; /* Bordes redondeados en la imagen */
-  }
-
-  .modal-body p {
-    margin: 10px 0;
-    font-size: 16px;
-    color: #555;
-  }
-
-  .modal-body p span {
-    font-weight: bold;
-    color: #333;
-  }
-
-  .modal-footer {
-    border-top: none;
-    display: flex;
-    justify-content: center; /* Centra el botón */
-    padding-top: 10px;
-  }
 
   .modal-footer .btn {
-    background-color: #800020; /* Color de fondo similar al botón de la card */
+    background-color: #800020;
     color: #fff;
-    padding: 10px 20px;
+    padding: 0px 20px;
     border-radius: 5px;
     border: none;
     cursor: pointer;
   }
 
   .modal-footer .btn:hover {
-    background-color: #a32c2c; /* Color más claro al pasar el mouse */
+    background-color: #a32c2c;
+    /* Color más claro al pasar el mouse */
   }
 
   /* Responsividad para pantallas pequeñas */
   @media (max-width: 768px) {
     .modal-dialog {
-        max-width: 90%; /* Ocupa casi todo el ancho en móviles */
+      max-width: 90%;
+      /* Ocupa casi todo el ancho en móviles */
     }
 
     .modal-content {
-        padding: 15px;
+      padding: 15px;
     }
 
     .modal-body p {
-        font-size: 16px;
+      font-size: 16px;
     }
 
     .modal-footer {
-        flex-direction: column;
+      flex-direction: column;
     }
   }
 
@@ -518,7 +504,6 @@
 
   .products-container {
     display: flex;
-    justify-content: space-between;
     gap: 15px;
   }
 
@@ -649,34 +634,35 @@
 
   .product-image-container {
     width: 100% !important;
-    height: 200px !important; /* Altura fija para todas las imágenes */
+    height: 200px !important;
+    /* Altura fija para todas las imágenes */
     background-color: #f9f9f9 !important;
     border-radius: 10px !important;
     overflow: hidden !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-}
+  }
 
-.product-image {
+  .product-image {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover !important; /* Asegura que la imagen cubra todo el contenedor */
+    object-fit: cover !important;
+    /* Asegura que la imagen cubra todo el contenedor */
     border-radius: 10px !important;
     display: block !important;
-}
+  }
 
-@media (max-width: 768px) {
+  @media (max-width: 768px) {
     .product-card {
-        flex-basis: calc(50% - 10px) !important;
-        max-width: calc(50% - 10px) !important;
-        margin-bottom: 20px !important;
+      flex-basis: calc(50% - 10px) !important;
+      max-width: calc(50% - 10px) !important;
+      margin-bottom: 20px !important;
     }
-}
+  }
 
-.products-container {
+  .products-container {
     display: flex !important;
     flex-wrap: wrap !important;
-    justify-content: space-between !important;
     gap: 15px !important;
-}
+  }
