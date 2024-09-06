@@ -6,8 +6,13 @@
     <h3 class="product-name"> 
       <%= product.name %>
     </h3>
-    <p class="price">USD <%= product.price %>
-    </p>
+    <strong>
+
+      <p class="price">USD <%= product.price %>
+      </p>
+
+    </strong>
+    
     <div class="product-footer">
       <div class="battery-status">
         <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
@@ -37,8 +42,15 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
+      <div class="modal-footer">
+        <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
+          <button type="submit" class="btn btn-buy">Consultar</button>
+        </form>
+       
+      </div>
       <div class="modal-body">
-        <p class="price">$<%= product.price %>
+        <strong><p class="price">$<%= product.price %></strong>
+        
         </p>
         <div id="general<%= product.id %>" class="tab-content active">
           <% product.description.split('\n').forEach(function(line) { %>
@@ -56,12 +68,7 @@
           <!-- Agrega aquí el contenido técnico del producto -->
         </div>
       </div>
-      <div class="modal-footer">
-        <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
-          <button type="submit" class="btn btn-buy">Consultar</button>
-        </form>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-      </div>
+     
     </div>
   </div>
 </div>
