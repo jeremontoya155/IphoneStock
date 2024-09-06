@@ -477,7 +477,6 @@
 
   .products-container {
     display: flex;
-    justify-content: space-between;
     gap: 15px;
   }
 
@@ -638,6 +637,5 @@
   .products-container {
     display: flex !important;
     flex-wrap: wrap !important;
-    justify-content: space-between !important;
     gap: 15px !important;
   }
