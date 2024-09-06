@@ -96,7 +96,34 @@
     width: 180px;
     flex-direction: column;
     justify-content: space-between;
+  }/* Asegura que el iframe sea responsivo */
+
+/* Contenedor responsivo para iframe */
+.iframe-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 75%; /* Ajusta el valor según sea necesario para móvil */
+  height: 0;
+  overflow: hidden;
+}
+
+.iframe-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Ajusta el tamaño del iframe para pantallas más grandes */
+@media (min-width: 768px) {
+  .iframe-container {
+    padding-bottom: 40%; /* Relación de aspecto ajustada para pantallas grandes */
   }
+}
+
+
 
   @media (max-width: 768px) {
     .products-container {
