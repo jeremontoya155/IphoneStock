@@ -13,12 +13,14 @@
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
 
     <div class="container">
-        <h1 class="text-center">Editar Producto</h1>
+        <h1 class="text-center catalogo-title">Editar Producto</h1>
         <form action="/edit/<%= product.id %>" method="POST" enctype="multipart/form-data">
+        
             <div class="form-group">
                 <label for="name">Nombre</label>
                 <input type="text" class="form-control" id="name" name="name" value="<%= product.name %>" required>
             </div>
+           
             <div class="form-group">
                 <label for="description">Descripción</label>
                 <textarea class="form-control" id="description" name="description" rows="3" required><%= product.description %></textarea>
@@ -53,7 +55,7 @@
 
         <!-- Formulario para eliminar el producto -->
         <form action="/delete/<%= product.id %>" method="POST" style="margin-top: 20px;">
-            <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este producto?');">Eliminar Producto</button>
+            <button type="submit" class="btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar este producto?');">Eliminar Producto</button>
         </form>
     </div>
 </body>

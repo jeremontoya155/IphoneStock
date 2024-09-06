@@ -70,6 +70,10 @@
         <div class="text-center mb-4">
             <% if (isAdmin) { %>
                 <h3>Lista completa de productos</h3>
+                <div class="mb-3">
+                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
+                    <button id="download-btn" class="btn-generico">Descargar lista</button>
+                </div>
                 <!-- Campo de búsqueda -->
                 <div class="input-group mb-3">
                     <input id="search-input" type="text" class="form-control" placeholder="Buscar productos...">
@@ -110,10 +114,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mb-3">
-                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
-                    <button id="download-btn" class="btn-generico">Descargar Registros</button>
-                </div>
+                
                 <% } else { %>
 
                     <div class="container my-2 py-2">
