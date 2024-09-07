@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="/css/carts.css">
+    <link rel="stylesheet" href="/css/modal.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
@@ -41,11 +42,17 @@
                     <section class="featured-products">
                         <h2>Productos Destacados</h2>
                         <div class="products-container row" id="cart-items">
-                            <% products.forEach(product=> { %>
-                                <% if (product.stock> 0) { %>
+                            <% 
+                            // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente
+                            const sortedProducts = products.filter(product => product.price > 0).sort((a, b) => a.price - b.price);
+                            
+                            // Mostrar solo los 6 productos más baratos
+                            sortedProducts.slice(0, 6).forEach(product => { 
+                            %>
+                                <% if (product.stock > 0) { %>
                                     <%- include('partials/productCard', { product: product }) %>
-                                        <% } %>
-                                            <% }); %>
+                                <% } %>
+                            <% }); %>
                         </div>
         </div>
         <div class="ver-mas">
@@ -63,6 +70,10 @@
         <div class="text-center mb-4">
             <% if (isAdmin) { %>
                 <h3>Lista completa de productos</h3>
+                <div class="mb-3">
+                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
+                    <button id="download-btn" class="btn-generico">Descargar lista</button>
+                </div>
                 <!-- Campo de búsqueda -->
                 <div class="input-group mb-3">
                     <input id="search-input" type="text" class="form-control" placeholder="Buscar productos...">
@@ -103,18 +114,17 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mb-3">
-                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
-                    <button id="download-btn" class="btn-generico">Descargar Registros</button>
-                </div>
+                
                 <% } else { %>
 
                     <div class="container my-2 py-2">
                         <h3>Encontranos en:</h3>
+                        <div class="iframe-container">
                         <iframe
                             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d27247.367835402438!2d-64.23651376765733!3d-31.38874232569808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9432999729f8219b%3A0x52c9a2f615fdb8d8!2si%20loop!5e0!3m2!1ses-419!2sar!4v1723817758327!5m2!1ses-419!2sar"
                             width="300em" height="450" style="border:0;" allowfullscreen="" loading="lazy"
                             referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </div>
                     </div>
                     <% } %>
         </div>

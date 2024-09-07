@@ -1,24 +1,31 @@
-<div class="product-card" data-stock="<%= product.stock %>">
+<div class="product-card" data-stock="<%= product.stock %>" data-toggle="modal"
+  data-target="#productModal<%= product.id %>">
   <div class="product-image-container">
     <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
   </div>
   <div class="product-details">
-    <h3 class="product-name"> 
+    <h3 class="product-name">
       <%= product.name %>
     </h3>
-    <p class="price">USD <%= product.price %>
+    <p class="product-space">
+      <%= product.almacenamiento %> GB
     </p>
+    <p class="product-price">
+      USD <%= product.price %>
+    </p>
+
     <div class="product-footer">
       <div class="battery-status">
         <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
         <p class="bateria">
-          <span class="bateria-num"> 
-            <%= product.bateria %> 
+          <span class="bateria-num">
+            <%= product.bateria %>
           </span>%
         </p>
       </div>
-      <button type="button" class="btn-ver-mas-small" data-toggle="modal"
-        data-target="#productModal<%= product.id %>">Ver más</button>
+      <form action="/buy/<%= product.id %>" method="POST" class="d-inline" onclick="event.stopPropagation()">
+        <button type="submit" class="btn-ver-mas-small">Consultar</button>
+      </form>
     </div>
   </div>
 </div>
@@ -33,13 +40,18 @@
         <h5 class="modal-title" id="productModalLabel<%= product.id %>">
           <%= product.name %>
         </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+        <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
-        <p class="price">$<%= product.price %>
+      <div class="modal-footer">
+        <p class="modal-price">$<%= product.price %>
         </p>
+        <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
+          <button type="submit" class="btn-ver-mas-small">Consultar</button>
+        </form>
+      </div>
+      <div class="modal-body">
         <div id="general<%= product.id %>" class="tab-content active">
           <% product.description.split('\n').forEach(function(line) { %>
             <% var parts=line.split(':'); %>
@@ -56,12 +68,7 @@
           <!-- Agrega aquí el contenido técnico del producto -->
         </div>
       </div>
-      <div class="modal-footer">
-        <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
-          <button type="submit" class="btn btn-buy">Consultar</button>
-        </form>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-      </div>
+
     </div>
   </div>
 </div>
