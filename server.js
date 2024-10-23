@@ -332,22 +332,26 @@ app.post('/login', (req, res) => {
 });
 
 // Procesar el edit-about
-app.post('/edit-about', requireAdmin, upload.single('image'), async (req, res) => {
+app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) => {
     const { titulo, texto } = req.body;
-    let imagen = req.body.imagen; // Por defecto, la URL se toma del formulario
+    let imagen = req.body.imagen; // Mantener la URL de la imagen existente.
 
+    // Si se carga una nueva imagen, actualizar con la nueva URL.
     if (req.file) {
-        imagen = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
+        imagen = req.file.path;
     }
 
     try {
-        await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3', [titulo, texto, imagen]);
+        // Actualiza los campos en la base de datos.
+        await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3 WHERE id = $4', [titulo, texto, imagen, 1]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al actualizar contenido de about:', err);
         res.status(500).send('Error interno del servidor');
     }
 });
+
+
 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
