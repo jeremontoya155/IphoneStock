@@ -155,12 +155,12 @@
     cursor: pointer;
   }
 
-
-
-
-
   /* Ocultar la imagen de escritorio por defecto */
   .img-desktop {
+    display: none;
+  }
+
+  .carousel-indicators {
     display: none;
   }
 
@@ -491,7 +491,7 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 20px 0;
   }
 
   /* Sección de bienvenida */
