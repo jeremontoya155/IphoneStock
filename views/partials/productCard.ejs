@@ -7,12 +7,16 @@
     <h3 class="product-name">
       <%= product.name %>
     </h3>
-    <strong>
+    <p class="product-space">
+      <%= product.estado %>
+    </p>
+    <p class="product-space">
+      <%= product.almacenamiento %> GB
 
-      <p class="price">USD <%= product.price %>
-      </p>
-
-    </strong>
+    </p>
+    <p class="product-price">
+      USD <%= product.price %>
+    </p>
 
     <div class="product-footer">
       <div class="battery-status">
@@ -24,7 +28,7 @@
         </p>
       </div>
       <form action="/buy/<%= product.id %>" method="POST" class="d-inline" onclick="event.stopPropagation()">
-        <button type="submit" class="btn-ver-mas-small" >Consultar</button>
+        <button type="submit" class="btn-ver-mas-small">Consultar</button>
       </form>
     </div>
   </div>

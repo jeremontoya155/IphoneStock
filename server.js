@@ -293,7 +293,7 @@ app.get('/new', requireAdmin, (req, res) => {
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
-    const { name, description, price, stock, bateria, almacenamiento } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
     let imageUrl;
 
     if (req.file) {
@@ -301,7 +301,7 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
     }
 
     try {
-        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento) VALUES ($1, $2, $3, $4, $5, $6, $7)', [name, description, imageUrl, price, stock, bateria, almacenamiento]);
+        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al agregar nuevo producto:', err);
@@ -332,16 +332,18 @@ app.post('/login', (req, res) => {
 });
 
 // Procesar el edit-about
-app.post('/edit-about', requireAdmin, upload.single('image'), async (req, res) => {
+app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) => {
     const { titulo, texto } = req.body;
-    let imagen = req.body.imagen; // Por defecto, la URL se toma del formulario
+    let imagen = req.body.imagen; // Mantener la URL de la imagen existente.
 
+    // Si se carga una nueva imagen, actualizar con la nueva URL.
     if (req.file) {
-        imagen = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
+        imagen = req.file.path;
     }
 
     try {
-        await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3', [titulo, texto, imagen]);
+        // Actualiza los campos en la base de datos.
+        await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3 WHERE id = $4', [titulo, texto, imagen, 1]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al actualizar contenido de about:', err);
@@ -349,11 +351,13 @@ app.post('/edit-about', requireAdmin, upload.single('image'), async (req, res) =
     }
 });
 
+
+
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock, bateria, almacenamiento } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
     let imageUrl = req.body.image; // Mantener la URL actual de la imagen
 
     if (req.file) {
@@ -362,8 +366,8 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
 
     try {
         await pool.query(
-            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7 WHERE id = $8',
-            [name, description, imageUrl, price, stock, bateria, almacenamiento, id]
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8 WHERE id = $9',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, id]
         );
         res.redirect('/');
     } catch (err) {

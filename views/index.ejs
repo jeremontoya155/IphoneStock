@@ -15,6 +15,24 @@
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <!-- Incluir la librería SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+
+
+     <!-- Meta Pixel Code -->
+     <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1046128350193379');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1"
+    /></noscript>
 </head>
 
 <body>
@@ -70,6 +88,10 @@
         <div class="text-center mb-4">
             <% if (isAdmin) { %>
                 <h3>Lista completa de productos</h3>
+                <div class="mb-3">
+                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
+                    <button id="download-btn" class="btn-generico">Descargar lista</button>
+                </div>
                 <!-- Campo de búsqueda -->
                 <div class="input-group mb-3">
                     <input id="search-input" type="text" class="form-control" placeholder="Buscar productos...">
@@ -81,6 +103,7 @@
                                 <th>Imagen</th>
                                 <th>Nombre</th>
                                 <th>Descripción</th>
+                                <th>Estado</th>
                                 <th>Precio</th>
                                 <th>Stock</th>
                                 <th>Acciones</th>
@@ -97,6 +120,7 @@
                                     <td data-label="Descripción">
                                         <%= product.description %>
                                     </td>
+                                    <td data-label="Estado"><%= product.estado %></td> 
                                     <td data-label="Precio">$<%= product.price %>
                                     </td>
                                     <td data-label="Stock">
@@ -110,10 +134,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="mb-3">
-                    <a href="/new" class="btn-generico">Agregar Nuevo</a>
-                    <button id="download-btn" class="btn-generico">Descargar Registros</button>
-                </div>
+                
                 <% } else { %>
 
                     <div class="container my-2 py-2">
