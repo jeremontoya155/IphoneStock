@@ -6,16 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Lista de Productos</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-   
     <link rel="stylesheet" href="/css/carts.css">
     <link rel="stylesheet" href="/css/modal.css">
-    <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
+    <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <!-- <link rel="stylesheet" href="/css/button.css"> Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
-    <!-- Incluir la librería SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <style>
         .card-img-top {
@@ -23,159 +19,93 @@
             height: auto;
         }
     </style>
-        <!-- Meta Pixel Code -->
-        <script>
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '1046128350193379');
-            fbq('track', 'PageView');
-        </script>
-        <noscript><img height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1"
-        /></noscript>
 </head>
 
 <body>
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-        <div class="container cart-container ">
-            <h2 class="catalogo-title">
-                CATALOGO
-            </h2>
-            <div class="catalogo-logo">
-                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
-            </div>
-
-            <!-- Campo de búsqueda -->
-            <div class="input-group mb-3">
-
-                <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
-            </div>
-            <!-- Filtros adicionales -->
-            <div class="filters mb-3">
-                <!-- Filtro por modelo -->
-                <label for="model-filter">Modelo</label>
-                <select id="model-filter" class="form-control mb-2">
-                    <option value="">Todos los modelos</option>
-                    <% let uniqueModels=new Set(); products.forEach(product=> {
-                        if (product.stock > 0 && !uniqueModels.has(product.name)) {
-                        uniqueModels.add(product.name);
-                        %>
-                        <option value="<%= product.name.toLowerCase() %>">
-                            <%= product.name %>
-                        </option>
-                        <% } }); %>
-                </select>
-
-                <!-- Filtro por porcentaje mínimo de batería -->
-                <label for="battery-filter">Batería</label>
-                <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
-
-                <!-- Botón de buscar -->
-                <button id="filter-button" class="btn btn-primary">Buscar</button>
-            </div>
-
-
-            <section class="featured-products">
-                <div class="products-container row" id="cart-items">
-                    <% products.forEach(product=> { %>
-                        <% if (product.stock> 0) { %>
-                            <%- include('partials/productCard', { product: product }) %>
-                                <% } %>
-                                    <% }); %>
-                </div>
+    <div class="container cart-container ">
+        <h2 class="catalogo-title">CATALOGO</h2>
+        <div class="catalogo-logo">
+            <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
         </div>
+
+        <!-- Campo de búsqueda -->
+        <div class="input-group mb-3">
+            <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+        </div>
+
+        <!-- Filtros adicionales -->
+        <div class="filters mb-3">
+            <!-- Filtro por modelo -->
+            <label for="model-filter">Modelo</label>
+            <select id="model-filter" class="form-control mb-2">
+                <option value="">Todos los modelos</option>
+                <% let uniqueModels = new Set(); products.forEach(product => {
+                    if (product.stock > 0 && !uniqueModels.has(product.name)) {
+                    uniqueModels.add(product.name); %>
+                    <option value="<%= product.name.toLowerCase() %>">
+                        <%= product.name %>
+                    </option>
+                <% } }); %>
+            </select>
+
+            <!-- Filtro por porcentaje mínimo de batería -->
+            <label for="battery-filter">Batería</label>
+            <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+
+            <!-- Filtro por almacenamiento mínimo -->
+            <label for="storage-filter">Almacenamiento (GB)</label>
+            <input id="storage-filter" type="number" class="form-control mb-2" placeholder="Almacenamiento mínimo (GB)">
+
+            <!-- Filtro por estado del producto -->
+            <label for="estado-filter">Estado</label>
+            <select id="estado-filter" class="form-control mb-2">
+                <option value="">Todos los estados</option>
+                <% let uniqueEstados = new Set(); products.forEach(product => {
+                    if (product.stock > 0 && product.estado) {
+                        let estadoUpperCase = product.estado.toUpperCase();
+                        if (!uniqueEstados.has(estadoUpperCase)) {
+                            uniqueEstados.add(estadoUpperCase); %>
+                            <option value="<%= estadoUpperCase %>">
+                                <%= estadoUpperCase %>
+                            </option>
+                        <% }
+                    } 
+                }); %>
+            </select>
+
+            <!-- Filtro de orden de precio -->
+            <label for="order-price-filter">Ordenar por precio</label>
+            <select id="order-price-filter" class="form-control mb-2">
+                <option value="">Por defecto</option>
+                <option value="asc">Menor a mayor</option>
+                <option value="desc">Mayor a menor</option>
+            </select>
+
+            <!-- Botón de buscar -->
+            <button id="filter-button" class="btn btn-primary">Buscar</button>
+        </div>
+
+        <section class="featured-products">
+            <div class="products-container row" id="cart-items">
+                <% products.forEach(product => { %>
+                    <% if (product.stock > 0) { %>
+                        <%- include('partials/productCard', { product: product }) %>
+                    <% } %>
+                <% }); %>
+            </div>
         </section>
+    </div>
 
-        </div>
+    <%- include('partials/footer') %>
 
-        <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
-
-
-            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-            <script src="/js/main.js"></script><!--  -->
-            <script>
-                // Función para filtrar los productos del carrito
-                // Función para filtrar productos
-                // Función para filtrar productos
-                function filterProducts() {
-                    const searchValue = document.getElementById('search-input').value.toLowerCase().trim();
-                    const modelValue = document.getElementById('model-filter').value.toLowerCase().trim();
-                    const batteryFilterValue = parseInt(document.getElementById('battery-filter').value) || 0;
-                    const items = document.querySelectorAll('.product-card');
-
-                    items.forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim();
-                        const productBattery = parseInt(item.querySelector('.bateria-num').textContent.trim());
-
-                        // Aplicar todos los filtros combinados
-                        const matchesSearch = text.includes(searchValue);
-                        const matchesModel = modelValue === '' || productModel === modelValue;
-                        const matchesBattery = productBattery >= batteryFilterValue;
-
-                        // Mostrar u ocultar el producto basado en todos los criterios
-                        if (matchesSearch && matchesModel && matchesBattery) {
-                            item.style.display = '';
-                        } else {
-                            item.style.display = 'none';
-                        }
-                    });
-                }
-
-                // Asignar la función al botón de búsqueda
-                document.getElementById('filter-button').addEventListener('click', filterProducts);
-
-                // Opcional: Si también quieres permitir el filtrado al presionar "Enter"
-                document.getElementById('search-input').addEventListener('keyup', function (event) {
-                    if (event.key === 'Enter') {
-                        filterProducts();
-                    }
-                });
-                document.getElementById('battery-filter').addEventListener('keyup', function (event) {
-                    if (event.key === 'Enter') {
-                        filterProducts();
-                    }
-                });
-
-
-
-                // Función para manejar las pestañas en el modal
-                function showTab(event, tabId) {
-                    var i, tabcontent, tablinks;
-
-                    tabcontent = document.getElementsByClassName("tab-content");
-                    for (i = 0; i < tabcontent.length; i++) {
-                        tabcontent[i].style.display = "none";
-                    }
-
-                    tablinks = document.querySelectorAll(".product-detail-card .tabs button");
-                    for (i = 0; i < tablinks.length; i++) {
-                        tablinks[i].className = tablinks[i].className.replace(" active", "");
-                    }
-
-                    document.getElementById(tabId).style.display = "block";
-                    event.currentTarget.className += " active";
-                }
-
-                // Mostrar la pestaña "General" por defecto
-                document.addEventListener('DOMContentLoaded', function () {
-                    var defaultTabs = document.querySelectorAll('.tabs button.active');
-                    defaultTabs.forEach(function (tab) {
-                        var tabId = tab.getAttribute('onclick').match(/'([^']+)'/)[1];
-                        document.getElementById(tabId).style.display = 'block';
-                    });
-                });
-            </script>
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/js/cart.js"></script>
 </body>
 
 </html>
