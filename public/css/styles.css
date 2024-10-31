@@ -1,5 +1,16 @@
   /* Reset CSS */
   @import 'carts.css';
+@keyframes move-arrow {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(10px);
+  }
+}
 
   /* LOGIN */
   .login-page {
@@ -491,7 +502,7 @@
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 0;
+    padding: 20px 0 0;
   }
 
   /* Sección de bienvenida */
@@ -501,15 +512,23 @@
   }
 
   .welcome-section h1 {
-    font-size: 1.5rem;
+    font-size: 2.5rem;
     color: #800020;
+    font-weight: 600;
   }
 
   .welcome-section p {
     font-size: 1.2rem;
     color: #333;
+    margin-bottom: 0;
   }
 
+  .welcome-flecha {
+    width: 50px;
+    rotate: 90deg;
+    animation: move-arrow 2s infinite;
+    transition: transform 0.3s ease;
+  }
 
   /* Sección de productos destacados */
   .featured-products {
@@ -517,8 +536,9 @@
   }
 
   .featured-products h2 {
-    font-size: 1.5rem;
-    color: #333;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #800020;;
     text-align: left;
     margin-bottom: 20px;
   }
