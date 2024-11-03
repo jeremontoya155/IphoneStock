@@ -30,7 +30,7 @@
         fbq('init', '1046128350193379');
         fbq('track', 'PageView');
     </script>
-    <noscript><img height="1" width="1" style="display:none"
+    <noscript><img height="1" width="1" loading="lazy" style="display:none"
     src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1"
     /></noscript>
 </head>
@@ -112,7 +112,7 @@
                         <tbody id="products-table">
                             <% products.forEach(product=> { %>
                                 <tr>
-                                    <td data-label="Imagen"><img src="<%= product.img %>" alt="<%= product.name %>">
+                                    <td data-label="Imagen"><img src="<%= product.img %>" loading="lazy" alt="<%= product.name %>">
                                     </td>
                                     <td data-label="Nombre">
                                         <%= product.name %>
