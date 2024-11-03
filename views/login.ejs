@@ -16,7 +16,7 @@
         <div class="logo">
             <!-- Aquí podrías agregar tu logo -->
             <% if (typeof logoUrl !== 'undefined' && logoUrl) { %>
-                <img src="<%= logoUrl %>" height="50" class="py-0" alt="Logo">
+                <img src="<%= logoUrl %>" height="50" class="py-0" loading="lazy" alt="Logo">
              <% } %>
         </div>
         <form action="/login" method="POST" class="login-form">

@@ -1,7 +1,7 @@
 <div class="product-card" data-stock="<%= product.stock %>" data-toggle="modal"
   data-target="#productModal<%= product.id %>">
   <div class="product-image-container">
-    <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
+    <img src="<%= product.img %>" alt="<%= product.name %>" loading="lazy" class="product-image" rel="prefetch">
   </div>
   <div class="product-details">
     <h3 class="product-name">
@@ -20,7 +20,7 @@
 
     <div class="product-footer">
       <div class="battery-status">
-        <img src="/imgs/bateria.png" loading="lazy" alt="Battery Icon" class="battery-icon">
+        <img src="/imgs/bateria.png" rel="prefetch" loading="lazy" alt="Battery Icon" class="battery-icon">
         <p class="bateria">
           <span class="bateria-num">
             <%= product.bateria %>
