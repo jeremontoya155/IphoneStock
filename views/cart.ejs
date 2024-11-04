@@ -89,7 +89,7 @@
         </div>
 
         <section class="featured-products">
-            <div class="products-container row" id="cart-items">
+            <div class="products-container" id="cart-items">
                 <% products.forEach(product => { %>
                     <% if (product.stock > 0) { %>
                         <%- include('partials/productCard', { product: product }) %>

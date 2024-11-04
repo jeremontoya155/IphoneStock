@@ -1,17 +1,21 @@
-<div class="container my-4">
-    <div class="row">
-        <div class="col-md-6 mb-4 mb-md-0">
-            <h2 class="mb-3"><%= about.titulo %></h2>
-            <p class="mb-3"><%= about.texto %></p>
+<div class="about-container">
+    <div class="about-content">
+        <h2 class="about-title">
+            <%= about.titulo %>
+        </h2>
+        <p class="about-text">
+            <%= about.texto %>
+        </p>
+        <div class="about-button-container">
+            <a href="https://wa.link/3c2jh4" class="about-button">Contactate con nosotros</a>
         </div>
-        <div class="col-md-6">
-            <div class="text-center">
-                <img src="<%= about.imagen %>" class="img-fluid shadow" alt="Imagen sobre nosotros">
-            </div>
-        </div>
-        <% if (isAdmin) { %>
-                    <a href="/edit-images" class="btn-generico">Cambiar Logo</a>
-                    <a href="/edit-about" class="btn-generico">Editar About</a>
-                    <% }; %>
     </div>
+    <div class="about-image-container">
+        <img src="<%= about.imagen %>" class="about-image" alt="Imagen sobre nosotros">
+    </div>
+    <% if (isAdmin) { %>
+        <a href="/edit-images" class="btn-generico">Cambiar Logo</a>
+        <a href="/edit-about" class="btn-generico">Editar About</a>
+        <% }; %>
+</div>
 </div>
