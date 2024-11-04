@@ -1,11 +1,11 @@
 <nav class="custom-navbar" id="custom-navbar">
     <% if (typeof imagenUrl2 !=='undefined' && imagenUrl2) { %>
         <a class="brand-logo" href="/">
-            <img src="<%= imagenUrl2 %>" loading="lazy" alt="Logo">
+            <img src="<%= imagenUrl2 %>" alt="Logo">
         </a>
         <% } else { %>
             <a class="brand-logo" href="/">
-                <img loading="lazy" src="/imgs/logoNegro.png" alt="Logo">
+                <img  src="/imgs/logoNegro.png" alt="Logo">
             </a>
             <% } %>
                 <button class="menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
