@@ -15,6 +15,21 @@ const PORT = process.env.PORT || 3000;
 app.use(compression());
 
 
+const redis = require('redis');
+const redisClient = redis.createClient({
+    url: process.env.REDIS_URL, // Configura esto si estás usando Redis en la nube
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+(async () => {
+    await redisClient.connect(); // Conectar al servidor de Redis
+})();
+
+
+
+
+
 // Middleware para bloquear rutas específicas
 app.use((req, res, next) => {
     const blockedPaths = [
@@ -194,30 +209,63 @@ app.get('/about', (req, res) => {
 });
 
 // Ruta principal para renderizar la página principal
-app.get('/', (req, res) => {
-    let productsQuery = 'SELECT * FROM products';
-    let carouselQuery = 'SELECT * FROM carousel';
-    const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const imagesQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener imagen2
+app.get('/', async (req, res) => {
+    try {
+        // Intenta obtener los datos del caché de Redis
+        const cachedProducts = await redisClient.get('products');
+        const cachedCarouselItems = await redisClient.get('carouselItems');
+        const cachedAbout = await redisClient.get('about');
+        const cachedImages = await redisClient.get('images');
 
-    Promise.all([
-        pool.query(productsQuery).then(result => result.rows),
-        pool.query(carouselQuery).then(result => result.rows),
-        pool.query(aboutQuery).then(result => result.rows),
-        pool.query(imagesQuery).then(result => result.rows[0]) // Obtener imagen1 y imagen2 aquí
-    ])
-    .then(([products, carouselItems, aboutResult, images]) => {
-        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
-        const logoUrl = images.imagen1; // Asignar imagen1 como logoUrl
-        const imagen2Url = images.imagen2; // Obtener imagen2
+        let products, carouselItems, aboutResult, images;
 
-        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin });
-    })
-    .catch(err => {
+        if (cachedProducts && cachedCarouselItems && cachedAbout && cachedImages) {
+            // Si los datos están en el caché, los parseamos
+            products = JSON.parse(cachedProducts);
+            carouselItems = JSON.parse(cachedCarouselItems);
+            aboutResult = JSON.parse(cachedAbout);
+            images = JSON.parse(cachedImages);
+        } else {
+            // Si los datos no están en el caché, obtenemos los datos de la base de datos
+            const productsQuery = 'SELECT * FROM products';
+            const carouselQuery = 'SELECT * FROM carousel';
+            const aboutQuery = 'SELECT * FROM about LIMIT 1';
+            const imagesQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1';
+
+            const [productsFromDb, carouselFromDb, aboutFromDb, imagesFromDb] = await Promise.all([
+                pool.query(productsQuery).then(result => result.rows),
+                pool.query(carouselQuery).then(result => result.rows),
+                pool.query(aboutQuery).then(result => result.rows),
+                pool.query(imagesQuery).then(result => result.rows[0])
+            ]);
+
+            products = productsFromDb;
+            carouselItems = carouselFromDb;
+            aboutResult = aboutFromDb.length > 0 ? aboutFromDb[0] : { titulo: '', texto: '', imagen: '' };
+            images = imagesFromDb;
+
+            // Guarda los resultados en Redis con una expiración de 60 segundos
+            await redisClient.set('products', JSON.stringify(products), { EX: 60 });
+            await redisClient.set('carouselItems', JSON.stringify(carouselItems), { EX: 60 });
+            await redisClient.set('about', JSON.stringify(aboutResult), { EX: 60 });
+            await redisClient.set('images', JSON.stringify(images), { EX: 60 });
+        }
+
+        // Renderizamos la página con los datos
+        res.render('index', {
+            products,
+            carouselItems,
+            about: aboutResult,
+            logoUrl: images.imagen1,
+            imagen2Url: images.imagen2,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
-    });
+    }
 });
+
 
 // Ruta para mostrar el formulario de edición de imágenes
 app.get('/edit-images', requireAdmin, async (req, res) => {
@@ -227,28 +275,56 @@ app.get('/edit-images', requireAdmin, async (req, res) => {
 });
 
 // Ruta para carrito de compras
-app.get('/cart', (req, res) => {
-    let productsQuery = 'SELECT * FROM products';
-    const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener las imágenes
+app.get('/cart', async (req, res) => {
+    try {
+        // Intenta obtener los datos del caché de Redis
+        const cachedProducts = await redisClient.get('products');
+        const cachedAbout = await redisClient.get('about');
+        const cachedImages = await redisClient.get('images');
 
-    Promise.all([
-        pool.query(productsQuery).then(result => result.rows),
-        pool.query(aboutQuery).then(result => result.rows),
-        pool.query(logoQuery).then(result => result.rows[0]) // Obtener imagen1 (logo) y imagen2 aquí
-    ])
-    .then(([products, aboutResult, images]) => {
-        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
-        const logoUrl = images.imagen1; // URL de imagen1 (logo)
-        const imagenUrl2 = images.imagen2; // URL de imagen2
+        let products, aboutResult, images;
 
-        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
-    })
-    .catch(err => {
+        if (cachedProducts && cachedAbout && cachedImages) {
+            // Si los datos están en el caché, los parseamos
+            products = JSON.parse(cachedProducts);
+            aboutResult = JSON.parse(cachedAbout);
+            images = JSON.parse(cachedImages);
+        } else {
+            // Si los datos no están en el caché, obtenemos los datos de la base de datos
+            const productsQuery = 'SELECT * FROM products';
+            const aboutQuery = 'SELECT * FROM about LIMIT 1';
+            const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1';
+
+            const [productsFromDb, aboutFromDb, imagesFromDb] = await Promise.all([
+                pool.query(productsQuery).then(result => result.rows),
+                pool.query(aboutQuery).then(result => result.rows),
+                pool.query(logoQuery).then(result => result.rows[0])
+            ]);
+
+            products = productsFromDb;
+            aboutResult = aboutFromDb.length > 0 ? aboutFromDb[0] : { titulo: '', texto: '', imagen: '' };
+            images = imagesFromDb;
+
+            // Guarda los resultados en Redis con una expiración de 60 segundos
+            await redisClient.set('products', JSON.stringify(products), { EX: 60 });
+            await redisClient.set('about', JSON.stringify(aboutResult), { EX: 60 });
+            await redisClient.set('images', JSON.stringify(images), { EX: 60 });
+        }
+
+        // Renderizamos la página con los datos
+        res.render('cart', {
+            products,
+            about: aboutResult,
+            logoUrl: images.imagen1,
+            imagenUrl2: images.imagen2,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
-    });
+    }
 });
+
 
 // Ruta para editar un producto (requiere autenticación de administrador)
 app.get('/edit/:id', requireAdmin, (req, res) => {
