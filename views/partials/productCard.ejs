@@ -1,4 +1,4 @@
-<div class="product-card" data-stock="<%= product.stock %>" data-toggle="modal"
+<div class="product-card fade-in-section" data-stock="<%= product.stock %>" data-toggle="modal"
   data-target="#productModal<%= product.id %>">
   <div class="product-image-container">
     <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
@@ -12,8 +12,8 @@
     </p>
     <p class="product-space almacenamiento">
       <%= product.almacenamiento %> GB
-  </p>
-  
+    </p>
+
     <p class="product-price precio">
       USD <%= product.price %>
     </p>

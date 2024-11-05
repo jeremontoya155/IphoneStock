@@ -13,6 +13,32 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script>
+        // Función para verificar si el elemento está visible en la pantalla
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.bottom >= 0
+            );
+        }
+
+        // Función para agregar la clase 'visible' a las secciones que están en el viewport
+        function handleScroll() {
+            const sections = document.querySelectorAll('.fade-in-section');
+            sections.forEach(section => {
+                if (isElementInViewport(section)) {
+                    section.classList.add('visible');
+                }
+            });
+        }
+
+        // Escuchar el evento de scroll para activar la animación
+        window.addEventListener('scroll', handleScroll);
+
+        // Ejecutar al cargar la página para detectar secciones visibles al inicio
+        window.addEventListener('load', handleScroll);
+    </script>
     <style>
         .card-img-top {
             width: 100%;
@@ -89,7 +115,7 @@
         </div>
 
         <section class="featured-products">
-            <div class="products-container" id="cart-items">
+            <div class="products-container row" id="cart-items">
                 <% products.forEach(product => { %>
                     <% if (product.stock > 0) { %>
                         <%- include('partials/productCard', { product: product }) %>

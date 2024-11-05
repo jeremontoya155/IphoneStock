@@ -17,22 +17,50 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
 
 
-     <!-- Meta Pixel Code -->
-     <script>
-        !function(f,b,e,v,n,t,s)
-        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-        n.queue=[];t=b.createElement(e);t.async=!0;
-        t.src=v;s=b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t,s)}(window, document,'script',
-        'https://connect.facebook.net/en_US/fbevents.js');
+    <!-- Meta Pixel Code -->
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ?
+                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0;
+            t.src = v; s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+        }(window, document, 'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
         fbq('init', '1046128350193379');
         fbq('track', 'PageView');
+
+        // Función para verificar si el elemento está visible en la pantalla
+        function isElementInViewport(el) {
+            const rect = el.getBoundingClientRect();
+            return (
+                rect.top <= (window.innerHeight || document.documentElement.clientHeight) &&
+                rect.bottom >= 0
+            );
+        }
+
+        // Función para agregar la clase 'visible' a las secciones que están en el viewport
+        function handleScroll() {
+            const sections = document.querySelectorAll('.fade-in-section');
+            sections.forEach(section => {
+                if (isElementInViewport(section)) {
+                    section.classList.add('visible');
+                }
+            });
+        }
+
+        // Escuchar el evento de scroll para activar la animación
+        window.addEventListener('scroll', handleScroll);
+
+        // Ejecutar al cargar la página para detectar secciones visibles al inicio
+        window.addEventListener('load', handleScroll);
+
     </script>
     <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1"
-    /></noscript>
+            src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1" /></noscript>
 </head>
 
 <body>
@@ -44,50 +72,49 @@
             <!-- Carousel -->
             <section class="carousel-section">
                 <%- include('partials/carousel', { carouselItems: carouselItems }) %>
-            <% if (isAdmin) { %>
-                <div class="editar-carousel">
-                    <a href="/edit-carousel" class="btn-generico">Editar carrusel</a>
-                </div>
-                <% }; %>
-                    <section class="welcome-section">
-                        <h1>¡Bienvenido!</h1>
-                        <p>¿Estás listo para encontrar tu IPhone ideal?</p>
-                        
-                        <img src="/imgs/icons-arrow.png" alt="flecha" class="welcome-flecha"  />
-                    </section>
-            </section>
-                    <!-- Título y bienvenida -->
-
-                    <!-- Cards de productos -->
-                    <section class="featured-products">
-                        <h2>Productos destacados</h2>
-                        <div class="products-container" id="cart-items">
-                            <% 
-                            // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente
-                            const sortedProducts = products.filter(product => product.price > 0).sort((a, b) => a.price - b.price);
-                            
-                            // Mostrar solo los 6 productos más baratos
-                            sortedProducts.slice(0, 6).forEach(product => { 
-                            %>
-                                <% if (product.stock > 0) { %>
-                                    <%- include('partials/productCard', { product: product }) %>
-                                <% } %>
-                            <% }); %>
+                    <% if (isAdmin) { %>
+                        <div class="editar-carousel">
+                            <a href="/edit-carousel" class="btn-generico">Editar carrusel</a>
                         </div>
+                        <% }; %>
+                            <section class="welcome-section">
+                                <h1>¡Bienvenido!</h1>
+                                <p>¿Estás listo para encontrar tu IPhone ideal?</p>
+
+                                <img src="/imgs/icons-arrow.png" alt="flecha" class="welcome-flecha" />
+                            </section>
+            </section>
+            <!-- Título y bienvenida -->
+
+            <!-- Cards de productos -->
+            <section class="featured-products fade-in-section">
+                <h2>Productos destacados</h2>
+                <div class="products-container" id="cart-items">
+                    <% // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente const
+                        sortedProducts=products.filter(product=> product.price > 0).sort((a, b) => a.price - b.price);
+
+                        // Mostrar solo los 6 productos más baratos
+                        sortedProducts.slice(0, 6).forEach(product => {
+                        %>
+                        <% if (product.stock> 0) { %>
+                            <%- include('partials/productCard', { product: product }) %>
+                                <% } %>
+                                    <% }); %>
+                </div>
         </div>
-        <div class="ver-mas">
+        <div class="ver-mas fade-in-section">
             <a href="/cart" class="btn-generico">Ver más</a>
         </div>
         </section>
 
         <!-- Sección About -->
-        <section class="about-section">
+        <section class="about-section fade-in-section">
             <!-- Incluir sección 'about' -->
             <%- include('partials/about', { about: about }) %> <!-- Pasar el objeto `about` -->
         </section>
 
         <!-- Botones según el rol -->
-        <div class="text-center mb-4">
+        <div class="text-center mb-4 fade-in-section">
             <% if (isAdmin) { %>
                 <h3>Lista completa de productos</h3>
                 <div class="mb-3">
@@ -122,7 +149,9 @@
                                     <td data-label="Descripción">
                                         <%= product.description %>
                                     </td>
-                                    <td data-label="Estado"><%= product.estado %></td> 
+                                    <td data-label="Estado">
+                                        <%= product.estado %>
+                                    </td>
                                     <td data-label="Precio">$<%= product.price %>
                                     </td>
                                     <td data-label="Stock">
@@ -136,16 +165,16 @@
                         </tbody>
                     </table>
                 </div>
-                
+
                 <% } else { %>
 
-                    <div class="container my-2 py-2">
+                    <div class="container my-2 py-2 fade-in-section">
                         <h3 class="about-title">Encontranos en:</h3>
                         <div class="iframe-container">
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d27247.367835402438!2d-64.23651376765733!3d-31.38874232569808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9432999729f8219b%3A0x52c9a2f615fdb8d8!2si%20loop!5e0!3m2!1ses-419!2sar!4v1723817758327!5m2!1ses-419!2sar"
-                            width="300em" height="450" style="border:0;" allowfullscreen="" loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"></iframe>
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d27247.367835402438!2d-64.23651376765733!3d-31.38874232569808!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9432999729f8219b%3A0x52c9a2f615fdb8d8!2si%20loop!5e0!3m2!1ses-419!2sar!4v1723817758327!5m2!1ses-419!2sar"
+                                width="300em" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+                                referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
                     </div>
                     <% } %>

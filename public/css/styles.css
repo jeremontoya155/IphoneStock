@@ -13,6 +13,21 @@
     }
   }
 
+  /* Estilo inicial para las secciones que se van a animar */
+  .fade-in-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 1.2s ease-out, transform 1.6s ease-out;
+    visibility: hidden;
+  }
+
+  /* Estilo cuando la sección es visible */
+  .fade-in-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
   /* LOGIN */
   .login-page {
     background: linear-gradient(135deg, #ff6f61, #de5078);
@@ -44,7 +59,7 @@
     background: #fff;
     padding: 2rem 2rem 0;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 5px 12px rgb(0 0 0 / 35%);
     text-align: center;
     width: 100%;
     max-width: 310px;
@@ -99,8 +114,8 @@
   /* Estilos para las Cards de Productos */
   .product-card {
     background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 11px;
+    box-shadow: 1px 4px 9px rgb(0 0 0 / 20%);
     padding: 15px;
     text-align: center;
     display: flex;
@@ -117,7 +132,8 @@
     position: relative;
     width: 100%;
     padding-bottom: 75%;
-    /* Ajusta el valor según sea necesario para móvil */
+    border-radius: 10px;
+    box-shadow: 2px 5px 12px rgb(0 0 0 / 35%);
     height: 0;
     overflow: hidden;
   }
@@ -180,8 +196,8 @@
   }
 
   .product-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    transform: scale(1.02) translateY(-10px);
+    box-shadow: 0 8px 20px rgb(0 0 0 / 73%);
     cursor: pointer;
   }
 
@@ -226,6 +242,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
     }
+
     .featured-products h2 {
       font-size: 1.6em !important;
     }
@@ -617,9 +634,9 @@
     padding: 20px;
     background-color: #fff;
     border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 5px 12px rgb(0 0 0 / 35%);
     max-width: 1200px;
-    margin: 15px auto 0;
+    margin: 15px auto 3rem;
   }
 
   .about-content {
@@ -688,8 +705,8 @@
     justify-content: center;
     align-items: center;
     overflow: hidden;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 11px;
+    box-shadow: 2px 5px 12px rgb(0 0 0 / 20%);
   }
 
   .about-image {
