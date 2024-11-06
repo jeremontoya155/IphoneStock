@@ -2,63 +2,163 @@
 .cart-container {
     margin-top: 65px;
     padding-bottom: 20px;
-    background-color: #f8f9fa; /* Color de fondo */
+    background-color: #f8f9fa;
+    /* Color de fondo */
 }
 
-.row{
+.row {
     justify-content: center;
 }
+
 /* Estilos para las Cards de Productos */
 
 .catalogo-title {
     text-align: center;
     margin-top: 3rem;
     margin-bottom: 0;
+    font-size: 2.5rem;
+    color: #800020;
+    font-weight: 600;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .catalogo-logo {
-      text-align: center;
+    text-align: center;
 }
 
-.filters {
-    display: flex;
-    align-items: center; /* Alinea verticalmente al centro */
-    justify-content: space-between; /* Espacio entre los filtros y el botón */
-    gap: 10px; /* Espaciado entre los elementos */
+.sidebar {
+    text-align: center;
 }
 
-#filter-button {
-    background-color: #800020; /* Color de fondo */
-    color: #fff; /* Color del texto */
-    border: none; /* Quitar bordes */
-    padding: 5px 20px; /* Relleno interno del botón */
-    font-size: 16px; /* Tamaño del texto */
-    cursor: pointer; /* Cambia el cursor a un puntero al pasar sobre el botón */
-    border-radius: 5px; /* Bordes redondeados */
-    margin-left: auto;
+.filters-modal-btn-sidebar {
+    background-color: #800020;
+    color: #fff;
+    padding: 7px;
+    MARGIN: 0 0 2rem;
+    border-radius: 9px;
+    font-size: 1rem;
+    border: none;
+    cursor: pointer;
+    width: AUTO;
+    text-align: center;
+    transition: background-color 0.3s ease;
+}
+
+.filters-modal-btn-sidebar:hover {
+    background-color: #a32c2c;
+}
+
+/* En mobile, ocultar la barra lateral y mostrar el botón flotante */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+
+    .filters-modal-btn-phone {
+        display: block !important;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #800020;
+        color: #fff;
+        padding: 10px;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        z-index: 1000;
+    }
+}
+
+/* Botón flotante */
+.filters-modal-btn-phone {
+    display: none;
+}
+
+/* Modal de filtros */
+.filters-modal {
+    display: none;
+    /* Oculto por defecto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
     justify-content: center;
     align-items: center;
+    z-index: 1000;
+}
 
+.filters-modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 86%;
+    margin-top: 3rem;
+    display: flex;
+    flex-wrap: wrap;
+    overflow: scroll;
+    text-align: center;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.filters-modal h3 {
+    margin-top: 0;
+    color: #800020;
+}
+
+.filters-modal label {
+    display: block;
+    font-weight: bold;
+    margin-top: 10px;
+    color: #333;
+}
+
+.filters-modal select,
+.filters-modal input {
+    width: 100%;
+    padding: 8px;
+    margin-top: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 0.9rem;
+}
+
+.buttons {
+    margin-top: 15px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#filter-button,
+#reset-button {
+    background-color: #800020;
+    color: #fff;
+    padding: 8px 15px;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.filters-modal.active {
+    display: flex;
 }
 
 #filter-button:hover {
-    background-color: #a32c2c; /* Color más claro al pasar el mouse */
+    background-color: #a32c2c;
 }
 
+#reset-button {
+    background-color: #555;
+}
 
-/* Media Query para pantallas móviles */
-@media (max-width: 768px) {
-    .filters {
-        flex-direction: column; /* Apila los elementos verticalmente */
-        align-items: stretch; /* Asegura que los elementos llenen todo el ancho */
-    }
-
-    #filter-button {
-        margin-left: 0; /* Reinicia el margen izquierdo */
-        width: 100%; /* El botón ocupa el 100% del ancho */
-    }
-
-    select, input {
-        width: 100%; /* Los filtros también ocupan el 100% del ancho */
-    }
+#reset-button:hover {
+    background-color: #777;
 }

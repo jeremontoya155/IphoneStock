@@ -51,87 +51,98 @@
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-    <div class="container cart-container ">
-        <h2 class="catalogo-title">CATALOGO</h2>
-        <div class="catalogo-logo">
-            <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
-        </div>
+        <div class="container cart-container ">
+            <div class="catalogo-content">
+                <h2 class="catalogo-title">CATÁLOGO</h2>
+                <!-- Productos aquí -->
+            </div>
 
-        <!-- Campo de búsqueda -->
-        <div class="input-group mb-3">
-            <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
-        </div>
+            <div class="catalogo-logo">
+                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
+            </div>
 
-        <!-- Filtros adicionales -->
-        <div class="filters mb-3">
-            <!-- Filtro por modelo -->
-            <label for="model-filter">Modelo</label>
-            <select id="model-filter" class="form-control mb-2">
-                <option value="">Todos los modelos</option>
-                <% let uniqueModels = new Set(); products.forEach(product => {
-                    if (product.stock > 0 && !uniqueModels.has(product.name)) {
-                    uniqueModels.add(product.name); %>
-                    <option value="<%= product.name.toLowerCase() %>">
-                        <%= product.name %>
-                    </option>
-                <% } }); %>
-            </select>
+            <div class="sidebar">
+                <button class="filters-modal-btn-sidebar">Buscador</button>
+            </div>
 
-            <!-- Filtro por porcentaje mínimo de batería -->
-            <label for="battery-filter">Batería</label>
-            <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+            <!-- Botón flotante para abrir los filtros en mobile -->
+            <div class="filters-modal-btn-phone">🔍</div>
 
-            <!-- Filtro por almacenamiento mínimo -->
-            <label for="storage-filter">Almacenamiento (GB)</label>
-            <input id="storage-filter" type="number" class="form-control mb-2" placeholder="Almacenamiento mínimo (GB)">
+            <!-- Modal de filtros -->
+            <div class="filters-modal">
+                <div class="filters-modal-content">
+                    <h3>Filtrar productos</h3>
+                    <!-- Campo de búsqueda -->
+                    <div class="input-group mb-3">
+                        <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+                    </div>
+                    <!-- Filtros -->
+                    <label for="model-filter">Modelo</label>
+                    <select id="model-filter" class="form-control mb-2">
+                        <option value="">Todos los modelos</option>
+                        <% let uniqueModels=new Set(); products.forEach(product=> {
+                            if (product.stock > 0 && !uniqueModels.has(product.name)) {
+                            uniqueModels.add(product.name); %>
+                            <option value="<%= product.name %>">
+                                <%= product.name %>
+                            </option>
+                            <% } }); %>
+                    </select>
 
-            <!-- Filtro por estado del producto -->
-            <label for="estado-filter">Estado</label>
-            <select id="estado-filter" class="form-control mb-2">
-                <option value="">Todos los estados</option>
-                <% let uniqueEstados = new Set(); products.forEach(product => {
-                    if (product.stock > 0 && product.estado) {
-                        let estadoUpperCase = product.estado.toUpperCase();
-                        if (!uniqueEstados.has(estadoUpperCase)) {
+                    <label for="estado-filter">Estado</label>
+                    <select id="estado-filter" class="form-control mb-2">
+                        <option value="">Todos los estados</option>
+                        <% let uniqueEstados=new Set(); products.forEach(product=> {
+                            if (product.stock > 0 && product.estado) {
+                            let estadoUpperCase = product.estado.toUpperCase();
+                            if (!uniqueEstados.has(estadoUpperCase)) {
                             uniqueEstados.add(estadoUpperCase); %>
                             <option value="<%= estadoUpperCase %>">
                                 <%= estadoUpperCase %>
                             </option>
-                        <% }
-                    } 
-                }); %>
-            </select>
+                            <% } } }); %>
+                    </select>
 
-            <!-- Filtro de orden de precio -->
-            <label for="order-price-filter">Ordenar por precio</label>
-            <select id="order-price-filter" class="form-control mb-2">
-                <option value="">Por defecto</option>
-                <option value="asc">Menor a mayor</option>
-                <option value="desc">Mayor a menor</option>
-            </select>
+                    <label for="storage-filter">Almacenamiento (GB)</label>
+                    <input id="storage-filter" type="number" class="form-control mb-2"
+                        placeholder="Almacenamiento mínimo (GB)">
 
-            <!-- Botón de buscar -->
-            <button id="filter-button" class="btn btn-primary">Buscar</button>
+                    <label for="battery-filter">Batería mínima (%)</label>
+                    <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+
+                    <!-- Botones de acción -->
+                    <div class="buttons">
+                        <button id="reset-button" class="btn btn-secondary">Resetear</button>
+                        <button id="filter-button" class="btn btn-primary">Buscar</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <section class="featured-products">
+                <div class="products-container row" id="cart-items">
+                    <% products.forEach(product=> { %>
+                        <% if (product.stock> 0) { %>
+                            <%- include('partials/productCard', { product: product }) %>
+                                <% } %>
+                                    <% }); %>
+                </div>
+                <!-- Mensaje de "No se encontraron coincidencias" -->
+                <div id="no-results-message" class="alert alert-warning" style="display: none;">
+                    No se encontraron productos que coincidan con los filtros aplicados.
+                </div>
+
+            </section>
         </div>
 
-        <section class="featured-products">
-            <div class="products-container row" id="cart-items">
-                <% products.forEach(product => { %>
-                    <% if (product.stock > 0) { %>
-                        <%- include('partials/productCard', { product: product }) %>
-                    <% } %>
-                <% }); %>
-            </div>
-        </section>
-    </div>
+        <%- include('partials/footer') %>
 
-    <%- include('partials/footer') %>
-
-    <!-- Scripts -->
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-    <script src="/js/cart.js"></script>
+            <!-- Scripts -->
+            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+            <script src="/js/cart.js"></script>
 </body>
 
 </html>

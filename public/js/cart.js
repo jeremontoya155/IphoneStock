@@ -1,124 +1,81 @@
-// Filtro de batería mínima en tiempo real
-const batteryFilter = document.getElementById('battery-filter');
-if (batteryFilter) {
-    batteryFilter.addEventListener('input', function () {
-        const batteryFilterValue = parseInt(this.value, 10); // Convertir el valor del filtro a número entero
-        const items = document.querySelectorAll('.product-card');
+// Seleccionar elementos
+const modal = document.querySelector('.filters-modal');
+const modalButtons = document.querySelectorAll('.filters-modal-btn-sidebar, .filters-modal-btn-phone');
 
-        items.forEach(item => {
-            const productBattery = parseInt(item.querySelector('.bateria-num').textContent, 10); // Obtener el porcentaje de batería como número entero
-
-            if (isNaN(batteryFilterValue) || productBattery >= batteryFilterValue) {
-                // Mostrar productos con batería igual o mayor al valor del filtro, o si el filtro está vacío
-                item.style.display = '';
-            } else {
-                // Ocultar productos con batería menor al valor del filtro
-                item.style.display = 'none';
-            }
-        });
+// Abrir el modal al hacer clic en cualquiera de los botones
+modalButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        modal.classList.toggle('active');
     });
+});
+
+// Cerrar el modal al hacer clic fuera del contenido del modal
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.classList.remove('active');
+    }
+});
+
+function applyFilters() {
+    // Obtener los valores de los filtros
+    const estado = document.getElementById('estado-filter').value.toUpperCase();
+    const storage = parseInt(document.getElementById('storage-filter').value);
+    const battery = parseInt(document.getElementById('battery-filter').value);
+    const model = document.getElementById('model-filter').value.toLowerCase();
+    const searchQuery = document.getElementById('search-input').value.toLowerCase();
+
+    // Seleccionar todos los productos
+    const products = document.querySelectorAll('.product-card');
+    let anyVisible = false; // Variable para rastrear si algún producto es visible
+
+    products.forEach(product => {
+        // Obtener datos de cada producto
+        const productEstado = product.getAttribute('data-estado').toUpperCase();
+        const productStorage = parseInt(product.getAttribute('data-storage'));
+        const productBattery = parseInt(product.getAttribute('data-battery'));
+        const productModel = product.getAttribute('data-model').toLowerCase();
+        const productName = productModel;
+
+        // Aplicar las condiciones de cada filtro
+        let estadoMatch = !estado || productEstado === estado;
+        let storageMatch = isNaN(storage) || productStorage >= storage;
+        let batteryMatch = isNaN(battery) || productBattery >= battery;
+        let modelMatch = !model || productModel === model;
+        let searchMatch = !searchQuery || productName.includes(searchQuery);
+
+        // Mostrar u ocultar el producto según los filtros
+        if (estadoMatch && storageMatch && batteryMatch && modelMatch && searchMatch) {
+            product.style.display = 'block';
+            anyVisible = true; // Al menos un producto es visible
+        } else {
+            product.style.display = 'none';
+        }
+    });
+
+    // Mostrar el mensaje de "No se encontraron coincidencias" si no hay productos visibles
+    document.getElementById('no-results-message').style.display = anyVisible ? 'none' : 'block';
+
+    // Cerrar el modal después de aplicar los filtros
+    modal.classList.remove('active');
 }
 
-// Función para filtrar y ordenar productos
-function filterProducts() {
-    const searchValue = document.getElementById('search-input').value.toLowerCase().trim();
-    const modelValue = document.getElementById('model-filter').value.toLowerCase().trim();
-    const batteryFilterValue = parseInt(document.getElementById('battery-filter').value) || 0;
-    const storageFilterValue = parseInt(document.getElementById('storage-filter').value) || 0;
-    const estadoValue = document.getElementById('estado-filter').value.toUpperCase().trim(); // Filtro de estado
-    const orderPriceValue = document.getElementById('order-price-filter').value; // Filtro de orden de precio
-    const items = Array.from(document.querySelectorAll('.product-card')); // Convertimos el NodeList a Array para poder ordenarlo
+// Agregar evento al botón "Buscar"
+document.getElementById('filter-button').addEventListener('click', applyFilters);
 
-    // Filtrar los productos
-    const filteredItems = items.filter(item => {
-        const text = item.textContent.toLowerCase();
-        const productModel = item.querySelector('.product-name').textContent.toLowerCase().trim();
-        const productBattery = parseInt(item.querySelector('.bateria-num').textContent.trim());
-        const productStorage = parseInt(item.querySelector('.almacenamiento').textContent) || 0;
-        const productEstado = item.querySelector('.estado').textContent.toUpperCase().trim();
-        const productPrice = parseFloat(item.querySelector('.product-price').textContent.replace('USD', '').trim());
+// Agregar evento al botón "Resetear"
+document.getElementById('reset-button').addEventListener('click', function () {
+    // Limpiar todos los filtros
+    document.getElementById('estado-filter').value = "";
+    document.getElementById('storage-filter').value = "";
+    document.getElementById('battery-filter').value = "";
+    document.getElementById('model-filter').value = "";
+    document.getElementById('search-input').value = "";
 
-        // Aplicar todos los filtros combinados
-        const matchesSearch = text.includes(searchValue);
-        const matchesModel = modelValue === '' || productModel === modelValue;
-        const matchesBattery = productBattery >= batteryFilterValue;
-        const matchesStorage = productStorage >= storageFilterValue;
-        const matchesEstado = estadoValue === '' || productEstado === estadoValue;
-
-        return matchesSearch && matchesModel && matchesBattery && matchesStorage && matchesEstado;
+    // Restablecer los productos a visibles
+    document.querySelectorAll('.product-card').forEach(product => {
+        product.style.display = 'block';
     });
 
-    // Ordenar los productos filtrados por precio
-    if (orderPriceValue === 'asc') {
-        filteredItems.sort((a, b) => {
-            const priceA = parseFloat(a.querySelector('.product-price').textContent.replace('USD', '').trim());
-            const priceB = parseFloat(b.querySelector('.product-price').textContent.replace('USD', '').trim());
-            return priceA - priceB; // Orden ascendente (menor a mayor)
-        });
-    } else if (orderPriceValue === 'desc') {
-        filteredItems.sort((a, b) => {
-            const priceA = parseFloat(a.querySelector('.product-price').textContent.replace('USD', '').trim());
-            const priceB = parseFloat(b.querySelector('.product-price').textContent.replace('USD', '').trim());
-            return priceB - priceA; // Orden descendente (mayor a menor)
-        });
-    }
-
-    // Ocultar todos los productos
-    items.forEach(item => item.style.display = 'none');
-
-    // Mostrar solo los productos filtrados y ordenados
-    filteredItems.forEach(item => item.style.display = '');
-}
-
-// Asignar la función al botón de búsqueda
-document.getElementById('filter-button').addEventListener('click', filterProducts);
-
-// Opcional: Si también quieres permitir el filtrado al presionar "Enter"
-document.getElementById('search-input').addEventListener('keyup', function (event) {
-    if (event.key === 'Enter') {
-        filterProducts();
-    }
-});
-document.getElementById('battery-filter').addEventListener('keyup', function (event) {
-    if (event.key === 'Enter') {
-        filterProducts();
-    }
-});
-document.getElementById('storage-filter').addEventListener('keyup', function (event) {
-    if (event.key === 'Enter') {
-        filterProducts();
-    }
-});
-document.getElementById('estado-filter').addEventListener('change', function () {
-    filterProducts();
-});
-document.getElementById('order-price-filter').addEventListener('change', function () {
-    filterProducts();
-});
-
-// Función para manejar las pestañas en el modal
-function showTab(event, tabId) {
-    var i, tabcontent, tablinks;
-
-    tabcontent = document.getElementsByClassName("tab-content");
-    for (i = 0; i < tabcontent.length; i++) {
-        tabcontent[i].style.display = "none";
-    }
-
-    tablinks = document.querySelectorAll(".product-detail-card .tabs button");
-    for (i = 0; i < tablinks.length; i++) {
-        tablinks[i].className = tablinks[i].className.replace(" active", "");
-    }
-
-    document.getElementById(tabId).style.display = "block";
-    event.currentTarget.className += " active";
-}
-
-// Mostrar la pestaña "General" por defecto
-document.addEventListener('DOMContentLoaded', function () {
-    var defaultTabs = document.querySelectorAll('.tabs button.active');
-    defaultTabs.forEach(function (tab) {
-        var tabId = tab.getAttribute('onclick').match(/'([^']+)'/)[1];
-        document.getElementById(tabId).style.display = 'block';
-    });
+    // Ocultar el mensaje de "No se encontraron coincidencias"
+    document.getElementById('no-results-message').style.display = 'none';
 });
