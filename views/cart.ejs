@@ -13,8 +13,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <style>
+        .card-img-top {
+            width: 100%;
+            height: auto;
+        }
+
+        .fade-in-section {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+
+        .fade-in-section.visible {
+            opacity: 1;
+            transform: none;
+        }
+    </style>
     <script>
-        // Función para verificar si el elemento está visible en la pantalla
         function isElementInViewport(el) {
             const rect = el.getBoundingClientRect();
             return (
@@ -23,7 +39,6 @@
             );
         }
 
-        // Función para agregar la clase 'visible' a las secciones que están en el viewport
         function handleScroll() {
             const sections = document.querySelectorAll('.fade-in-section');
             sections.forEach(section => {
@@ -33,116 +48,174 @@
             });
         }
 
-        // Escuchar el evento de scroll para activar la animación
         window.addEventListener('scroll', handleScroll);
-
-        // Ejecutar al cargar la página para detectar secciones visibles al inicio
         window.addEventListener('load', handleScroll);
     </script>
-    <style>
-        .card-img-top {
-            width: 100%;
-            height: auto;
-        }
-    </style>
 </head>
 
 <body>
-    <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %>
 
-        <div class="container cart-container ">
-            <div class="catalogo-content">
-                <h2 class="catalogo-title">CATÁLOGO</h2>
-                <!-- Productos aquí -->
-            </div>
-
-            <div class="catalogo-logo">
-                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
-            </div>
-
-            <div class="sidebar">
-                <button class="filters-modal-btn-sidebar">Buscador</button>
-            </div>
-
-            <!-- Botón flotante para abrir los filtros en mobile -->
-            <div class="filters-modal-btn-phone">🔍</div>
-
-            <!-- Modal de filtros -->
-            <div class="filters-modal">
-                <div class="filters-modal-content">
-                    <h3>Filtrar productos</h3>
-                    <!-- Campo de búsqueda -->
-                    <div class="input-group mb-3">
-                        <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
-                    </div>
-                    <!-- Filtros -->
-                    <label for="model-filter">Modelo</label>
-                    <select id="model-filter" class="form-control mb-2">
-                        <option value="">Todos los modelos</option>
-                        <% let uniqueModels=new Set(); products.forEach(product=> {
-                            if (product.stock > 0 && !uniqueModels.has(product.name)) {
-                            uniqueModels.add(product.name); %>
-                            <option value="<%= product.name %>">
-                                <%= product.name %>
-                            </option>
-                            <% } }); %>
-                    </select>
-
-                    <label for="estado-filter">Estado</label>
-                    <select id="estado-filter" class="form-control mb-2">
-                        <option value="">Todos los estados</option>
-                        <% let uniqueEstados=new Set(); products.forEach(product=> {
-                            if (product.stock > 0 && product.estado) {
-                            let estadoUpperCase = product.estado.toUpperCase();
-                            if (!uniqueEstados.has(estadoUpperCase)) {
-                            uniqueEstados.add(estadoUpperCase); %>
-                            <option value="<%= estadoUpperCase %>">
-                                <%= estadoUpperCase %>
-                            </option>
-                            <% } } }); %>
-                    </select>
-
-                    <label for="storage-filter">Almacenamiento (GB)</label>
-                    <input id="storage-filter" type="number" class="form-control mb-2"
-                        placeholder="Almacenamiento mínimo (GB)">
-
-                    <label for="battery-filter">Batería mínima (%)</label>
-                    <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
-
-                    <!-- Botones de acción -->
-                    <div class="buttons">
-                        <button id="reset-button" class="btn btn-secondary">Resetear</button>
-                        <button id="filter-button" class="btn btn-primary">Buscar</button>
-                    </div>
-                </div>
-            </div>
-
-
-
-            <section class="featured-products">
-                <div class="products-container row" id="cart-items">
-                    <% products.forEach(product=> { %>
-                        <% if (product.stock> 0) { %>
-                            <%- include('partials/productCard', { product: product }) %>
-                                <% } %>
-                                    <% }); %>
-                </div>
-                <!-- Mensaje de "No se encontraron coincidencias" -->
-                <div id="no-results-message" class="alert alert-warning" style="display: none;">
-                    No se encontraron productos que coincidan con los filtros aplicados.
-                </div>
-
-            </section>
+    <div class="container cart-container">
+        <div class="catalogo-content">
+            <h2 class="catalogo-title">CATÁLOGO</h2>
         </div>
 
-        <%- include('partials/footer') %>
+        <div class="catalogo-logo">
+            <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="Logo">
+        </div>
 
-            <!-- Scripts -->
-            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-            <script src="/js/cart.js"></script>
+        <div class="sidebar">
+            <button class="filters-modal-btn-sidebar">Buscador</button>
+        </div>
+
+        <div class="filters-modal-btn-phone">🔍</div>
+
+        <div class="filters-modal">
+            <div class="filters-modal-content">
+                <h3>Filtrar productos</h3>
+                <div class="input-group mb-3">
+                    <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
+                </div>
+                <label for="model-filter">Modelo</label>
+                <select id="model-filter" class="form-control mb-2">
+                    <option value="">Todos los modelos</option>
+                    <% let uniqueModels=new Set(); products.forEach(product=> {
+                        if (product.stock > 0 && !uniqueModels.has(product.name)) {
+                        uniqueModels.add(product.name); %>
+                        <option value="<%= product.name %>">
+                            <%= product.name %>
+                        </option>
+                        <% } }); %>
+                </select>
+
+                <label for="estado-filter">Estado</label>
+                <select id="estado-filter" class="form-control mb-2">
+                    <option value="">Todos los estados</option>
+                    <% let uniqueEstados=new Set(); products.forEach(product=> {
+                        if (product.stock > 0 && product.estado) {
+                        let estadoUpperCase = product.estado.toUpperCase();
+                        if (!uniqueEstados.has(estadoUpperCase)) {
+                        uniqueEstados.add(estadoUpperCase); %>
+                        <option value="<%= estadoUpperCase %>">
+                            <%= estadoUpperCase %>
+                        </option>
+                        <% } } }); %>
+                </select>
+
+                <label for="storage-filter">Almacenamiento (GB)</label>
+                <input id="storage-filter" type="number" class="form-control mb-2"
+                    placeholder="Almacenamiento mínimo (GB)">
+
+                <label for="battery-filter">Batería mínima (%)</label>
+                <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
+
+                <div class="buttons">
+                    <button id="reset-button" class="btn btn-secondary">Resetear</button>
+                    <button id="filter-button" class="btn btn-primary">Buscar</button>
+                </div>
+            </div>
+        </div>
+
+        <section class="featured-products">
+            <div class="products-container row" id="cart-items">
+                <% products.forEach(product=> { %>
+                <% if (product.stock > 0) { %>
+                <div class="product-card fade-in-section" data-stock="<%= product.stock %>"
+                    data-estado="<%= product.estado %>" data-storage="<%= product.almacenamiento %>"
+                    data-battery="<%= product.bateria %>" data-model="<%= product.name %>" data-toggle="modal"
+                    data-target="#productModal<%= product.id %>">
+
+                    <div class="product-image-container">
+                        <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
+                    </div>
+
+                    <div class="product-details">
+                        <h3 class="product-name"><%= product.name %></h3>
+                        <p class="product-space estado"><%= product.estado %></p>
+                        <p class="product-space almacenamiento"><%= product.almacenamiento %> GB</p>
+                        <p class="product-price precio">USD <%= product.price %></p>
+
+                        <div class="product-footer">
+                            <div class="battery-status">
+                                <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
+                                <p class="bateria"><span class="bateria-num"><%= product.bateria %></span>%</p>
+                            </div>
+                            <form action="/buy/<%= product.id %>" method="POST" class="d-inline"
+                                onclick="event.stopPropagation()">
+                                <button type="submit" class="btn-ver-mas-small">Consultar</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="productModal<%= product.id %>" tabindex="-1" role="dialog"
+                    aria-labelledby="productModalLabel<%= product.id %>" aria-hidden="true">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="productModalLabel<%= product.id %>"><%= product.name %></h5>
+                                <button type="button" class="modal-close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="general<%= product.id %>" class="tab-content active">
+                                    <% product.description.split('\n').forEach(function(line) { %>
+                                    <% var parts = line.split(':'); %>
+                                    <% if (parts.length > 1 && parts[1].trim() !== '') { %>
+                                    <p><span><%= parts[0].trim() %>:</span> <%= parts[1].trim() %></p>
+                                    <% } %>
+                                    <% }); %>
+                                </div>
+                                <div id="tech<%= product.id %>" class="tab-content">
+                                    <!-- Contenido técnico del producto -->
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <p class="modal-price">$<%= product.price %></p>
+                                <form action="/buy/<%= product.id %>" method="POST" class="d-inline">
+                                    <button type="submit" class="btn-ver-mas-small">Consultar</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+                <% }); %>
+            </div>
+
+            <div id="no-results-message" class="alert alert-warning" style="display: none;">
+                No se encontraron productos que coincidan con los filtros aplicados.
+            </div>
+        </section>
+    </div>
+
+    <%- include('partials/footer') %>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/js/cart.js"></script>
+    <script>
+    // Escucha el evento `shown.bs.modal` que se activa al abrir un modal
+    $(document).on('shown.bs.modal', function () {
+        // Encuentra y elimina cualquier backdrop generado
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open'); // Asegúrate de eliminar la clase modal-open si bloquea el scroll
+    });
+
+    // Elimina el backdrop también cuando el modal se cierre
+    $(document).on('hidden.bs.modal', function () {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open');
+        $('body').css('padding-right', ''); // Corrige posibles problemas de padding
+    });
+</script>
+
+
 </body>
+
 
 </html>

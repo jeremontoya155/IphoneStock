@@ -8,9 +8,22 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(compression());
+
+const redis = require('redis');
+const redisClient = redis.createClient({
+    url: process.env.REDIS_URL, // Configura esto si estás usando Redis en la nube
+});
+
+redisClient.on('error', (err) => console.error('Redis Client Error', err));
+
+(async () => {
+    await redisClient.connect(); // Conectar al servidor de Redis
+})();
 
 
 // Middleware para bloquear rutas específicas
