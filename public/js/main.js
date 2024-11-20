@@ -74,3 +74,9 @@ document.getElementById('battery-filter').addEventListener('input', function () 
         }
     });
 });
+
+$(document).ready(function () {
+    $('.modal').on('show.bs.modal', function () {
+        $('.modal-backdrop').remove();
+    });
+});
