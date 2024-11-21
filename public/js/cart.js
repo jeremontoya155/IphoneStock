@@ -1,11 +1,14 @@
 // Seleccionar elementos
 const modal = document.querySelector('.filters-modal');
-const modalButtons = document.querySelectorAll('.filters-modal-btn-sidebar, .filters-modal-btn-phone');
 
 // Abrir el modal al hacer clic en cualquiera de los botones
+
+// Reemplaza el comportamiento manual con las clases de Bootstrap
+const modalButtons = document.querySelectorAll('.filters-modal-btn-sidebar, .filters-modal-btn-phone');
+
 modalButtons.forEach(button => {
     button.addEventListener('click', () => {
-        modal.classList.toggle('active');
+        $('#filterModal').modal('show'); // Usa Bootstrap para abrir el modal
     });
 });
 

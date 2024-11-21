@@ -7,12 +7,89 @@ body {
 }
 
 /* Estilos generales para el modal */
+.modal-open .modal {
+    overflow-x: visible;
+    overflow-y: visible;
+}
+.modal-backdrop {
+    z-index: 1040; /* Nivel detrás del modal */
+    display: none !important; /* Solo como medida temporal */
+}
+
 .modal-dialog {
-    max-width: 600px;
-    margin: 1.75rem auto;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    margin: 0;
+    max-width: 500px; /* Ajusta el ancho según tus necesidades */
+    width: 100%;
+}
+@media (min-width: 768px) {
+    .modal-dialog {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+    }
+}
+@media (max-width: 350px) {
+    .modal-dialog {
+        position: absolute;
+        width: 97vw;
+        top: 385px;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+    }
 }
 
 .modal-content {
+    height: 100%;
+    border: none;
+    border-radius: 0;
+    display: flex;
+}
+
+.modal {
+    overflow: visible;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1055; /* Asegura que esté sobre todos los elementos */
+    display: none; /* Bootstrap manejará cuándo se muestra */
+}
+
+.modal.show {
+    display: block; /* Bootstrap añade la clase .show cuando el modal está visible */
+    display: flex; /* Centra el contenido con flexbox solo cuando está abierto */
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-dialog {
+    margin: 0; /* Sin márgenes adicionales */
+    max-width: 500px; /* Ajusta el tamaño del modal */
+    width: 100%; /* Asegura que sea responsivo */
+    transform: none; /* Elimina transformaciones previas */
+}
+
+
+.modal-backdrop.show {
+    opacity: .5;
+}
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+}
+.modal-content {
+    z-index: 1000;
    background-color: #fff;
     border-radius: 10px;
     /* Bordes redondeados */

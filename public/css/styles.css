@@ -286,7 +286,7 @@
     border-radius: 5px;
     width: 150px;
     text-decoration: none;
-    margin: 5px 15px;
+    margin: 65px 15px 5px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
     transition: transform 0.2s, box-shadow 0.2s;
@@ -385,44 +385,6 @@
     padding: 2px;
   }
 
-
-
-  /* Estilos generales para el modal */
-
-
-  .modal-footer .btn {
-    background-color: #800020;
-    color: #fff;
-    padding: 0px 20px;
-    border-radius: 5px;
-    border: none;
-    cursor: pointer;
-  }
-
-  .modal-footer .btn:hover {
-    background-color: #a32c2c;
-    /* Color más claro al pasar el mouse */
-  }
-
-  /* Responsividad para pantallas pequeñas */
-  @media (max-width: 768px) {
-    .modal-dialog {
-      max-width: 90%;
-      /* Ocupa casi todo el ancho en móviles */
-    }
-
-    .modal-content {
-      padding: 15px;
-    }
-
-    .modal-body p {
-      font-size: 16px;
-    }
-
-    .modal-footer {
-      flex-direction: column;
-    }
-  }
 
 
   /* Navbar personalizado */

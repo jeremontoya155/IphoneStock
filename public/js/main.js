@@ -20,7 +20,12 @@ document.getElementById('search-input').addEventListener('keyup', function() {
         }
     });
 });
-
+$(document).ready(function () {
+    $(document).on('hidden.bs.modal', function () {
+        $('.modal-backdrop').remove(); // Elimina backdrop persistente
+        $('body').removeClass('modal-open'); // Previene bloqueo del fondo
+    });
+});
 // Función para descargar los productos en un archivo Excel
 document.getElementById('download-btn').addEventListener('click', function() {
     const rows = document.querySelectorAll('#products-table tr');
