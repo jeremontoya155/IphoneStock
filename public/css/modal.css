@@ -11,9 +11,12 @@ body {
     overflow-x: visible;
     overflow-y: visible;
 }
+
 .modal-backdrop {
-    z-index: 1040; /* Nivel detrás del modal */
-    display: none !important; /* Solo como medida temporal */
+    z-index: 1040;
+    /* Nivel detrás del modal */
+    display: none !important;
+    /* Solo como medida temporal */
 }
 
 .modal-dialog {
@@ -22,9 +25,11 @@ body {
     left: 50%;
     transform: translate(-50%, -50%) !important;
     margin: 0;
-    max-width: 500px; /* Ajusta el ancho según tus necesidades */
+    max-width: 500px;
+    /* Ajusta el ancho según tus necesidades */
     width: 100%;
 }
+
 @media (min-width: 768px) {
     .modal-dialog {
         position: absolute;
@@ -34,14 +39,33 @@ body {
         margin: 0;
     }
 }
-@media (max-width: 350px) {
+
+@media (max-width:450px) {
     .modal-dialog {
         position: absolute;
-        width: 97vw;
-        top: 385px;
-        left: 50%;
-        transform: translate(-50%, -50%);
+        top: 5%;
+        left: 100%;
+        transform: translatex(-50%) !important;
         margin: 0;
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .modal {
+        overflow: visible;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1055;
+        display: none;
+        position: absolute;
+        /* top: 50%; */
+        left: 50%;
+        transform: translate(-50%) !important;
+        margin: 0;
+        /* max-width: 500px; */
+        height: 100vh;
+        width: 100%;
     }
 }
 
@@ -57,28 +81,37 @@ body {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1055; /* Asegura que esté sobre todos los elementos */
-    display: none; /* Bootstrap manejará cuándo se muestra */
+    z-index: 1055;
+    /* Asegura que esté sobre todos los elementos */
+    display: none;
+    /* Bootstrap manejará cuándo se muestra */
 }
 
 .modal.show {
-    display: block; /* Bootstrap añade la clase .show cuando el modal está visible */
-    display: flex; /* Centra el contenido con flexbox solo cuando está abierto */
+    display: block;
+    /* Bootstrap añade la clase .show cuando el modal está visible */
+    display: flex;
+    /* Centra el contenido con flexbox solo cuando está abierto */
     align-items: center;
     justify-content: center;
 }
 
 .modal-dialog {
-    margin: 0; /* Sin márgenes adicionales */
-    max-width: 500px; /* Ajusta el tamaño del modal */
-    width: 100%; /* Asegura que sea responsivo */
-    transform: none; /* Elimina transformaciones previas */
+    margin: 0;
+    /* Sin márgenes adicionales */
+    max-width: 500px;
+    /* Ajusta el tamaño del modal */
+    width: 100%;
+    /* Asegura que sea responsivo */
+    transform: none;
+    /* Elimina transformaciones previas */
 }
 
 
 .modal-backdrop.show {
     opacity: .5;
 }
+
 .modal-backdrop {
     position: fixed;
     top: 0;
@@ -88,9 +121,10 @@ body {
     height: 100vh;
     background-color: #000;
 }
+
 .modal-content {
     z-index: 1000;
-   background-color: #fff;
+    background-color: #fff;
     border-radius: 10px;
     /* Bordes redondeados */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -134,6 +168,7 @@ body {
     opacity: .5;
     border: none;
 }
+
 .modal-title {
     font-size: 22px;
     font-weight: bold;
@@ -192,10 +227,6 @@ body {
 
 /* Responsividad para pantallas pequeñas */
 @media (max-width: 768px) {
-    .modal-dialog {
-        max-width: 90%;
-        /* Ocupa casi todo el ancho en móviles */
-    }
 
     .modal-content {
         padding: 15px;
