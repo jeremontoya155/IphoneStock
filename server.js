@@ -530,6 +530,40 @@ app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount
     }
 });
 
+// ---------------------------------------
+// Ruta hoja de producto
+
+// Ruta para obtener todos los datos de un producto específico
+app.get('/product/:id', async (req, res) => {
+    const id = req.params.id;
+
+    try {
+        const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+
+        if (productResult.rows.length === 0) {
+            return res.status(404).send('Producto no encontrado');
+        }
+
+        const product = productResult.rows[0];
+        res.render('product', { product, isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al obtener el producto:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Ruta POST para redirigir a la hoja de producto
+app.post('/product', (req, res) => {
+    const { productId } = req.body;
+
+    if (!productId) {
+        return res.status(400).send('ID del producto no proporcionado');
+    }
+
+    res.redirect(`/product/${productId}`);
+});
+
+
 
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {

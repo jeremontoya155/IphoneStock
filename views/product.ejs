@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Producto - <%= product.name %></title>
+</head>
+<body>
+    <header>
+        <h1>Detalles del Producto</h1>
+    </header>
+
+    <main>
+        <h2><%= product.name %></h2>
+        <p><strong>Descripción:</strong> <%= product.description %></p>
+        <p><strong>Precio:</strong> $<%= product.price %></p>
+        <p><strong>Stock:</strong> <%= product.stock %></p>
+        <p><strong>Batería:</strong> <%= product.bateria %>%</p>
+        <p><strong>Almacenamiento:</strong> <%= product.almacenamiento %></p>
+        <p><strong>Estado:</strong> <%= product.estado %></p>
+
+        <% if (product.img) { %>
+            <img src="<%= product.img %>" alt="Imagen de <%= product.name %>" style="max-width: 300px;">
+        <% } else { %>
+            <p>Imagen no disponible</p>
+        <% } %>
+
+        <% if (isAdmin) { %>
+            <a href="/edit/<%= product.id %>">Editar Producto</a>
+        <% } %>
+
+        <form action="/buy/<%= product.id %>" method="POST" class="d-inline" onclick="event.stopPropagation()">
+            <button type="submit" class="btn-ver-mas-small">Consultar</button>
+          </form>
+        <a href="/cart">Volver al carrito</a>
+    </main>
+</body>
+</html>
