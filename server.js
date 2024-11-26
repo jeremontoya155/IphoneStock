@@ -8,9 +8,11 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(compression());
 
 
 // Middleware para bloquear rutas específicas
