@@ -1,45 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Producto - <%= product.name %></title>
-   
-    
-
+    <title>Producto - <%= product.name %>
+    </title>
     <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/pages/productPage.css">
 </head>
+
 <body>
 
     <!-- Incluir Navbar -->
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
-    <header>
-        <h1>Detalles del Producto</h1>
-    </header>
+        <header>
+            <h1>Detalles del Producto</h1>
+        </header>
 
-    <main>
-        <h2><%= product.name %></h2>
-        <p><strong>Descripción:</strong> <%= product.description %></p>
-        <p><strong>Precio:</strong> $<%= product.price %></p>
-        <p><strong>Stock:</strong> <%= product.stock %></p>
-        <p><strong>Batería:</strong> <%= product.bateria %>%</p>
-        <p><strong>Almacenamiento:</strong> <%= product.almacenamiento %></p>
-        <p><strong>Estado:</strong> <%= product.estado %></p>
+        <main class="productPage-container">
+            <a href="/cart" class="productPage-backLink">Volver al catálogo</a>
+            <div class="productPage-main">
+                <!-- Imagen del producto -->
+                <div class="productPage-image">
+                    <% if (product.img) { %>
+                        <img src="<%= product.img %>" alt="Imagen de <%= product.name %>">
+                        <% } else { %>
+                            <p>Imagen no disponible</p>
+                            <% } %>
+                </div>
 
-        <% if (product.img) { %>
-            <img src="<%= product.img %>" alt="Imagen de <%= product.name %>" style="max-width: 300px;">
-        <% } else { %>
-            <p>Imagen no disponible</p>
-        <% } %>
+                <!-- Detalles del producto -->
+                <div class="productPage-details">
+                    <h1 class="productPage-title">
+                        <%= product.name %>
+                    </h1>
 
-        <% if (isAdmin) { %>
-            <a href="/edit/<%= product.id %>">Editar Producto</a>
-        <% } %>
+                    <p><strong>Estado:</strong>
+                        <%= product.estado %>
+                    </p>
+                    <p><strong>Almacenamiento:</strong>
+                        <%= product.almacenamiento %> GB
+                    </p>
+                    <p><strong>Batería:</strong>
+                        <%= product.bateria %>% 
+                    </p>
+                    <p><strong>Descripción:</strong>
+                        <%= product.description %>
+                    </p>
+                    <p><strong>Stock:</strong>
+                        <%= product.stock %>
+                    </p>
+                    <p><strong>Precio:</strong> $<%= product.price %>
+                    </p>
 
-        <form action="/buy/<%= product.id %>" method="POST" class="d-inline" onclick="event.stopPropagation()">
-            <button type="submit" class="btn-ver-mas-small">Consultar</button>
-          </form>
-        <a href="/cart">Volver al carrito</a>
-    </main>
+                    <!-- Botones de acción -->
+                    <div class="productPage-actions">
+                        <% if (isAdmin) { %>
+                            <a href="/edit/<%= product.id %>" class="productPage-editButton">Editar Producto</a>
+                            <% } %>
+                            <div class="productPage-actionCentered">
+                                <form action="/buy/<%= product.id %>" method="POST" class="d-inline"
+                                    onclick="event.stopPropagation()">
+                                    <button type="submit" class="btn-ver-mas-small productPage-consultar">Consultar</button>
+                                </form>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
 </body>
+
 </html>

@@ -34,12 +34,12 @@
     background-color: #800020;
     color: #fff;
     padding: 7px;
-    MARGIN: 0 0 2rem;
+    margin: 0 0 2rem;
     border-radius: 9px;
     font-size: 1rem;
     border: none;
     cursor: pointer;
-    width: AUTO;
+    width: auto;
     text-align: center;
     transition: background-color 0.3s ease;
 }
