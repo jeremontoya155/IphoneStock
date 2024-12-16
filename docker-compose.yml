@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    container_name: stock-iloop-app
+    ports:
+      - "3000:3000" # Mapea el puerto local 3000 al puerto 3000 del contenedor
+    environment:
+      - PORT=3000
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/postgres
+      - REDIS_URL=redis://redis:6379
+      - CLOUD_NAME=your_cloud_name
+      - API_KEY=your_api_key
+      - API_SECRET=your_api_secret
+      - SESSION_SECRET=your_secret
+      - MY_PHONE_NUMBER=your_phone_number
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app # Mapea el código local al contenedor para desarrollo
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    container_name: stock-iloop-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432" # Mapea el puerto 5432 para PostgreSQL
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: stock-iloop-redis
+    ports:
+      - "6379:6379" # Mapea el puerto de Redis
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
