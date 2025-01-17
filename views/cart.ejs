@@ -45,22 +45,24 @@
             height: auto;
         }
     </style>
-          <!-- Meta Pixel Code -->
-          <script>
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
+    <!-- Meta Pixel Code -->
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ?
+                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0;
+            t.src = v; s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+        }(window, document, 'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '1046128350193379');
-            fbq('track', 'PageView');
-        </script>
-        <noscript><img  height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1"
-        /></noscript>
+        fbq('init', '1046128350193379');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=1046128350193379&ev=PageView&noscript=1" /></noscript>
 </head>
 
 <body>
@@ -88,11 +90,9 @@
             <div class="filters-modal">
                 <div class="filters-modal-content">
                     <h3>Filtrar productos</h3>
-                    <!-- Campo de búsqueda -->
                     <div class="input-group mb-3">
                         <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
                     </div>
-                    <!-- Filtros -->
                     <label for="model-filter">Modelo</label>
                     <select id="model-filter" class="form-control mb-2">
                         <option value="">Todos los modelos</option>
@@ -104,7 +104,6 @@
                             </option>
                             <% } }); %>
                     </select>
-
                     <label for="estado-filter">Estado</label>
                     <select id="estado-filter" class="form-control mb-2">
                         <option value="">Todos los estados</option>
@@ -118,15 +117,11 @@
                             </option>
                             <% } } }); %>
                     </select>
-
                     <label for="storage-filter">Almacenamiento (GB)</label>
                     <input id="storage-filter" type="number" class="form-control mb-2"
                         placeholder="Almacenamiento mínimo (GB)">
-
                     <label for="battery-filter">Batería mínima (%)</label>
                     <input id="battery-filter" type="number" class="form-control mb-2" placeholder="Batería mínima (%)">
-
-                    <!-- Botones de acción -->
                     <div class="buttons">
                         <button id="reset-button" class="btn btn-secondary">Resetear</button>
                         <button id="filter-button" class="btn btn-primary">Buscar</button>
@@ -136,7 +131,8 @@
 
 
 
-            <section class="featured-products">
+
+            <section class="featured-products" style="min-height: 90vh;">
                 <div class="products-container row" id="cart-items">
                     <% products.forEach(product=> { %>
                         <% if (product.stock> 0) { %>
