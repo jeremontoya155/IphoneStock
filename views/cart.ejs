@@ -20,7 +20,15 @@
 
   gtag('config', 'G-P7BHKK1V4G');
 </script>
-
+<script>
+    // Simulación de actualización de consentimiento después de que el usuario acepta
+    setTimeout(() => {
+      gtag('consent', 'update', {
+        'ad_storage': 'granted',
+        'analytics_storage': 'granted'
+      });
+    }, 1000); // Simula una actualización después de 1 segundo
+  </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
         // Función para verificar si el elemento está visible en la pantalla
