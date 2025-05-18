@@ -1,9 +1,12 @@
-<div class="product-card fade-in-section" 
+<div class="product-card fade-in-section product-card" 
      data-stock="<%= product.stock %>" 
      data-estado="<%= product.estado %>" 
      data-storage="<%= product.almacenamiento %>" 
      data-battery="<%= product.bateria %>" 
      data-model="<%= product.name %>" 
+     data-price="<%= product.price %>" 
+     data-type="<%= product.tipo || '' %>" 
+     data-index="<%= index %>"  
      data-toggle="modal" 
      data-target="#productModal<%= product.id %>">
 
@@ -23,7 +26,11 @@
     </p>
 
     <p class="product-price precio">
-      USD <%= product.price %>
+      <% if (product.tipo === 'accesorio') { %> <!-- Asumiendo que existe product.type y es 'Accesorios' -->
+        ARS <%= product.price %>
+      <% } else { %>
+        USD <%= product.price %>
+      <% } %>
     </p>
 
     <div class="product-footer">

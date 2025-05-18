@@ -11,12 +11,13 @@
     <link rel="stylesheet" href="/css/index.css"> <!-- Asegúrate de que la ruta a index.css sea correcta -->
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    sc
+    <!-- sc - Esta línea parece incompleta o un error tipográfico -->
     <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <!-- Incluir la librería SheetJS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <script src="/js/cart.js"></script>
+    <!-- Mover este script al final del body es una mejor práctica si depende de elementos del DOM -->
+    <!-- <script src="/js/cart.js"></script> -->
 
 
     <!-- Meta Pixel Code -->
@@ -62,22 +63,20 @@
         window.addEventListener('load', handleScroll);
 
 
-        
-
-    </script>
-    <script>
+        // Script para Facebook SDK (considerar si realmente lo necesitas en esta página)
+        // Si no usas funciones de FB Login, compartir, etc. quizás no haga falta
         window.fbAsyncInit = function() {
           FB.init({
-            appId      : '{your-app-id}',
+            appId      : '{your-app-id}', // Reemplaza con tu ID de App de Facebook
             cookie     : true,
             xfbml      : true,
-            version    : '{api-version}'
+            version    : 'v18.0' // Considera usar una versión más reciente si está disponible
           });
-            
-          FB.AppEvents.logPageView();   
-            
+
+          FB.AppEvents.logPageView();
+
         };
-      
+
         (function(d, s, id){
            var js, fjs = d.getElementsByTagName(s)[0];
            if (d.getElementById(id)) {return;}
@@ -113,20 +112,23 @@
             </section>
             <!-- Título y bienvenida -->
 
-            <!-- Cards de productos -->
+            <!-- Cards de productos (Productos Destacados) -->
+            <!-- NOTA: Aquí estás mostrando los 6 productos más baratos. -->
+            <!-- La lógica de ordenación que agregamos anteriormente es para la página /cart. -->
+            <!-- Si quieres ordenación aquí también, necesitarías adaptar el script. -->
             <section class="featured-products fade-in-section">
                 <h2>Productos destacados</h2>
-                <div class="products-container" id="cart-items">
-                    <% // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente const
-                        sortedProducts=products.filter(product=> product.price > 0).sort((a, b) => a.price - b.price);
+                <div class="products-container row" id="featured-products-container"> <%# Usé otro ID para no confundir con #cart-items en /cart %>
+                    <% // Filtrar los productos que tienen precio válido y luego ordenarlos por precio ascendente %>
+                    <% const sortedProducts = products.filter(product => product.price > 0).sort((a, b) => a.price - b.price); %>
 
-                        // Mostrar solo los 6 productos más baratos
-                        sortedProducts.slice(0, 6).forEach(product => {
-                        %>
-                        <% if (product.stock> 0) { %>
-                            <%- include('partials/productCard', { product: product }) %>
-                                <% } %>
-                                    <% }); %>
+                    <% // Mostrar solo los 6 productos más baratos %>
+                    <% sortedProducts.slice(0, 6).forEach((product, index) => { %> <%# CORRECCIÓN AQUÍ: Agregamos 'index' %>
+                        <% if (product.stock > 0) { %>
+                            <%# Pasamos 'index' al partial. Asegúrate que partials/productCard.ejs use 'index'. %>
+                            <%- include('partials/productCard', { product: product, index: index }) %>
+                        <% } %>
+                    <% }); %>
                 </div>
         </div>
         <div class="ver-mas fade-in-section">
@@ -140,7 +142,7 @@
             <%- include('partials/about', { about: about }) %> <!-- Pasar el objeto `about` -->
         </section>
 
-        <!-- Botones según el rol -->
+        <!-- Botones según el rol y tabla de productos (Admin) o mapa (Usuario) -->
         <div class="text-center mb-4 fade-in-section">
             <% if (isAdmin) { %>
                 <h3>Lista completa de productos</h3>
@@ -148,9 +150,9 @@
                     <a href="/new" class="btn-generico">Agregar Nuevo</a>
                     <button id="download-btn" class="btn-generico">Descargar lista</button>
                 </div>
-                <!-- Campo de búsqueda -->
+                <!-- Campo de búsqueda (para la tabla de administrador) -->
                 <div class="input-group mb-3">
-                    <input id="search-input" type="text" class="form-control" placeholder="Buscar productos...">
+                    <input id="search-input-admin" type="text" class="form-control" placeholder="Buscar productos..."> <%# Usé otro ID para evitar conflicto %>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered">
@@ -194,7 +196,7 @@
                 </div>
 
                 <% } else { %>
-
+                    <%# Contenido para usuarios no administradores (mapa) %>
                     <div class="container my-2 py-2 fade-in-section">
                         <h3 class="about-title">Encontranos en:</h3>
                         <div class="iframe-container">
@@ -206,34 +208,61 @@
                     </div>
                     <% } %>
         </div>
-        </div>
-
-
 
 
         <!-- Incluir el footer -->
         <%- include('partials/footer') %> <!-- Asegúrate de que la ruta 'partials/footer' sea correcta -->
 
-            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-            <script src="/js/main.js"></script>
+        <!-- Scripts -->
+        <!-- Mover los scripts al final del body es buena práctica -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <!-- Asumiendo que main.js es para el index y cart.js para el cart -->
+        <script src="/js/main.js"></script>
+        <script src="/js/cart.js"></script> <%# Solo si cart.js tiene lógica que debe correr en index también %>
 
-     <!-- Scripts -->
-            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-            <script src="/js/cart.js"></script>
-            <script>
+     <script>
     $(document).ready(function () {
         $(document).on('hidden.bs.modal', function () {
             $('.modal-backdrop').remove(); // Elimina backdrop persistente
             $('body').removeClass('modal-open'); // Previene bloqueo del fondo
         });
+
+        // Script para la funcionalidad de búsqueda en la tabla de administrador (si isAdmin)
+        <% if (isAdmin) { %>
+            const searchInputAdmin = document.getElementById('search-input-admin');
+            const productTableBody = document.getElementById('products-table');
+            const productTableRows = productTableBody.querySelectorAll('tr'); // Obtén las filas de la tabla
+
+            searchInputAdmin.addEventListener('input', function() {
+                const searchTerm = searchInputAdmin.value.toLowerCase();
+
+                productTableRows.forEach(row => {
+                    // Obtén el texto de las celdas que quieres buscar (Nombre, Descripción, Estado, Precio, Stock)
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const description = row.cells[2].textContent.toLowerCase();
+                    const estado = row.cells[3].textContent.toLowerCase();
+                    const price = row.cells[4].textContent.toLowerCase();
+                    const stock = row.cells[5].textContent.toLowerCase();
+
+                    // Combina el texto de las celdas en una sola cadena para buscar
+                    const rowText = `${name} ${description} ${estado} ${price} ${stock}`;
+
+                    if (rowText.includes(searchTerm)) {
+                        row.style.display = ''; // Muestra la fila
+                    } else {
+                        row.style.display = 'none'; // Oculta la fila
+                    }
+                });
+            });
+        <% } %>
+
+
     });
 </script>
 
     </body>
-    
+
 
 </html>

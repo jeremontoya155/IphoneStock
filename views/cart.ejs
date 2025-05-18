@@ -13,22 +13,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-P7BHKK1V4G"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-  gtag('config', 'G-P7BHKK1V4G');
-</script>
-<script>
-    // Simulación de actualización de consentimiento después de que el usuario acepta
-    setTimeout(() => {
-      gtag('consent', 'update', {
-        'ad_storage': 'granted',
-        'analytics_storage': 'granted'
-      });
-    }, 1000); // Simula una actualización después de 1 segundo
-  </script>
+        gtag('config', 'G-P7BHKK1V4G');
+    </script>
+    <script>
+        // Simulación de actualización de consentimiento después de que el usuario acepta
+        setTimeout(() => {
+            gtag('consent', 'update', {
+                'ad_storage': 'granted',
+                'analytics_storage': 'granted'
+            });
+        }, 1000); // Simula una actualización después de 1 segundo
+    </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     <script>
         // Función para verificar si el elemento está visible en la pantalla
@@ -57,17 +57,155 @@
         window.addEventListener('load', handleScroll);
     </script>
     <style>
+        /* Estilos existentes para las imágenes de las tarjetas (mantener) */
+        /* NOTA: Tu productCard.ejs usa la clase 'product-image',
+           pero si tienes estilos generales para .card-img-top, los mantenemos aquí */
         .card-img-top {
             width: 100%;
             height: auto;
         }
+         .product-image-container {
+             /* Si necesitas estilos para el contenedor de la imagen */
+             text-align: center; /* Centra la imagen si es más pequeña que el contenedor */
+         }
+         .product-image {
+             max-width: 100%;
+             height: auto;
+             display: inline-block; /* Asegura que text-align: center funcione */
+         }
+
+
+        /* -- ESTILOS PARA EL LAYOUT DEL ENCABEZADO (Título, Logo, Ordenar) -- */
+
+        /* Contenedor principal para el encabezado, usaremos Grid */
+        .catalog-header-grid {
+            display: grid;
+            /* Definimos áreas para **móvil** (layout por defecto): Title, Sort, Logo apilados verticalmente */
+            grid-template-areas:
+                "title"
+                "sort"
+                "logo";
+            grid-template-rows: auto auto auto; /* Filas automáticas para cada área */
+            gap: 1rem; /* Espacio entre las áreas en móvil */
+            align-items: center; /* Centrado vertical básico para elementos en sus áreas */
+            margin-bottom: 1.5rem; /* Espacio debajo del encabezado */
+        }
+
+        /* Asignar áreas a los elementos dentro del Grid */
+        .catalog-header-title {
+            grid-area: title;
+            margin-bottom: 0.5rem; /* Añadir un poco de espacio debajo del título en móvil */
+        }
+
+        .catalog-header-logo {
+            grid-area: logo;
+            text-align: center; /* Centrar el logo horizontalmente en móvil */
+            margin-top: 0.5rem; /* Añadir un poco de espacio encima del logo en móvil */
+            margin-bottom: 0.5rem; /* Espacio debajo del logo en móvil */
+        }
+
+        .catalog-header-sort {
+            grid-area: sort;
+            display: flex; /* Usar flexbox para alinear etiqueta y selector inline */
+            /* Alinear a la derecha en móvil, como en la imagen */
+            justify-content: flex-end;
+            align-items: center; /* Centrar verticalmente etiqueta y selector */
+            padding: 0; /* Asegurar que no haya padding extra */
+            font-size: 0.9rem; /* Hacer el texto un poco más pequeño en móvil */
+        }
+
+        /* Ajustes para el selector dentro del contenedor de ordenación en móvil */
+        .catalog-header-sort .form-inline {
+             margin-bottom: 0; /* Asegurar que el form-inline no tenga margen inferior */
+        }
+        .catalog-header-sort .form-control-sm {
+            /* form-control-sm de Bootstrap ya lo hace pequeño,
+               pero puedes añadir más estilos si necesitas ajustar el ancho */
+            max-width: 150px; /* Ancho máximo para el select en móvil */
+            display: inline-block; /* Asegurar que se muestre inline con la label */
+        }
+        .catalog-header-sort label {
+             margin-right: 0.5rem; /* Pequeño espacio entre label y select en móvil */
+             margin-bottom: 0 !important; /* Eliminar margen inferior con alta prioridad */
+             white-space: nowrap; /* Prevenir que "Ordenar por:" se rompa */
+        }
+
+
+        /* Media query para desktop (md y superior en Bootstrap) */
+        @media (min-width: 768px) {
+            .catalog-header-grid {
+                /* Definimos áreas para **desktop**:
+                   Título a la izquierda, Sort a la derecha en la primera fila;
+                   Logo centrado en la segunda fila, abarcando ambas columnas. */
+                grid-template-areas:
+                    "title sort"
+                    "logo  logo";
+                grid-template-columns: 1fr auto; /* Columna de título flexible, columna de sort automática */
+                grid-template-rows: auto auto; /* Dos filas automáticas */
+                gap: 0.5rem 2rem; /* Espacio vertical (entre filas), Espacio horizontal (entre columnas) */
+                align-items: center; /* Centrar verticalmente elementos en sus filas */
+            }
+
+            /* Re-alinear elementos en desktop según el grid */
+            .catalog-header-title {
+                 grid-area: title;
+                 align-self: center; /* Asegura alineación vertical si la fila es más alta */
+                 margin-bottom: 0; /* Confirmar sin margen */
+            }
+
+            .catalog-header-sort {
+                grid-area: sort;
+                justify-content: flex-end; /* Mantener alineado a la derecha */
+                align-self: center; /* Asegura alineación vertical */
+                font-size: 1rem; /* Restaurar tamaño de fuente para desktop */
+            }
+             .catalog-header-sort .form-inline {
+                 margin-bottom: 0; /* Asegurar sin margen inferior */
+             }
+            .catalog-header-sort .form-control-sm {
+                max-width: none; /* Eliminar el ancho máximo en desktop si se aplicó en móvil */
+            }
+            .catalog-header-sort label {
+                margin-right: 0.5rem; /* Espacio entre label y select */
+                margin-bottom: 0 !important; /* Confirmar sin margen */
+            }
+
+
+            .catalog-header-logo {
+                grid-area: logo;
+                text-align: center; /* Mantener centrado en desktop */
+                margin-top: 1rem; /* Espacio encima del logo en desktop */
+                margin-bottom: 1rem; /* Espacio debajo del logo en desktop */
+                padding-top: 0; /* Eliminar padding superior si se usó en móvil */
+            }
+        }
+
+        /* Estilos para la imagen del logo dentro del contenedor */
+        .catalog-header-logo img {
+             width: 8em; /* Mantener el tamaño del logo */
+             height: auto;
+             display: inline-block; /* Necesario para margin: auto o text-align: center */
+        }
+
+        /* Eliminar o modificar el estilo form-inline para mobile que causa que se apilen
+           si existía en tu CSS original, ya que la nueva estructura maneja el layout */
+        /* @media (max-width: 767.98px) {
+             .form-inline { ... }
+             .form-inline label { ... }
+           }
+           -> Si tenías esto en tus otros archivos CSS y te apilaba la etiqueta y el select en mobile, bórralo o coméntalo.
+           Los nuevos estilos .catalog-header-sort .form-inline y sus hijos ya lo manejan.
+        */
+
+        /* -- FIN ESTILOS LAYOUT ENCABEZADO -- */
+
     </style>
     <!-- Meta Pixel Code -->
     <script>
         !function (f, b, e, v, n, t, s) {
             if (f.fbq) return; n = f.fbq = function () {
                 n.callMethod ?
-                n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+                    n.callMethod.apply(n, arguments) : n.queue.push(arguments)
             };
             if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
             n.queue = []; t = b.createElement(e); t.async = !0;
@@ -87,15 +225,42 @@
     <%- include('partials/navbarUser') %>
 
         <div class="container cart-container ">
-            <div class="catalogo-content">
-                <h2 class="catalogo-title">CATÁLOGO</h2>
-                <!-- Productos aquí -->
-            </div>
 
-            <div class="catalogo-logo">
-                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
-            </div>
+                <!-- Título del catálogo -->
+                <div class="catalog-header-title">
+                    <h2 class="catalogo-title mb-0">CATÁLOGO</h2>
+                </div>
+            <!-- NUEVA ESTRUCTURA PARA TITULO, LOGO Y ORDENAR (Usando CSS Grid para el layout responsive) -->
+            <!-- El orden de los divs aquí no importa tanto, el CSS Grid los posiciona por 'grid-area' -->
+            <div class="catalog-header-grid">
 
+            
+
+                 <!-- Selector de ordenación -->
+                <div class="catalog-header-sort">
+                    <!-- form-inline de Bootstrap ayuda a alinear label y select horizontalmente -->
+                    <div class="form-inline">
+                        <label for="sort-select" class="mr-2 mb-0">Ordenar por:</label>
+                        <!-- form-control-sm hace el select más pequeño -->
+                        <select id="sort-select" class="form-control form-control-sm">
+                            <option value="default">Fecha de carga</option>
+                            <option value="price-asc">Precio: Menor a Mayor</option>
+                            <option value="price-desc">Precio: Mayor a Menor</option>
+                        </select>
+                    </div>
+                </div>
+
+                 <!-- Logo del catálogo -->
+                <!-- <div class="catalog-header-logo">
+                    <img src="<%= imagenUrl2 %>" alt="iLoop Logo">
+                </div> -->
+
+            </div>
+             <!-- FIN NUEVA ESTRUCTURA ENCABEZADO -->
+
+
+            <!-- Barra lateral y modal de filtros (se mantiene igual) -->
+            <!-- NOTA: La posición del "Buscador" sidebar/botón flotante no se tocó en esta modificación -->
             <div class="sidebar">
                 <button class="filters-modal-btn-sidebar">Buscador</button>
             </div>
@@ -121,6 +286,25 @@
                             </option>
                             <% } }); %>
                     </select>
+                    <label for="type-filter">Tipo de Producto</label>
+<select id="type-filter" class="form-control mb-2">
+    <option value="">Todos los tipos</option>
+    <%
+        let uniqueTypes = new Set();
+        products.forEach(product => {
+            // Solo añadir tipos si el producto tiene stock y un tipo definido
+            if (product.stock > 0 && product.tipo) {
+                let productType = product.tipo.trim(); // Limpiar espacios
+                if (productType && !uniqueTypes.has(productType)) {
+                    uniqueTypes.add(productType);
+    %>
+                    <option value="<%= productType %>"><%= productType.charAt(0).toUpperCase() + productType.slice(1).toLowerCase() %></option>
+    <%
+                }
+            }
+        });
+    %>
+</select>
                     <label for="estado-filter">Estado</label>
                     <select id="estado-filter" class="form-control mb-2">
                         <option value="">Todos los estados</option>
@@ -147,15 +331,17 @@
             </div>
 
 
-
-
+            <!-- Sección de productos -->
             <section class="featured-products" style="min-height: 90vh;">
+                 <!-- Contenedor de las tarjetas de producto -->
                 <div class="products-container row" id="cart-items">
-                    <% products.forEach(product=> { %>
-                        <% if (product.stock> 0) { %>
-                            <%- include('partials/productCard', { product: product }) %>
-                                <% } %>
-                                    <% }); %>
+                    <% products.forEach((product, index) => { %>
+                        <% if (product.stock > 0) { %>
+                             <!-- Incluye el partial productCard.ejs para cada producto -->
+                             <!-- Tu productCard.ejs YA tiene la clase 'product-card' y los data-attributes necesarios -->
+                            <%- include('partials/productCard', { product: product, index: index }) %>
+                        <% } %>
+                    <% }); %>
                 </div>
                 <!-- Mensaje de "No se encontraron coincidencias" -->
                 <div id="no-results-message" class="alert alert-warning" style="display: none;">
@@ -167,12 +353,92 @@
 
         <%- include('partials/footer') %>
 
-            <!-- Scripts -->
-            <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
-            <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-            <script src="/js/cart.js"></script>
-            <!-- Google tag (gtag.js) -->
+        <!-- Scripts (Mantén todos los scripts existentes) -->
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        <script src="/js/cart.js"></script>
+        <!-- Google tag (gtag.js) ya está en el head -->
+
+        <!-- Script para la ordenación de productos (Mantenido igual) -->
+        <!-- Este script lee los data-attributes de las tarjetas para ordenar -->
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const sortSelect = document.getElementById('sort-select');
+                const productsContainer = document.getElementById('cart-items');
+
+                // Escucha los cambios en el desplegable de ordenación
+                sortSelect.addEventListener('change', (event) => {
+                    const sortBy = event.target.value; // 'default', 'price-asc', 'price-desc'
+                    // Obtiene las tarjetas actuales. Asegúrate de que tengan la clase 'product-card'.
+                    let productCards = Array.from(productsContainer.querySelectorAll('.product-card'));
+
+                    // Lógica de ordenación
+                    if (sortBy === 'default') {
+                        // Ordenar por el índice original (fecha de carga)
+                        productCards.sort((a, b) => {
+                            // Lee el índice original del atributo data-index
+                            const indexA = parseInt(a.dataset.index);
+                            const indexB = parseInt(b.dataset.index);
+                            return indexA - indexB;
+                        });
+                    } else if (sortBy === 'price-asc') {
+                        // Ordenar por precio de menor a mayor
+                        productCards.sort((a, b) => {
+                            // Lee el precio del atributo data-price
+                            const priceA = parseFloat(a.dataset.price);
+                            const priceB = parseFloat(b.dataset.price);
+                            return priceA - priceB;
+                        });
+                    } else if (sortBy === 'price-desc') {
+                        // Ordenar por precio de mayor a menor
+                        productCards.sort((a, b) => {
+                             // Lee el precio del atributo data-price
+                            const priceA = parseFloat(a.dataset.price);
+                            const priceB = parseFloat(b.dataset.price);
+                            return priceB - priceA;
+                        });
+                    }
+
+                    // Re-insertar las tarjetas ordenadas en el contenedor
+                    // Limpia el contenedor actual
+                    productsContainer.innerHTML = '';
+                    // Añade cada tarjeta en el nuevo orden
+                    productCards.forEach(card => {
+                        productsContainer.appendChild(card);
+                    });
+
+                    // NOTA sobre la interacción con filtros:
+                    // Este script ordena los elementos HTML DENTRO del contenedor.
+                    // Si ya tienes filtros aplicados que OCULTAN productos (usando `display: none`),
+                    // este script de ordenación reordenará todos los elementos, visibles u ocultos,
+                    // y los insertará en el nuevo orden. Los que estaban ocultos seguirán ocultos.
+                    // Si aplicas un filtro DESPUÉS de ordenar, tu lógica de filtrado debería
+                    // funcionar sobre el nuevo orden.
+                    // Si aplicas un filtro, LUEGO ordenas, y LUEVO cambias el filtro de nuevo,
+                    // la interacción puede requerir ajustar tu lógica de filtrado
+                    // existente para que re-aplique los filtros sobre el conjunto de productos
+                    // completo en su nuevo orden después de cada cambio en los filtros o la ordenación.
+                    // La forma más robusta es manejar la lista de productos en un array JS
+                    // y aplicar filtros/ordenación a ese array antes de renderizar el HTML.
+                    // La solución aquí es la más simple para añadir la ordenación a la estructura existente.
+                });
+
+                // Si tienes lógica de filtrado que se ejecuta al cargar la página
+                // o después de alguna interacción, asegúrate de que se combine bien
+                // con esta ordenación. Por ejemplo, si reseteas filtros, podrías
+                // querer volver a aplicar la ordenación actual.
+                // Si llamas a una función para aplicar filtros, quizás necesites
+                // re-ordenar los resultados después.
+            });
+        </script>
+
+        <!-- NOTA: Tu script de filtrado (si lo tienes en /js/cart.js u otro lado)
+             debe interactuar con las tarjetas en el DOM (seleccionándolas por clase 'product-card',
+             leyendo sus data-attributes, y controlando su visibilidad).
+             La estructura actual de los data-attributes en tu productCard.ejs es perfecta para esto. -->
+
+
 </body>
 
 </html>
