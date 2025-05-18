@@ -294,21 +294,25 @@ app.get('/new', requireAdmin, (req, res) => {
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
-    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado, tipo } = req.body;
     let imageUrl;
 
     if (req.file) {
-        imageUrl = req.file.path; // La URL de la imagen subida a Cloudinary
+        imageUrl = req.file.path;
     }
 
     try {
-        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado]);
+        await pool.query(
+            'INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado, tipo) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, tipo]
+        );
         res.redirect('/');
     } catch (err) {
         console.error('Error al agregar nuevo producto:', err);
         res.status(500).send('Error interno del servidor');
     }
 });
+
 
 
 // Ruta para procesar el formulario de inicio de sesión
@@ -354,21 +358,22 @@ app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) 
 
 
 
-// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
+
+
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
-    let imageUrl = req.body.image; // Mantener la URL actual de la imagen
+    const { name, description, price, stock, bateria, almacenamiento, estado, tipo } = req.body;
+    let imageUrl = req.body.image;
 
     if (req.file) {
-        imageUrl = req.file.path; // Si se carga una nueva imagen, usar la URL de Cloudinary
+        imageUrl = req.file.path;
     }
 
     try {
         await pool.query(
-            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8 WHERE id = $9',
-            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, id]
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8, tipo = $9 WHERE id = $10',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, tipo, id]
         );
         res.redirect('/');
     } catch (err) {
