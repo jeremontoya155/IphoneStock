@@ -580,10 +580,11 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
     }
 });
 
-// Generar página para imprimir (sin PDF)
+// Generar PDF de factura
 app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
     try {
         const facturaId = req.params.id;
+        console.log('Generando PDF para factura ID:', facturaId);
         
         const facturaResult = await pool.query(`
             SELECT f.*, u.username as vendedor_nombre 
@@ -593,108 +594,92 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
         `, [facturaId]);
 
         if (facturaResult.rows.length === 0) {
+            console.log('Factura no encontrada:', facturaId);
             return res.status(404).send('Factura no encontrada');
         }
 
         const factura = facturaResult.rows[0];
+        console.log('Factura encontrada:', {
+            id: factura.id,
+            numero_factura: factura.numero_factura,
+            items_type: typeof factura.items,
+            items_content: factura.items
+        });
+
         const logoResult = await pool.query('SELECT imagen1 FROM imagenes LIMIT 1');
         const logoUrl = logoResult.rows[0]?.imagen1 || '';
 
-        // Parse items
-        let items = [];
+        // Generar HTML para PDF
+        const htmlContent = generateInvoiceHTML(factura, logoUrl);
+        console.log('HTML generado, longitud:', htmlContent.length);
+        
+        // Configurar puppeteer para generar PDF
+        const puppeteer = require('puppeteer');
+        let browser;
         try {
-            if (typeof factura.items === 'string') {
-                items = JSON.parse(factura.items);
-            } else if (Array.isArray(factura.items)) {
-                items = factura.items;
-            } else if (factura.items && typeof factura.items === 'object') {
-                items = [factura.items];
+            browser = await puppeteer.launch({ 
+                headless: 'new',
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ]
+            });
+            console.log('Browser launched successfully');
+            
+            const page = await browser.newPage();
+            console.log('New page created');
+            
+            // Configurar viewport y opciones
+            await page.setViewport({ width: 800, height: 1200, deviceScaleFactor: 1 });
+            
+            // Cargar el HTML con un timeout más largo
+            await page.setContent(htmlContent, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 30000
+            });
+            console.log('Content set successfully');
+            
+            // Esperar un poco para que se renderice
+            await page.waitForTimeout(1000);
+            
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '20mm',
+                    bottom: '20mm',
+                    left: '15mm',
+                    right: '15mm'
+                },
+                preferCSSPageSize: false,
+                displayHeaderFooter: false,
+                timeout: 30000
+            });
+            console.log('PDF generated successfully, size:', pdfBuffer.length);
+
+            // Configurar headers para descarga de PDF
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="Factura-${factura.numero_factura}.pdf"`);
+            res.setHeader('Content-Length', pdfBuffer.length);
+            res.send(pdfBuffer);
+
+        } finally {
+            if (browser) {
+                await browser.close();
+                console.log('Browser closed');
             }
-        } catch (error) {
-            console.error('Error parsing items:', error);
         }
-
-        // Generar HTML simple para imprimir
-        const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Factura ${factura.numero_factura}</title>
-    <style>
-        @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-        }
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .info { margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background: #f0f0f0; }
-        .totals { text-align: right; margin-top: 20px; }
-        .total { font-size: 18px; font-weight: bold; }
-        .print-btn { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; margin: 10px; }
-    </style>
-</head>
-<body>
-    <div class="no-print">
-        <button class="print-btn" onclick="window.print()">🖨️ IMPRIMIR (Ctrl+P)</button>
-        <button class="print-btn" onclick="window.close()">❌ CERRAR</button>
-    </div>
-    
-    <div class="header">
-        <h1>FACTURA</h1>
-        <p><strong>N°:</strong> ${factura.numero_factura}</p>
-        <p><strong>Fecha:</strong> ${fecha}</p>
-    </div>
-    
-    <div class="info">
-        <h3>CLIENTE:</h3>
-        <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
-        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
-        ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
-        <p><strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
-    </div>
-    
-    <table>
-        <tr>
-            <th>Producto</th>
-            <th>Cant.</th>
-            <th>Precio</th>
-            <th>Total</th>
-        </tr>
-        ${items.map(item => `
-        <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${(item.price || 0).toLocaleString()}</td>
-            <td>$${((item.price || 0) * (item.cantidad || 1)).toLocaleString()}</td>
-        </tr>
-        `).join('')}
-    </table>
-    
-    <div class="totals">
-        <p><strong>Subtotal: $${parseFloat(factura.subtotal || 0).toLocaleString()}</strong></p>
-        <p><strong>Impuestos: $${parseFloat(factura.impuestos || 0).toLocaleString()}</strong></p>
-        <p class="total">TOTAL: $${parseFloat(factura.total || 0).toLocaleString()}</p>
-    </div>
-    
-    ${factura.notas ? `<div class="info"><h3>NOTAS:</h3><p>${factura.notas}</p></div>` : ''}
-    
-    <div style="text-align: center; margin-top: 30px;">
-        <p><strong>¡Gracias por su compra!</strong></p>
-        <p>iPhone Stock - Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
-    </div>
-</body>
-</html>`;
-
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
 
     } catch (err) {
-        console.error('Error:', err);
-        res.status(500).send('Error: ' + err.message);
+        console.error('Error detallado al generar PDF:', {
+            name: err.name,
+            message: err.message,
+            stack: err.stack
+        });
+        res.status(500).send('Error al generar PDF: ' + err.message);
     }
 });
 
@@ -950,80 +935,6 @@ app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount
 });
 
 // ==================== FUNCIONES AUXILIARES ====================
-
-// Función simple para generar PDF rápido
-function generateSimplePDF(factura, logoUrl) {
-    let items = [];
-    try {
-        if (typeof factura.items === 'string') {
-            items = JSON.parse(factura.items);
-        } else if (Array.isArray(factura.items)) {
-            items = factura.items;
-        } else if (factura.items) {
-            items = [factura.items];
-        }
-    } catch (error) {
-        items = [];
-    }
-    
-    const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
-    
-    return `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Factura</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .header { border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
-        .title { color: #007bff; text-align: center; margin: 0; }
-        .info { margin: 10px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-        th { background: #007bff; color: white; }
-        .total { background: #f8f9fa; padding: 15px; text-align: right; margin-top: 20px; }
-        .footer { text-align: center; margin-top: 30px; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1 class="title">FACTURA ${factura.numero_factura}</h1>
-        <div class="info">
-            <strong>Fecha:</strong> ${fecha}<br>
-            <strong>Cliente:</strong> ${factura.cliente_nombre}<br>
-            ${factura.cliente_telefono ? `<strong>Teléfono:</strong> ${factura.cliente_telefono}<br>` : ''}
-            <strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}
-        </div>
-    </div>
-    
-    <table>
-        <tr>
-            <th>Producto</th>
-            <th>Cant.</th>
-            <th>Precio</th>
-            <th>Total</th>
-        </tr>
-        ${items.map(item => `
-        <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${parseFloat(item.price || 0).toLocaleString('es-ES')}</td>
-            <td>$${(parseFloat(item.price || 0) * (item.cantidad || 1)).toLocaleString('es-ES')}</td>
-        </tr>
-        `).join('')}
-    </table>
-    
-    <div class="total">
-        <strong>TOTAL: $${parseFloat(factura.total || 0).toLocaleString('es-ES')}</strong>
-    </div>
-    
-    <div class="footer">
-        <p>iPhone Stock - Gracias por su compra</p>
-        <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
-    </div>
-</body>
-</html>`;
-}
 
 // Función para generar HTML de factura para PDF
 function generateInvoiceHTML(factura, logoUrl) {

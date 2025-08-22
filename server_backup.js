@@ -379,38 +379,6 @@ app.get('/factura/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// Ruta para obtener todos los datos de un producto específico
-app.get('/product/:id', async (req, res) => {
-    const id = req.params.id;
-
-    try {
-        const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
-
-        if (productResult.rows.length === 0) {
-            return res.status(404).send('Producto no encontrado');
-        }
-
-        const product = productResult.rows[0];
-        res.render('product', { product, isAdmin: req.session.isAdmin });
-    } catch (err) {
-        console.error('Error al obtener el producto:', err);
-        res.status(500).send('Error interno del servidor');
-    }
-});
-
-// ==================== RUTAS POST ====================
-
-// Ruta POST para redirigir a la hoja de producto
-app.post('/product', (req, res) => {
-    const { productId } = req.body;
-
-    if (!productId) {
-        return res.status(400).send('ID del producto no proporcionado');
-    }
-
-    res.redirect(`/product/${productId}`);
-});
-
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
     const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
@@ -580,10 +548,11 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
     }
 });
 
-// Generar página para imprimir (sin PDF)
+// Generar PDF de factura
 app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
     try {
         const facturaId = req.params.id;
+        console.log('Generando PDF para factura ID:', facturaId);
         
         const facturaResult = await pool.query(`
             SELECT f.*, u.username as vendedor_nombre 
@@ -593,108 +562,92 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
         `, [facturaId]);
 
         if (facturaResult.rows.length === 0) {
+            console.log('Factura no encontrada:', facturaId);
             return res.status(404).send('Factura no encontrada');
         }
 
         const factura = facturaResult.rows[0];
+        console.log('Factura encontrada:', {
+            id: factura.id,
+            numero_factura: factura.numero_factura,
+            items_type: typeof factura.items,
+            items_content: factura.items
+        });
+
         const logoResult = await pool.query('SELECT imagen1 FROM imagenes LIMIT 1');
         const logoUrl = logoResult.rows[0]?.imagen1 || '';
 
-        // Parse items
-        let items = [];
+        // Generar HTML para PDF
+        const htmlContent = generateInvoiceHTML(factura, logoUrl);
+        console.log('HTML generado, longitud:', htmlContent.length);
+        
+        // Configurar puppeteer para generar PDF
+        const puppeteer = require('puppeteer');
+        let browser;
         try {
-            if (typeof factura.items === 'string') {
-                items = JSON.parse(factura.items);
-            } else if (Array.isArray(factura.items)) {
-                items = factura.items;
-            } else if (factura.items && typeof factura.items === 'object') {
-                items = [factura.items];
+            browser = await puppeteer.launch({ 
+                headless: 'new',
+                args: [
+                    '--no-sandbox', 
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-accelerated-2d-canvas',
+                    '--disable-gpu'
+                ]
+            });
+            console.log('Browser launched successfully');
+            
+            const page = await browser.newPage();
+            console.log('New page created');
+            
+            // Configurar viewport y opciones
+            await page.setViewport({ width: 800, height: 1200, deviceScaleFactor: 1 });
+            
+            // Cargar el HTML con un timeout más largo
+            await page.setContent(htmlContent, { 
+                waitUntil: 'domcontentloaded',
+                timeout: 30000
+            });
+            console.log('Content set successfully');
+            
+            // Esperar un poco para que se renderice
+            await page.waitForTimeout(1000);
+            
+            const pdfBuffer = await page.pdf({
+                format: 'A4',
+                printBackground: true,
+                margin: {
+                    top: '20mm',
+                    bottom: '20mm',
+                    left: '15mm',
+                    right: '15mm'
+                },
+                preferCSSPageSize: false,
+                displayHeaderFooter: false,
+                timeout: 30000
+            });
+            console.log('PDF generated successfully, size:', pdfBuffer.length);
+
+            // Configurar headers para descarga de PDF
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `inline; filename="Factura-${factura.numero_factura}.pdf"`);
+            res.setHeader('Content-Length', pdfBuffer.length);
+            res.send(pdfBuffer);
+
+        } finally {
+            if (browser) {
+                await browser.close();
+                console.log('Browser closed');
             }
-        } catch (error) {
-            console.error('Error parsing items:', error);
         }
-
-        // Generar HTML simple para imprimir
-        const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Factura ${factura.numero_factura}</title>
-    <style>
-        @media print {
-            body { margin: 0; }
-            .no-print { display: none; }
-        }
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; }
-        .info { margin: 20px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background: #f0f0f0; }
-        .totals { text-align: right; margin-top: 20px; }
-        .total { font-size: 18px; font-weight: bold; }
-        .print-btn { background: #007bff; color: white; padding: 10px 20px; border: none; cursor: pointer; margin: 10px; }
-    </style>
-</head>
-<body>
-    <div class="no-print">
-        <button class="print-btn" onclick="window.print()">🖨️ IMPRIMIR (Ctrl+P)</button>
-        <button class="print-btn" onclick="window.close()">❌ CERRAR</button>
-    </div>
-    
-    <div class="header">
-        <h1>FACTURA</h1>
-        <p><strong>N°:</strong> ${factura.numero_factura}</p>
-        <p><strong>Fecha:</strong> ${fecha}</p>
-    </div>
-    
-    <div class="info">
-        <h3>CLIENTE:</h3>
-        <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
-        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
-        ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
-        <p><strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
-    </div>
-    
-    <table>
-        <tr>
-            <th>Producto</th>
-            <th>Cant.</th>
-            <th>Precio</th>
-            <th>Total</th>
-        </tr>
-        ${items.map(item => `
-        <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${(item.price || 0).toLocaleString()}</td>
-            <td>$${((item.price || 0) * (item.cantidad || 1)).toLocaleString()}</td>
-        </tr>
-        `).join('')}
-    </table>
-    
-    <div class="totals">
-        <p><strong>Subtotal: $${parseFloat(factura.subtotal || 0).toLocaleString()}</strong></p>
-        <p><strong>Impuestos: $${parseFloat(factura.impuestos || 0).toLocaleString()}</strong></p>
-        <p class="total">TOTAL: $${parseFloat(factura.total || 0).toLocaleString()}</p>
-    </div>
-    
-    ${factura.notas ? `<div class="info"><h3>NOTAS:</h3><p>${factura.notas}</p></div>` : ''}
-    
-    <div style="text-align: center; margin-top: 30px;">
-        <p><strong>¡Gracias por su compra!</strong></p>
-        <p>iPhone Stock - Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
-    </div>
-</body>
-</html>`;
-
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.send(html);
 
     } catch (err) {
-        console.error('Error:', err);
-        res.status(500).send('Error: ' + err.message);
+        console.error('Error detallado al generar PDF:', {
+            name: err.name,
+            message: err.message,
+            stack: err.stack
+        });
+        res.status(500).send('Error al generar PDF: ' + err.message);
     }
 });
 
@@ -740,6 +693,7 @@ app.get('/api/facturas/search', requireAdmin, async (req, res) => {
     }
 });
 
+
 // Ruta para procesar el formulario de inicio de sesión
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
@@ -781,6 +735,9 @@ app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) 
     }
 });
 
+
+
+// Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
@@ -803,6 +760,7 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
     }
 });
 
+// Ruta para manejar la compra de productos
 // Ruta para manejar la compra de productos
 app.post('/buy/:id', (req, res) => {
     const id = req.params.id;
@@ -828,6 +786,7 @@ app.post('/buy/:id', (req, res) => {
         }
     });
 });
+
 
 // Ruta para eliminar un producto (requiere autenticación de administrador)
 app.post('/delete/:id', requireAdmin, async (req, res) => {
@@ -898,6 +857,11 @@ app.post('/edit-carousel', requireAdmin, upload.fields([{ name: 'image', maxCoun
     }
 });
 
+
+
+
+
+
 // Ruta para eliminar un elemento del carrusel
 app.post('/delete-carousel', requireAdmin, async (req, res) => {
     const { id } = req.body;
@@ -921,6 +885,7 @@ app.post('/edit-images', requireAdmin, async (req, res) => {
         res.status(500).send('Error interno del servidor');
     }
 });
+
 
 // Ruta para agregar un nuevo elemento al carrusel
 app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount: 1 }, { name: 'mobileImage', maxCount: 1 }]), async (req, res) => {
@@ -949,81 +914,40 @@ app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount
     }
 });
 
-// ==================== FUNCIONES AUXILIARES ====================
+// ---------------------------------------
+// Ruta hoja de producto
 
-// Función simple para generar PDF rápido
-function generateSimplePDF(factura, logoUrl) {
-    let items = [];
+// Ruta para obtener todos los datos de un producto específico
+app.get('/product/:id', async (req, res) => {
+    const id = req.params.id;
+
     try {
-        if (typeof factura.items === 'string') {
-            items = JSON.parse(factura.items);
-        } else if (Array.isArray(factura.items)) {
-            items = factura.items;
-        } else if (factura.items) {
-            items = [factura.items];
+        const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+
+        if (productResult.rows.length === 0) {
+            return res.status(404).send('Producto no encontrado');
         }
-    } catch (error) {
-        items = [];
+
+        const product = productResult.rows[0];
+        res.render('product', { product, isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al obtener el producto:', err);
+        res.status(500).send('Error interno del servidor');
     }
-    
-    const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
-    
-    return `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Factura</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .header { border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
-        .title { color: #007bff; text-align: center; margin: 0; }
-        .info { margin: 10px 0; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-        th, td { padding: 8px; border: 1px solid #ddd; text-align: left; }
-        th { background: #007bff; color: white; }
-        .total { background: #f8f9fa; padding: 15px; text-align: right; margin-top: 20px; }
-        .footer { text-align: center; margin-top: 30px; color: #666; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1 class="title">FACTURA ${factura.numero_factura}</h1>
-        <div class="info">
-            <strong>Fecha:</strong> ${fecha}<br>
-            <strong>Cliente:</strong> ${factura.cliente_nombre}<br>
-            ${factura.cliente_telefono ? `<strong>Teléfono:</strong> ${factura.cliente_telefono}<br>` : ''}
-            <strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}
-        </div>
-    </div>
-    
-    <table>
-        <tr>
-            <th>Producto</th>
-            <th>Cant.</th>
-            <th>Precio</th>
-            <th>Total</th>
-        </tr>
-        ${items.map(item => `
-        <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${parseFloat(item.price || 0).toLocaleString('es-ES')}</td>
-            <td>$${(parseFloat(item.price || 0) * (item.cantidad || 1)).toLocaleString('es-ES')}</td>
-        </tr>
-        `).join('')}
-    </table>
-    
-    <div class="total">
-        <strong>TOTAL: $${parseFloat(factura.total || 0).toLocaleString('es-ES')}</strong>
-    </div>
-    
-    <div class="footer">
-        <p>iPhone Stock - Gracias por su compra</p>
-        <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
-    </div>
-</body>
-</html>`;
-}
+});
+
+// Ruta POST para redirigir a la hoja de producto
+app.post('/product', (req, res) => {
+    const { productId } = req.body;
+
+    if (!productId) {
+        return res.status(400).send('ID del producto no proporcionado');
+    }
+
+    res.redirect(`/product/${productId}`);
+});
+
+// ==================== FUNCIONES AUXILIARES ====================
 
 // Función para generar HTML de factura para PDF
 function generateInvoiceHTML(factura, logoUrl) {
@@ -1061,11 +985,11 @@ function generateInvoiceHTML(factura, logoUrl) {
             </tr>`;
     }).join('');
     
-    return `<!DOCTYPE html>
+    return \`<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Factura ${factura.numero_factura}</title>
+    <title>Factura \${factura.numero_factura}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
         .header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #007bff; }
@@ -1087,20 +1011,20 @@ function generateInvoiceHTML(factura, logoUrl) {
 </head>
 <body>
     <div class="header">
-        <div>${logoUrl ? `<img src="${logoUrl}" alt="iPhone Stock" class="logo">` : '<div style="font-size: 18px; font-weight: bold; color: #007bff;">iPhone Stock</div>'}</div>
+        <div>\${logoUrl ? \`<img src="\${logoUrl}" alt="iPhone Stock" class="logo">\` : '<div style="font-size: 18px; font-weight: bold; color: #007bff;">iPhone Stock</div>'}</div>
         <div class="invoice-info">
             <h1>FACTURA</h1>
-            <p><strong>N°:</strong> ${factura.numero_factura}</p>
-            <p><strong>Fecha:</strong> ${fecha}</p>
+            <p><strong>N°:</strong> \${factura.numero_factura}</p>
+            <p><strong>Fecha:</strong> \${fecha}</p>
         </div>
     </div>
     
     <div class="customer-section">
         <h3>Información del Cliente</h3>
-        <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
-        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
-        ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
-        <p><strong>Método de Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+        <p><strong>Nombre:</strong> \${factura.cliente_nombre}</p>
+        \${factura.cliente_telefono ? \`<p><strong>Teléfono:</strong> \${factura.cliente_telefono}</p>\` : ''}
+        \${factura.cliente_email ? \`<p><strong>Email:</strong> \${factura.cliente_email}</p>\` : ''}
+        <p><strong>Método de Pago:</strong> \${factura.metodo_pago || 'Efectivo'}</p>
     </div>
     
     <h3 style="color: #007bff;">Productos</h3>
@@ -1113,32 +1037,523 @@ function generateInvoiceHTML(factura, logoUrl) {
                 <th style="width: 15%;">Subtotal</th>
             </tr>
         </thead>
-        <tbody>${itemsRows}</tbody>
+        <tbody>\${itemsRows}</tbody>
     </table>
     
     <div class="totals">
         <table style="width: 300px; margin-left: auto;">
             <tr>
                 <td>Subtotal:</td>
-                <td style="text-align: right;">$${parseFloat(factura.subtotal || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                <td style="text-align: right;">$\${parseFloat(factura.subtotal || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
             </tr>
             <tr>
                 <td>Impuestos:</td>
-                <td style="text-align: right;">$${parseFloat(factura.impuestos || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                <td style="text-align: right;">$\${parseFloat(factura.impuestos || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
             </tr>
             <tr class="total-row">
                 <td><strong>TOTAL:</strong></td>
-                <td style="text-align: right;"><strong>$${parseFloat(factura.total || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</strong></td>
+                <td style="text-align: right;"><strong>$\${parseFloat(factura.total || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</strong></td>
             </tr>
         </table>
     </div>
     
-    ${factura.notas ? `<div class="notes"><h4>Notas:</h4><p>${factura.notas}</p></div>` : ''}
+    \${factura.notas ? \`<div class="notes"><h4>Notas:</h4><p>\${factura.notas}</p></div>\` : ''}
     
     <div class="footer">
         <p><strong>¡Gracias por su compra!</strong></p>
-        <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+        <p>Vendedor: \${factura.vendedor_nombre || 'Sistema'}</p>
         <p>iPhone Stock - Sistema de Facturación</p>
+    </div>
+</body>
+</html>\`;
+}
+
+// Manejador de errores para páginas no encontradas (404)
+app.use((req, res, next) => {
+    res.status(404).send("Página no encontrada");
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(\`Servidor iniciado en http://localhost:\${PORT}\`);
+});
+
+// Función para generar HTML de factura para PDF
+function generateInvoiceHTML(factura, logoUrl) {
+    let items = [];
+    
+    // Manejar diferentes formatos de items de forma más robusta
+    try {
+        console.log('Items original:', factura.items, 'Tipo:', typeof factura.items);
+        
+        if (typeof factura.items === 'string') {
+            items = JSON.parse(factura.items);
+        } else if (Array.isArray(factura.items)) {
+            items = factura.items;
+        } else if (factura.items && typeof factura.items === 'object') {
+            items = [factura.items];
+        }
+        
+        // Validar que items sea un array válido
+        if (!Array.isArray(items)) {
+            items = [];
+        }
+        
+        console.log('Items procesados para PDF:', items);
+    } catch (error) {
+        console.error('Error parsing items for PDF:', error);
+        items = [];
+    }
+    
+    const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
+    
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Factura ${factura.numero_factura}</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.4; 
+            color: #333; 
+            margin: 0;
+            padding: 20px;
+            background: white;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 0;
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-bottom: 30px; 
+            padding-bottom: 20px; 
+            border-bottom: 2px solid #007bff;
+        }
+        .logo { 
+            max-height: 60px; 
+            max-width: 200px; 
+        }
+        .company-info { 
+            text-align: right; 
+        }
+        .company-info h1 { 
+            color: #007bff; 
+            margin: 0 0 10px 0; 
+            font-size: 24px; 
+        }
+        .invoice-details { 
+            font-size: 14px; 
+        }
+        .invoice-details p { 
+            margin: 3px 0; 
+        }
+        .customer-section { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-left: 4px solid #007bff;
+        }
+        .customer-section h3 { 
+            color: #007bff; 
+            margin: 0 0 10px 0; 
+            font-size: 16px;
+        }
+        .customer-info p { 
+            margin: 5px 0; 
+            font-size: 14px;
+        }
+        .items-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin: 20px 0; 
+            font-size: 13px;
+        }
+        .items-table th { 
+            background: #007bff; 
+            color: white; 
+            padding: 8px; 
+            text-align: left; 
+            font-weight: bold;
+        }
+        .items-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+        }
+        .items-table tr:nth-child(even) { 
+            background: #f9f9f9; 
+        }
+        .text-right { 
+            text-align: right; 
+        }
+        .text-center { 
+            text-align: center; 
+        }
+        .totals-section { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin-top: 20px;
+            border: 1px solid #007bff;
+        }
+        .totals-table { 
+            width: 300px; 
+            margin-left: auto; 
+            font-size: 14px;
+        }
+        .totals-table td { 
+            padding: 5px 0; 
+            border: none; 
+        }
+        .total-row { 
+            font-weight: bold; 
+            font-size: 16px; 
+            color: #007bff;
+            border-top: 1px solid #007bff; 
+            padding-top: 8px;
+        }
+        .notes-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .notes-section h4 {
+            color: #856404;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .footer { 
+            margin-top: 30px; 
+            text-align: center; 
+            font-size: 12px;
+            color: #666; 
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-section">
+                ${logoUrl ? 
+                    `<img src="${logoUrl}" alt="iPhone Stock" class="logo" onerror="this.style.display='none';">` : 
+                    `<div style="font-size: 20px; font-weight: bold; color: #007bff;">iPhone Stock</div>`
+                }
+            </div>
+            <div class="company-info">
+                <h1>FACTURA</h1>
+                <div class="invoice-details">
+                    <p><strong>N°:</strong> ${factura.numero_factura}</p>
+                    <p><strong>Fecha:</strong> ${fecha}</p>
+                    <p><strong>Estado:</strong> ${factura.estado || 'Completada'}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="customer-section">
+            <h3>Información del Cliente</h3>
+            <div class="customer-info">
+                <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
+                ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
+                ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
+                <p><strong>Método de Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+            </div>
+        </div>
+        
+        <h3 style="color: #007bff; margin: 20px 0 10px 0;">Productos Facturados</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Producto</th>
+                    <th style="width: 15%;" class="text-center">Cant.</th>
+                    <th style="width: 20%;" class="text-right">Precio Unit.</th>
+                    <th style="width: 15%;" class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => {
+                    const precio = parseFloat(item.price || 0);
+                    const cantidad = parseInt(item.cantidad || 1);
+                    const subtotal = precio * cantidad;
+                    return `
+                    <tr>
+                        <td>${item.name || 'Producto'}</td>
+                        <td class="text-center">${cantidad}</td>
+                        <td class="text-right">$${precio.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right">$${subtotal.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>
+        
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-right">$${parseFloat(factura.subtotal || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>Impuestos:</td>
+                    <td class="text-right">$${parseFloat(factura.impuestos || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td class="text-right"><strong>$${parseFloat(factura.total || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</strong></td>
+                </tr>
+            </table>
+        </div>
+        
+        ${factura.notas ? `
+            <div class="notes-section">
+                <h4>Notas:</h4>
+                <p>${factura.notas}</p>
+            </div>
+        ` : ''}
+        
+        <div class="footer">
+            <p><strong>¡Gracias por su compra!</strong></p>
+            <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+            <p>Generado: ${new Date().toLocaleString('es-ES')}</p>
+            <p style="margin-top: 10px; color: #999;">iPhone Stock - Sistema de Facturación</p>
+        </div>
+    </div>
+</body>
+</html>`;
+}
+
+// Manejador de errores para páginas no encontradas (404)
+app.use((req, res, next) => {
+    res.status(404).send("Página no encontrada");
+});
+
+// Iniciar servidor
+app.listen(PORT, () => {
+    console.log(`Servidor iniciado en http://localhost:${PORT}`);
+}); 
+            padding: 8px; 
+            text-align: left; 
+            font-weight: bold;
+        }
+        .items-table td { 
+            border: 1px solid #ddd; 
+            padding: 8px; 
+        }
+        .items-table tr:nth-child(even) { 
+            background: #f9f9f9; 
+        }
+        .text-right { 
+            text-align: right; 
+        }
+        .text-center { 
+            text-align: center; 
+        }
+        .totals-section { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            margin-top: 20px;
+            border: 1px solid #007bff;
+        }
+        .totals-table { 
+            width: 300px; 
+            margin-left: auto; 
+            font-size: 14px;
+        }
+        .totals-table td { 
+            padding: 5px 0; 
+            border: none; 
+        }
+        .total-row { 
+            font-weight: bold; 
+            font-size: 16px; 
+            color: #007bff;
+            border-top: 1px solid #007bff; 
+            padding-top: 8px;
+        }
+        .notes-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .notes-section h4 {
+            color: #856404;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        .footer { 
+            margin-top: 30px; 
+            text-align: center; 
+            font-size: 12px;
+            color: #666; 
+            border-top: 1px solid #ddd;
+            padding-top: 15px;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo-section">
+                ${logoUrl ? 
+                    `<img src="${logoUrl}" alt="iPhone Stock" class="logo" onerror="this.style.display='none';">` : 
+                    `<div style="font-size: 20px; font-weight: bold; color: #007bff;">iPhone Stock</div>`
+                }
+            </div>
+            <div class="company-info">
+                <h1>FACTURA</h1>
+                <div class="invoice-details">
+                    <p><strong>N°:</strong> ${factura.numero_factura}</p>
+                    <p><strong>Fecha:</strong> ${fecha}</p>
+                    <p><strong>Estado:</strong> ${factura.estado || 'Completada'}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="customer-section">
+            <h3>Información del Cliente</h3>
+            <div class="customer-info">
+                <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
+                ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
+                ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
+                <p><strong>Método de Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+            </div>
+        </div>
+        
+        <h3 style="color: #007bff; margin: 20px 0 10px 0;">Productos Facturados</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Producto</th>
+                    <th style="width: 15%;" class="text-center">Cant.</th>
+                    <th style="width: 20%;" class="text-right">Precio Unit.</th>
+                    <th style="width: 15%;" class="text-right">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => {
+                    const precio = parseFloat(item.price || 0);
+                    const cantidad = parseInt(item.cantidad || 1);
+                    const subtotal = precio * cantidad;
+                    return `
+                    <tr>
+                        <td>${item.name || 'Producto'}</td>
+                        <td class="text-center">${cantidad}</td>
+                        <td class="text-right">$${precio.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right">$${subtotal.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        </table>
+        
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-right">$${parseFloat(factura.subtotal || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>Impuestos:</td>
+                    <td class="text-right">$${parseFloat(factura.impuestos || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td class="text-right"><strong>$${parseFloat(factura.total || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</strong></td>
+                </tr>
+            </table>
+        </div>
+        
+        ${factura.notas ? `
+            <div class="notes-section">
+                <h4>Notas:</h4>
+                <p>${factura.notas}</p>
+            </div>
+        ` : ''}
+        
+        <div class="footer">
+            <p><strong>¡Gracias por su compra!</strong></p>
+            <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+            <p>Generado: ${new Date().toLocaleString('es-ES')}</p>
+            <p style="margin-top: 10px; color: #999;">iPhone Stock - Sistema de Facturación</p>
+        </div>
+    </div>
+</body>
+</html>`;
+}
+                <div>
+                    ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
+                    <p><strong>Método de Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+                </div>
+            </div>
+        </div>
+        
+        <h3 class="text-primary mb-2">Productos Facturados</h3>
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%;">Producto</th>
+                    <th style="width: 15%;">Cantidad</th>
+                    <th style="width: 20%;">Precio Unit.</th>
+                    <th style="width: 15%;">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${items.map(item => `
+                    <tr>
+                        <td style="font-weight: 500;">${item.name || 'Producto'}</td>
+                        <td class="text-center">${item.cantidad || 1}</td>
+                        <td class="text-right">$${parseFloat(item.price || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                        <td class="text-right">$${(parseFloat(item.price || 0) * (item.cantidad || 1)).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        
+        <div class="totals-section">
+            <table class="totals-table">
+                <tr>
+                    <td>Subtotal:</td>
+                    <td class="text-right">$${parseFloat(factura.subtotal || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr>
+                    <td>Impuestos:</td>
+                    <td class="text-right">$${parseFloat(factura.impuestos || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
+                </tr>
+                <tr class="total-row">
+                    <td><strong>TOTAL:</strong></td>
+                    <td class="text-right"><strong>$${parseFloat(factura.total || 0).toLocaleString('es-ES', {minimumFractionDigits: 2})}</strong></td>
+                </tr>
+            </table>
+        </div>
+        
+        ${factura.notas ? `
+            <div class="notes-section">
+                <h4 style="color: #856404; margin-bottom: 10px;">Notas Adicionales:</h4>
+                <p style="margin: 0;">${factura.notas}</p>
+            </div>
+        ` : ''}
+        
+        <div class="footer">
+            <p style="font-size: 16px; margin-bottom: 10px;"><strong>¡Gracias por su compra!</strong></p>
+            <p>Vendedor: <strong>${factura.vendedor_nombre || 'Sistema'}</strong></p>
+            <p style="font-size: 12px; margin-top: 15px;">
+                Fecha de emisión: ${new Date(factura.created_at || factura.fecha).toLocaleString('es-ES')}
+            </p>
+            <p style="font-size: 12px; color: #999; margin-top: 15px;">
+                iPhone Stock - Sistema de Facturación
+            </p>
+        </div>
     </div>
 </body>
 </html>`;
