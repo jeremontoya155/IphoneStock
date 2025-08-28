@@ -7,6 +7,7 @@
      data-toggle="modal" 
      data-target="#productModal<%= product.id %>">
 
+
   <div class="product-image-container">
     <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
   </div>
@@ -15,6 +16,33 @@
     <h3 class="product-name">
       <%= product.name %>
     </h3>
+    
+    <% if (product.description) { %>
+      <p class="product-description" style="font-size: 0.75rem; color: #666; margin-bottom: 8px; line-height: 1.2; height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+        <%= product.description
+          .replace(/�/g, '')
+          .replace(/Resoluci�n/gi, 'Resolucion')
+          .replace(/resoluci�n/gi, 'resolucion')
+          .replace(/c�mara/gi, 'camara')
+          .replace(/C�mara/gi, 'Camara')
+          .replace(/bater�a/gi, 'bateria')
+          .replace(/Bater�a/gi, 'Bateria')
+          .replace(/tel�fono/gi, 'telefono')
+          .replace(/Tel�fono/gi, 'Telefono')
+          .replace(/m�vil/gi, 'movil')
+          .replace(/M�vil/gi, 'Movil')
+          .replace(/panÂtalla/gi, 'pantalla')
+          .replace(/Pantalla:/gi, 'Pantalla:')
+          .replace(/10\.9��/gi, '10.9 pulgadas')
+          .replace(/5\.4��/gi, '5.4 pulgadas')
+          .replace(/6\.1��/gi, '6.1 pulgadas')
+          .replace(/6\.7��/gi, '6.7 pulgadas')
+          .replace(/��/gi, ' pulgadas')
+          .replace(/[^\x00-\x7F]/g, '')
+        %>
+      </p>
+    <% } %>
+    
     <p class="product-space estado">
       <%= product.estado %>
     </p>

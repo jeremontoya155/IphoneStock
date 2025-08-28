@@ -349,7 +349,7 @@ app.get('/historico', requireAdmin, async (req, res) => {
     }
 });
 
-// Ruta para ver una factura específica
+// Ruta para ver un comprobante específico
 app.get('/factura/:id', requireAdmin, async (req, res) => {
     try {
         const facturaId = req.params.id;
@@ -361,7 +361,7 @@ app.get('/factura/:id', requireAdmin, async (req, res) => {
         `, [facturaId]);
 
         if (facturaResult.rows.length === 0) {
-            return res.status(404).send('Factura no encontrada');
+            return res.status(404).send('Comprobante no encontrado');
         }
 
         const logoResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
@@ -374,7 +374,7 @@ app.get('/factura/:id', requireAdmin, async (req, res) => {
             isAdmin: req.session.isAdmin
         });
     } catch (err) {
-        console.error('Error al cargar factura:', err);
+        console.error('Error al cargar comprobante:', err);
         res.status(500).send('Error interno del servidor');
     }
 });
@@ -431,7 +431,7 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
 
 // ==================== RUTAS POST PARA SISTEMA DE CAJAS ====================
 
-// Procesar nueva factura
+// Procesar nuevo comprobante
 app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
     console.log('=== DEBUG COMPLETO ===');
     console.log('Content-Type:', req.get('Content-Type'));
@@ -508,16 +508,16 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
             });
         }
 
-        // Generar número de factura único más corto
+        // Generar número de comprobante único más corto
         const fecha = new Date();
         const year = fecha.getFullYear().toString().slice(-2); // Últimos 2 dígitos del año
         const month = (fecha.getMonth() + 1).toString().padStart(2, '0');
         const day = fecha.getDate().toString().padStart(2, '0');
         const random = Math.floor(Math.random() * 999).toString().padStart(3, '0');
-        const numeroFactura = `F${year}${month}${day}${random}`; // Formato: F24082200X (10 chars)
+        const numeroFactura = `C${year}${month}${day}${random}`; // Formato: C24082200X (10 chars)
         
-        console.log('=== PROCESANDO FACTURA ===');
-        console.log('Número de factura:', numeroFactura);
+        console.log('=== PROCESANDO COMPROBANTE ===');
+        console.log('Número de comprobante:', numeroFactura);
         console.log('Cliente:', cliente_nombre);
         console.log('Items count:', items.length);
         
@@ -593,7 +593,7 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
         `, [facturaId]);
 
         if (facturaResult.rows.length === 0) {
-            return res.status(404).send('Factura no encontrada');
+            return res.status(404).send('Comprobante no encontrado');
         }
 
         const factura = facturaResult.rows[0];
@@ -620,7 +620,7 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Factura ${factura.numero_factura}</title>
+    <title>Comprobante ${factura.numero_factura}</title>
     <style>
         @media print {
             body { margin: 0; }
@@ -644,7 +644,7 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
     </div>
     
     <div class="header">
-        <h1>FACTURA</h1>
+        <h1>COMPROBANTE</h1>
         <p><strong>N°:</strong> ${factura.numero_factura}</p>
         <p><strong>Fecha:</strong> ${fecha}</p>
     </div>
@@ -698,7 +698,7 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
     }
 });
 
-// Búsqueda de facturas
+// Búsqueda de comprobantes
 app.get('/api/facturas/search', requireAdmin, async (req, res) => {
     try {
         const { q, fecha_desde, fecha_hasta } = req.query;
@@ -972,7 +972,7 @@ function generateSimplePDF(factura, logoUrl) {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Factura</title>
+    <title>Comprobante</title>
     <style>
         body { font-family: Arial; margin: 20px; }
         .header { border-bottom: 2px solid #007bff; padding-bottom: 10px; margin-bottom: 20px; }
@@ -987,7 +987,7 @@ function generateSimplePDF(factura, logoUrl) {
 </head>
 <body>
     <div class="header">
-        <h1 class="title">FACTURA ${factura.numero_factura}</h1>
+        <h1 class="title">COMPROBANTE ${factura.numero_factura}</h1>
         <div class="info">
             <strong>Fecha:</strong> ${fecha}<br>
             <strong>Cliente:</strong> ${factura.cliente_nombre}<br>
@@ -1065,7 +1065,7 @@ function generateInvoiceHTML(factura, logoUrl) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Factura ${factura.numero_factura}</title>
+    <title>Comprobante ${factura.numero_factura}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
         .header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #007bff; }
@@ -1089,7 +1089,7 @@ function generateInvoiceHTML(factura, logoUrl) {
     <div class="header">
         <div>${logoUrl ? `<img src="${logoUrl}" alt="iPhone Stock" class="logo">` : '<div style="font-size: 18px; font-weight: bold; color: #007bff;">iPhone Stock</div>'}</div>
         <div class="invoice-info">
-            <h1>FACTURA</h1>
+            <h1>COMPROBANTE</h1>
             <p><strong>N°:</strong> ${factura.numero_factura}</p>
             <p><strong>Fecha:</strong> ${fecha}</p>
         </div>
@@ -1138,7 +1138,7 @@ function generateInvoiceHTML(factura, logoUrl) {
     <div class="footer">
         <p><strong>¡Gracias por su compra!</strong></p>
         <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
-        <p>iPhone Stock - Sistema de Facturación</p>
+        <p>iPhone Stock - Sistema de Comprobantes</p>
     </div>
 </body>
 </html>`;

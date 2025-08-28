@@ -723,7 +723,7 @@
         <!-- Header -->
         <div class="header-section">
             <h1><i class="fas fa-cash-register me-3"></i>Sistema de Cajas</h1>
-            <p>Punto de Venta - Gestión de Facturación</p>
+            <p>Punto de Venta - Gestión de Comprobantes</p>
         </div>
 
         <!-- Búsqueda -->
@@ -1022,7 +1022,7 @@
                 if (result.success) {
                     showMessage(`Venta procesada: ${result.numeroFactura}`, 'success');
                     
-                    if (confirm('¿Deseas descargar la factura en PDF?')) {
+                    if (confirm('¿Deseas descargar el comprobante en PDF?')) {
                         window.open(`/factura/${result.facturaId}/pdf`, '_blank');
                     }
 

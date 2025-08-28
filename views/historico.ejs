@@ -88,7 +88,7 @@
             </div>
             <div class="stats-card">
                 <h3 id="totalFacturas"><%= totalRecords %></h3>
-                <p>Total Facturas</p>
+                <p>Total Comprobantes</p>
             </div>
             <div class="stats-card">
                 <h3 id="ventasHoy">$0</h3>
@@ -104,7 +104,7 @@
         <div class="search-filters">
             <div class="row">
                 <div class="col-md-4">
-                    <input type="text" class="form-control" id="searchQuery" placeholder="Buscar por número de factura o cliente...">
+                    <input type="text" class="form-control" id="searchQuery" placeholder="Buscar por número de comprobante o cliente...">
                 </div>
                 <div class="col-md-3">
                     <input type="date" class="form-control" id="fechaDesde" placeholder="Fecha desde">
@@ -118,7 +118,7 @@
             </div>
         </div>
 
-        <!-- Tabla de facturas -->
+        <!-- Tabla de comprobantes -->
         <div class="table-container">
             <table class="table table-striped mb-0">
                 <thead>
@@ -181,12 +181,12 @@
         <% } %>
     </div>
 
-    <!-- Modal para ver detalle de factura -->
+    <!-- Modal para ver detalle de comprobante -->
     <div class="modal fade" id="detalleModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Detalle de Factura</h5>
+                    <h5 class="modal-title">Detalle de Comprobante</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="detalleModalBody">
