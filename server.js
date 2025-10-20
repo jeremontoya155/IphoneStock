@@ -453,7 +453,8 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
             impuestos,
             total,
             metodo_pago,
-            notas
+            notas,
+            afectar_stock = false  // Nuevo parámetro: por defecto NO afecta stock
         } = req.body;
 
         console.log('=== DATOS EXTRAÍDOS ===');
@@ -546,13 +547,18 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
         const factura = facturaResult.rows[0];
         console.log('Factura creada exitosamente:', factura);
 
-        // Actualizar stock de productos
-        for (let item of items) {
-            console.log('Actualizando stock - Producto ID:', item.product_id, 'Cantidad:', item.cantidad);
-            await client.query(
-                'UPDATE products SET stock = stock - $1 WHERE id = $2',
-                [item.cantidad, item.product_id]
-            );
+        // Actualizar stock de productos solo si afectar_stock es true
+        if (afectar_stock) {
+            console.log('=== ACTUALIZANDO STOCK (afectar_stock = true) ===');
+            for (let item of items) {
+                console.log('Actualizando stock - Producto ID:', item.product_id, 'Cantidad:', item.cantidad);
+                await client.query(
+                    'UPDATE products SET stock = stock - $1 WHERE id = $2',
+                    [item.cantidad, item.product_id]
+                );
+            }
+        } else {
+            console.log('=== STOCK NO AFECTADO (afectar_stock = false) ===');
         }
 
         await client.query('COMMIT');

@@ -814,6 +814,17 @@
                         
                         <textarea class="form-control" id="notas" rows="2" placeholder="Notas adicionales (opcional)"></textarea>
                         
+                        <div class="form-check mt-3 mb-3" style="background: #e8f5e8; padding: 12px; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <input class="form-check-input" type="checkbox" id="afectarStock">
+                            <label class="form-check-label" for="afectarStock" style="font-weight: 500; color: #495057;">
+                                <i class="fas fa-boxes me-2" style="color: #28a745;"></i>
+                                Reducir inventario (marcar solo si quieres que afecte el stock)
+                            </label>
+                            <div style="font-size: 0.85em; color: #6c757d; margin-top: 4px;">
+                                ✅ Por defecto los comprobantes NO afectan el stock. Marca esta opción solo si quieres reducir inventario.
+                            </div>
+                        </div>
+                        
                         <button type="submit" class="btn-checkout" id="procesarVenta" disabled>
                             <i class="fas fa-receipt me-2"></i>Procesar Venta
                         </button>

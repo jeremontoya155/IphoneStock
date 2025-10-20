@@ -232,6 +232,7 @@ class CajasSystem {
             cliente_email: document.getElementById('clienteEmail').value.trim(),
             metodo_pago: document.getElementById('metodoPago').value,
             notas: document.getElementById('notas').value.trim(),
+            afectar_stock: document.getElementById('afectarStock')?.checked === true, // Solo true si está marcado explícitamente
             items: this.cart,
             subtotal: this.calculateSubtotal(),
             impuestos: this.calculateTaxes(this.calculateSubtotal()),
