@@ -132,26 +132,10 @@
 
         <div class="container mt-4">
 
-            <!-- Carousel -->
-            <section class="carousel-section">
-                <% 
-                  // Mostrar los productos más caros que contengan la palabra "ipgone" (nombre o descripción)
-                  const keyword = 'iphone';
-                  function normalizeText(s) {
-                    return String(s || '').toLowerCase()
-                      .normalize('NFD')            // descomponer acentos
-                      .replace(/[\u0300-\u036f]/g, '') // quitar diacríticos
-                      .trim();
-                  }
-                  const carouselItems = (products || [])
-                    .filter(p => p.price > 0 && (
-                      normalizeText(p.name).includes(keyword) ||
-                      normalizeText(p.description).includes(keyword)
-                    ))
-                    .sort((a, b) => b.price - a.price) // mayor precio primero
-                    .slice(0, 6); // limitar a 6 items (ajusta si quieres otro número)
-                %>
-                <%- include('partials/carousel', { carouselItems: carouselItems }) %>
+                        <!-- Carousel -->
+                        <section class="carousel-section">
+                                <!-- Usar `carouselItems` provisto por el servidor -->
+                                <%- include('partials/carousel', { carouselItems: carouselItems }) %>
                  <% if (isAdmin) { %>
                      <div class="editar-carousel">
                          <a href="/edit-carousel" class="btn-generico">Editar carrusel</a>
