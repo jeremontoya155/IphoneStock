@@ -143,25 +143,25 @@
     .carousel-item .img-mobile {
         display: block;
         width: 100%;
-        height: auto;
-        object-fit: cover; /* Cambiado a cover para llenar mejor el espacio */
-        max-height: 400px; /* Altura máxima para mobile */
+        height: auto; /* Altura automática según la imagen */
+        object-fit: contain; /* Mantener toda la imagen visible */
     }
     
     .carousel-item {
-        height: 400px; /* Altura fija para mobile */
-        overflow: hidden;
+        height: auto !important; /* Altura automática para ajustarse a la imagen */
+        min-height: auto !important;
+        overflow: visible;
     }
     
     .carousel-inner {
         border-radius: 10px;
-        max-width: 95%; /* Mejor aprovechamiento del ancho */
+        max-width: 100%; /* Ancho completo */
         margin: 0 auto;
+        padding: 0; /* Sin padding */
     }
     
     .carousel-caption {
-        padding: 10px;
-        display: block !important;
+        display: none !important; /* Ocultar caption en mobile para evitar espacios */
     }
 
     .carousel-caption h5 {
