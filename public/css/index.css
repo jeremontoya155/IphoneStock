@@ -144,11 +144,19 @@
         display: block;
         width: 100%;
         height: auto;
-        object-fit: contain; /* Muestra la imagen completa sin recortar */
+        object-fit: cover; /* Cambiado a cover para llenar mejor el espacio */
+        max-height: 400px; /* Altura máxima para mobile */
     }
     
     .carousel-item {
-        height: auto; /* Altura automática según la imagen */
+        height: 400px; /* Altura fija para mobile */
+        overflow: hidden;
+    }
+    
+    .carousel-inner {
+        border-radius: 10px;
+        max-width: 95%; /* Mejor aprovechamiento del ancho */
+        margin: 0 auto;
     }
     
     .carousel-caption {
