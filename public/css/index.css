@@ -72,7 +72,21 @@
 
 .carousel-item {
     position: relative;
-    height:25em /* Ajusta la altura según tus necesidades */
+    height: auto; /* Altura automática para adaptarse al contenido */
+    overflow: hidden;
+}
+
+/* Imagen desktop - visible por defecto */
+.carousel-item .img-desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain; /* Muestra la imagen completa sin recortar */
+}
+
+/* Imagen mobile - oculta por defecto */
+.carousel-item .img-mobile {
+    display: none;
 }
 
 .carousel-background {
@@ -88,6 +102,7 @@
 .carousel-inner {
     border-radius: 10px;
     box-shadow: 2px 5px 12px rgb(0 0 0 / 35%);
+    max-width: 100%;
 }
 .carousel-caption {
     position: absolute;
@@ -120,12 +135,28 @@
 
 
 @media (max-width: 768px) {
+    /* En mobile: mostrar imagen mobile y ocultar desktop */
+    .carousel-item .img-desktop {
+        display: none;
+    }
+    
+    .carousel-item .img-mobile {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: contain; /* Muestra la imagen completa sin recortar */
+    }
+    
+    .carousel-item {
+        height: auto; /* Altura automática según la imagen */
+    }
+    
     .carousel-caption {
-        padding: 10px; /* Ajusta el padding para dispositivos móviles */
-        display: block !important; /* Asegura que la caption sea visible */
+        padding: 10px;
+        display: block !important;
     }
 
     .carousel-caption h5 {
-        font-size: 1.5rem; /* Ajusta el tamaño del texto en dispositivos móviles */
+        font-size: 1.5rem;
     }
 }
