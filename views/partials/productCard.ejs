@@ -13,105 +13,27 @@
   </div>
 
   <div class="product-details">
-    <h3 class="product-name">
-      <%= product.name %>
-    </h3>
-    
-    <% if (product.description) { %>
-      <p class="product-description" style="font-size: 0.75rem; color: #666; margin-bottom: 8px; line-height: 1.2; height: 40px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
-        <%
-        // Función para limpiar solo caracteres problemáticos y normalizar acentos
-        function cleanText(text) {
-          return text
-            // Convertir caracteres de codificación problemáticos a 'a'
-            .replace(/�/g, 'a')
-            .replace(/Â/g, 'a')
-            .replace(/â€™/g, "'")
-            .replace(/â€œ/g, '"')
-            .replace(/â€\u009d/g, '"')
-            .replace(/€™/g, "'")
-            
-            // Correcciones específicas de palabras mal formadas
-            .replace(/Resolucian/gi, 'Resolucion')
-            .replace(/Resolucin/gi, 'Resolucion')
-            
-            // Diccionario de acentos: convertir á→a, é→e, etc.
-            .replace(/á/g, 'a')
-            .replace(/à/g, 'a')
-            .replace(/â/g, 'a')
-            .replace(/ä/g, 'a')
-            .replace(/ã/g, 'a')
-            .replace(/Á/g, 'A')
-            .replace(/À/g, 'A')
-            .replace(/Â/g, 'A')
-            .replace(/Ä/g, 'A')
-            .replace(/Ã/g, 'A')
-            
-            .replace(/é/g, 'e')
-            .replace(/è/g, 'e')
-            .replace(/ê/g, 'e')
-            .replace(/ë/g, 'e')
-            .replace(/É/g, 'E')
-            .replace(/È/g, 'E')
-            .replace(/Ê/g, 'E')
-            .replace(/Ë/g, 'E')
-            
-            .replace(/í/g, 'i')
-            .replace(/ì/g, 'i')
-            .replace(/î/g, 'i')
-            .replace(/ï/g, 'i')
-            .replace(/Í/g, 'I')
-            .replace(/Ì/g, 'I')
-            .replace(/Î/g, 'I')
-            .replace(/Ï/g, 'I')
-            
-            .replace(/ó/g, 'o')
-            .replace(/ò/g, 'o')
-            .replace(/ô/g, 'o')
-            .replace(/ö/g, 'o')
-            .replace(/õ/g, 'o')
-            .replace(/Ó/g, 'O')
-            .replace(/Ò/g, 'O')
-            .replace(/Ô/g, 'O')
-            .replace(/Ö/g, 'O')
-            .replace(/Õ/g, 'O')
-            
-            .replace(/ú/g, 'u')
-            .replace(/ù/g, 'u')
-            .replace(/û/g, 'u')
-            .replace(/ü/g, 'u')
-            .replace(/Ú/g, 'U')
-            .replace(/Ù/g, 'U')
-            .replace(/Û/g, 'U')
-            .replace(/Ü/g, 'U')
-            
-            // Casos especiales
-            .replace(/ñ/g, 'n')
-            .replace(/Ñ/g, 'N')
-            .replace(/ç/g, 'c')
-            .replace(/Ç/g, 'C')
-            
-            // Limpiar símbolos de pulgadas problemáticos
-            .replace(/[��″"]/g, ' pulgadas')
-            .replace(/pulgadas pulgadas/g, ' pulgadas')
-            
-            // Limpiar espacios múltiples
-            .replace(/\s+/g, ' ')
-            .trim();
-        }
-        %>
-        <%= cleanText(product.description) %>
-      </p>
+    <% 
+    // Verificar si el nombre tiene "/" 
+    const hasSlash = product.name.includes('/');
+    if (hasSlash) {
+      // Dividir el nombre por "/" y mostrar cada parte en una línea
+      const nameParts = product.name.split('/').map(part => part.trim());
+    %>
+      <div class="product-name-parts" style="margin-bottom: 12px;">
+        <% nameParts.forEach(part => { %>
+          <h3 class="product-name-line" style="font-size: 0.95rem; color: #1d1d1f; font-weight: 600; margin: 2px 0; text-align: left; letter-spacing: -0.01em; line-height: 1.3;">
+            <%= part %>
+          </h3>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <h3 class="product-name" style="font-size: 1.1rem; color: #1d1d1f; font-weight: 600; margin-top: 12px; margin-bottom: 8px; text-align: left; letter-spacing: -0.01em; line-height: 1.3;">
+        <%= product.name %>
+      </h3>
     <% } %>
-    
-    <p class="product-space estado">
-      <%= product.estado %>
-    </p>
-    <p class="product-space almacenamiento">
-      <%= product.almacenamiento %> GB
-    </p>
 
-    <p class="product-price precio">
+    <p class="product-price precio" style="font-size: 1.1rem; color: #1d1d1f; margin-bottom: 8px; margin-top: 8px; text-align: left; font-weight: 600;">
       USD <%= product.price %>
     </p>
 
