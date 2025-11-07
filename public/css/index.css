@@ -137,31 +137,32 @@
 @media (max-width: 768px) {
     /* En mobile: mostrar imagen mobile y ocultar desktop */
     .carousel-item .img-desktop {
-        display: none;
+        display: none !important;
     }
     
     .carousel-item .img-mobile {
-        display: block;
+        display: block !important;
         width: 100%;
-        height: auto; /* Altura automática según la imagen */
-        object-fit: contain; /* Mantener toda la imagen visible */
+        height: auto;
+        object-fit: contain;
+        max-width: 100%;
     }
     
     .carousel-item {
-        height: auto !important; /* Altura automática para ajustarse a la imagen */
-        min-height: auto !important;
-        overflow: visible;
+        height: auto !important;
+        min-height: 200px;
+        display: block !important;
     }
     
     .carousel-inner {
         border-radius: 10px;
-        max-width: 100%; /* Ancho completo */
+        max-width: 100%;
         margin: 0 auto;
-        padding: 0; /* Sin padding */
+        height: auto !important;
     }
     
     .carousel-caption {
-        display: none !important; /* Ocultar caption en mobile para evitar espacios */
+        display: none !important;
     }
 
     .carousel-caption h5 {
