@@ -144,24 +144,43 @@
         display: block !important;
         width: 100%;
         height: 100%;
-        object-fit: cover; /* Cubre todo el espacio sin espacios blancos */
+        object-fit: contain !important; /* Muestra la imagen completa sin recortar */
         object-position: center;
         max-width: 100%;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     .carousel-item {
-        height: 280px !important; /* Altura fija para mobile */
-        min-height: 280px;
+        height: auto !important; /* Altura automática según la imagen */
+        min-height: 200px;
         display: block !important;
-        overflow: hidden;
+        overflow: visible;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     .carousel-inner {
-        border-radius: 10px;
+        border-radius: 0 !important; /* Sin bordes redondeados para ocupar todo */
         max-width: 100%;
-        margin: 0 auto;
+        margin: 0 !important;
+        padding: 0 !important;
         height: auto !important;
-        overflow: hidden;
+        overflow: visible;
+        width: 100% !important;
+        box-shadow: none !important; /* Sin sombra */
+    }
+    
+    /* Eliminar márgenes del contenedor del carousel */
+    .carousel-section {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+    .carousel {
+        margin: 0 !important;
+        padding: 0 !important;
     }
     
     .carousel-caption {
