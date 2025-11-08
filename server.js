@@ -1150,6 +1150,104 @@ function generateInvoiceHTML(factura, logoUrl) {
 </html>`;
 }
 
+// Endpoint para sitemap.xml dinámico
+app.get('/sitemap.xml', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, name, updated_at FROM productos WHERE stock > 0 ORDER BY id');
+        const products = result.rows;
+        const baseUrl = process.env.BASE_URL || 'https://iloop.com.ar';
+        const currentDate = new Date().toISOString().split('T')[0];
+
+        let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+  <!-- Página principal -->
+  <url>
+    <loc>${baseUrl}/</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Catálogo de productos -->
+  <url>
+    <loc>${baseUrl}/cart</loc>
+    <lastmod>${currentDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Productos disponibles -->
+`;
+
+        products.forEach(product => {
+            const lastmod = product.updated_at ? new Date(product.updated_at).toISOString().split('T')[0] : currentDate;
+            xml += `  <url>
+    <loc>${baseUrl}/product/${product.id}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+`;
+        });
+
+        xml += `</urlset>`;
+
+        res.header('Content-Type', 'application/xml');
+        res.send(xml);
+    } catch (error) {
+        console.error('Error generando sitemap:', error);
+        res.status(500).send('Error generando sitemap');
+    }
+});
+
+// Endpoint para robots.txt dinámico
+app.get('/robots.txt', (req, res) => {
+    const baseUrl = process.env.BASE_URL || 'https://iloop.com.ar';
+    const robotsTxt = `# robots.txt para iLoop - Tienda de iPhones en Córdoba, Argentina
+
+User-agent: *
+Allow: /
+Allow: /cart
+Allow: /product/*
+
+# Bloquear rutas administrativas
+Disallow: /login
+Disallow: /logout
+Disallow: /cajas
+Disallow: /historico
+Disallow: /factura/*
+Disallow: /edit/*
+Disallow: /edit-carousel
+Disallow: /edit-images
+Disallow: /edit-about
+Disallow: /new
+Disallow: /delete/*
+Disallow: /buy/*
+Disallow: /api/*
+
+# Bloquear archivos y carpetas innecesarias
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-login.php
+Disallow: /cgi-bin/
+
+# Archivos de configuración
+Disallow: /*.json$
+Disallow: /*.sql$
+Disallow: /*.env$
+
+# Sitemap
+Sitemap: ${baseUrl}/sitemap.xml
+`;
+
+    res.header('Content-Type', 'text/plain');
+    res.send(robotsTxt);
+});
+
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
