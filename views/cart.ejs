@@ -159,8 +159,26 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                 </div>
             </div>
 
-
-
+            <!-- Filtro de chips/mosaico para estados -->
+            <div class="estado-chips-container">
+                <div class="estado-chips-wrapper">
+                    <% 
+                    let estadosUnicos = new Set(); 
+                    products.forEach(product => {
+                        if (product.stock > 0 && product.estado) {
+                            estadosUnicos.add(product.estado.toUpperCase());
+                        }
+                    });
+                    Array.from(estadosUnicos).forEach(estado => { 
+                    %>
+                        <button class="estado-chip" data-estado="<%= estado %>">
+                            <span class="chip-icon">📱</span>
+                            <span class="chip-text"><%= estado %></span>
+                            <span class="chip-check">✓</span>
+                        </button>
+                    <% }); %>
+                </div>
+            </div>
 
             <section class="featured-products" style="min-height: 90vh;">
                 <div class="products-container row" id="cart-items">
