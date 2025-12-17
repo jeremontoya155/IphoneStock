@@ -410,12 +410,76 @@
             transition: all 0.3s ease;
             font-size: 0.95rem;
             font-weight: 500;
+            background-color: white !important;
+            color: #2c3e50 !important;
         }
 
         .form-control:focus {
             border-color: #007bff;
             box-shadow: 0 0 0 0.2rem rgba(0,123,255,.15);
             transform: translateY(-2px);
+            background-color: white !important;
+        }
+        
+        .form-control option {
+            background-color: white !important;
+            color: #2c3e50 !important;
+            padding: 10px;
+        }
+        
+        /* CSS específico para el select de método de pago - FORZADO EXTREMO */
+        select#metodoPago,
+        #metodoPago {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            appearance: menulist !important;
+            -webkit-appearance: menulist !important;
+            -moz-appearance: menulist !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            height: auto !important;
+            min-height: 50px !important;
+            line-height: 1.5 !important;
+            text-indent: 0 !important;
+            text-align: left !important;
+            padding-left: 15px !important;
+            -webkit-text-fill-color: #000000 !important;
+            text-shadow: none !important;
+            filter: none !important;
+        }
+        
+        select#metodoPago option,
+        #metodoPago option {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            font-size: 16px !important;
+            padding: 12px !important;
+            font-weight: 600 !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+        
+        select#metodoPago:focus,
+        #metodoPago:focus {
+            color: #000000 !important;
+            background-color: #ffffff !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+        
+        select#metodoPago:invalid,
+        #metodoPago:invalid {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+        }
+        
+        /* Forzar texto visible en hover */
+        select#metodoPago:hover,
+        #metodoPago:hover {
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
         }
 
         .btn-checkout {
@@ -806,10 +870,13 @@
                         <input type="tel" class="form-control" id="clienteTelefono" placeholder="Teléfono (opcional)">
                         <input type="email" class="form-control" id="clienteEmail" placeholder="Email (opcional)">
                         
-                        <select class="form-control" id="metodoPago">
-                            <option value="efectivo">💵 Efectivo</option>
-                            <option value="tarjeta">💳 Tarjeta</option>
-                            <option value="transferencia">🏦 Transferencia</option>
+                        <label for="metodoPago" style="font-weight: 700; color: #000; margin-bottom: 8px; display: block; font-size: 16px;">
+                            <i class="fas fa-money-bill-wave me-2"></i>Método de Pago
+                        </label>
+                        <select class="form-control" id="metodoPago" required style="background-color: #ffffff !important; color: #000000 !important; font-size: 16px !important; font-weight: 700 !important; height: 50px !important; line-height: 1.5 !important; padding: 12px 15px !important; -webkit-text-fill-color: #000000 !important; opacity: 1 !important;">
+                            <option value="efectivo" selected style="background-color: #ffffff !important; color: #000000 !important; font-size: 16px !important; font-weight: 600 !important;">💵 Efectivo</option>
+                            <option value="tarjeta" style="background-color: #ffffff !important; color: #000000 !important; font-size: 16px !important; font-weight: 600 !important;">💳 Tarjeta</option>
+                            <option value="transferencia" style="background-color: #ffffff !important; color: #000000 !important; font-size: 16px !important; font-weight: 600 !important;">🏦 Transferencia</option>
                         </select>
                         
                         <textarea class="form-control" id="notas" rows="2" placeholder="Notas adicionales (opcional)"></textarea>
@@ -1041,6 +1108,8 @@
                     cart = [];
                     updateCartDisplay();
                     document.getElementById('checkoutForm').reset();
+                    // Restablecer el método de pago a efectivo
+                    document.getElementById('metodoPago').value = 'efectivo';
 
                     // Recargar página para actualizar stock
                     setTimeout(() => location.reload(), 2000);
@@ -1071,8 +1140,49 @@
             });
         });
 
+        // Función para forzar estilos del select
+        function forceSelectStyles() {
+            const metodoPagoSelect = document.getElementById('metodoPago');
+            if (metodoPagoSelect) {
+                metodoPagoSelect.value = 'efectivo';
+                metodoPagoSelect.selectedIndex = 0;
+                // Forzar estilos con máxima prioridad
+                metodoPagoSelect.style.cssText = `
+                    background-color: #ffffff !important;
+                    color: #000000 !important;
+                    font-size: 16px !important;
+                    font-weight: 700 !important;
+                    height: 50px !important;
+                    line-height: 1.5 !important;
+                    padding: 12px 15px !important;
+                    -webkit-text-fill-color: #000000 !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                `;
+                console.log('Select forzado:', metodoPagoSelect.value);
+            }
+        }
+        
         // Inicializar
         updateCartDisplay();
+        
+        // Establecer valor por defecto del método de pago - MÚLTIPLES INTENTOS
+        document.addEventListener('DOMContentLoaded', function() {
+            forceSelectStyles();
+            // Intentar de nuevo después de un momento
+            setTimeout(forceSelectStyles, 100);
+            setTimeout(forceSelectStyles, 500);
+        });
+        
+        // También establecer cuando se muestra el checkout
+        const originalUpdateCartDisplay = updateCartDisplay;
+        updateCartDisplay = function() {
+            originalUpdateCartDisplay();
+            if (cart.length > 0) {
+                setTimeout(forceSelectStyles, 50);
+                setTimeout(forceSelectStyles, 200);
+            }
+        };
     </script>
 </body>
 </html>
