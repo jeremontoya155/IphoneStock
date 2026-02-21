@@ -186,29 +186,73 @@ app.get('/about', (req, res) => {
 });
 
 // Ruta principal para renderizar la página principal
-app.get('/', (req, res) => {
-    let productsQuery = 'SELECT * FROM products';
-    let carouselQuery = 'SELECT * FROM carousel';
-    const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const imagesQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener imagen2
+app.get('/', async (req, res) => {
+    try {
+        // Consulta con JOIN a categorías para cuotas
+        const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
+        const carouselResult = await pool.query('SELECT * FROM carousel');
+        const aboutResult = await pool.query('SELECT * FROM about LIMIT 1');
+        const imagesResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
+        
+        // Obtener oferta general activa
+        let ofertaGeneral = null;
+        let categoriasExcluidas = [];
+        try {
+            const ofertaGeneralResult = await pool.query(`
+                SELECT * FROM ofertas_generales
+                WHERE activo = TRUE
+                ORDER BY created_at DESC
+                LIMIT 1
+            `);
+            ofertaGeneral = ofertaGeneralResult.rows[0];
+            categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
+                ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                : [];
+        } catch (e) { console.log('Tabla ofertas_generales no existe aún'); }
+        
+        // Obtener ofertas específicas activas
+        let ofertasMap = {};
+        try {
+            const ofertasResult = await pool.query(`
+                SELECT o.*, p.price as precio_original,
+                    CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
+                    ELSE GREATEST(ROUND(p.price - o.valor_descuento, 2), 0) END as precio_con_descuento
+                FROM ofertas o JOIN products p ON o.product_id = p.id WHERE o.activo = TRUE
+            `);
+            ofertasResult.rows.forEach(oferta => {
+                ofertasMap[oferta.product_id] = {
+                    oferta_id: oferta.id, tipo_descuento: oferta.tipo_descuento,
+                    valor_descuento: oferta.valor_descuento, precio_final: oferta.precio_con_descuento,
+                    tiene_oferta_vigente: true, es_oferta_general: false
+                };
+            });
+        } catch (e) { console.log('Tabla ofertas no existe aún'); }
 
-    Promise.all([
-        pool.query(productsQuery).then(result => result.rows),
-        pool.query(carouselQuery).then(result => result.rows),
-        pool.query(aboutQuery).then(result => result.rows),
-        pool.query(imagesQuery).then(result => result.rows[0]) // Obtener imagen1 y imagen2 aquí
-    ])
-    .then(([products, carouselItems, aboutResult, images]) => {
-        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
-        const logoUrl = images.imagen1; // Asignar imagen1 como logoUrl
-        const imagen2Url = images.imagen2; // Obtener imagen2
+        // Combinar productos con ofertas
+        const products = productsResult.rows.map(product => {
+            if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id)) {
+                const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
+                    ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
+                    : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                return { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
+                    valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                    tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
+            }
+            return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
+        });
+
+        const carouselItems = carouselResult.rows;
+        const about = aboutResult.rows.length > 0 ? aboutResult.rows[0] : { titulo: '', texto: '', imagen: '' };
+        const images = imagesResult.rows[0] || {};
+        const logoUrl = images.imagen1;
+        const imagen2Url = images.imagen2;
 
         res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin });
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
-    });
+    }
 });
 
 // Ruta para mostrar el formulario de edición de imágenes
@@ -219,40 +263,77 @@ app.get('/edit-images', requireAdmin, async (req, res) => {
 });
 
 // Ruta para carrito de compras
-app.get('/cart', (req, res) => {
-    let productsQuery = 'SELECT * FROM products';
-    const aboutQuery = 'SELECT * FROM about LIMIT 1';
-    const logoQuery = 'SELECT imagen1, imagen2 FROM imagenes LIMIT 1'; // Query para obtener las imágenes
+app.get('/cart', async (req, res) => {
+    try {
+        const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
+        const aboutResult = await pool.query('SELECT * FROM about LIMIT 1');
+        const imagesResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
+        
+        // Obtener oferta general activa
+        let ofertaGeneral = null;
+        let categoriasExcluidas = [];
+        try {
+            const ofertaGeneralResult = await pool.query(`SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1`);
+            ofertaGeneral = ofertaGeneralResult.rows[0];
+            categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
+                ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : [];
+        } catch (e) { }
 
-    Promise.all([
-        pool.query(productsQuery).then(result => result.rows),
-        pool.query(aboutQuery).then(result => result.rows),
-        pool.query(logoQuery).then(result => result.rows[0]) // Obtener imagen1 (logo) y imagen2 aquí
-    ])
-    .then(([products, aboutResult, images]) => {
-        const about = aboutResult.length > 0 ? aboutResult[0] : { titulo: '', texto: '', imagen: '' };
-        const logoUrl = images.imagen1; // URL de imagen1 (logo)
-        const imagenUrl2 = images.imagen2; // URL de imagen2
+        // Obtener ofertas específicas activas
+        let ofertasMap = {};
+        try {
+            const ofertasResult = await pool.query(`
+                SELECT o.*, p.price as precio_original,
+                    CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
+                    ELSE GREATEST(ROUND(p.price - o.valor_descuento, 2), 0) END as precio_con_descuento
+                FROM ofertas o JOIN products p ON o.product_id = p.id WHERE o.activo = TRUE
+            `);
+            ofertasResult.rows.forEach(oferta => {
+                ofertasMap[oferta.product_id] = {
+                    oferta_id: oferta.id, tipo_descuento: oferta.tipo_descuento,
+                    valor_descuento: oferta.valor_descuento, precio_final: oferta.precio_con_descuento,
+                    tiene_oferta_vigente: true, es_oferta_general: false
+                };
+            });
+        } catch (e) { }
+
+        // Combinar productos con ofertas
+        const products = productsResult.rows.map(product => {
+            if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id)) {
+                const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
+                    ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
+                    : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                return { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
+                    valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                    tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
+            }
+            return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
+        });
+
+        const about = aboutResult.rows.length > 0 ? aboutResult.rows[0] : { titulo: '', texto: '', imagen: '' };
+        const images = imagesResult.rows[0] || {};
+        const logoUrl = images.imagen1;
+        const imagenUrl2 = images.imagen2;
 
         res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
-    });
+    }
 });
 
 // Ruta para editar un producto (requiere autenticación de administrador)
-app.get('/edit/:id', requireAdmin, (req, res) => {
+app.get('/edit/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
-    pool.query('SELECT * FROM products WHERE id = $1', [id], (err, result) => {
-        if (err) {
-            console.error('Error al obtener producto para edición:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
-        }
-        res.render('edit', { product: result.rows[0], isAdmin: req.session.isAdmin });
-    });
+    try {
+        const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+        const categoriasResult = await pool.query('SELECT * FROM categorias ORDER BY orden, nombre');
+        res.render('edit', { product: productResult.rows[0], categorias: categoriasResult.rows, isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al obtener producto para edición:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 // Ruta para cerrar sesión
@@ -281,8 +362,14 @@ app.get('/edit-about', requireAdmin, (req, res) => {
 });
 
 // Ruta para agregar un nuevo producto (requiere autenticación de administrador)
-app.get('/new', requireAdmin, (req, res) => {
-    res.render('new', { isAdmin: req.session.isAdmin });
+app.get('/new', requireAdmin, async (req, res) => {
+    try {
+        const categoriasResult = await pool.query('SELECT * FROM categorias ORDER BY orden, nombre');
+        res.render('new', { categorias: categoriasResult.rows, isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al cargar página de nuevo producto:', err);
+        res.render('new', { categorias: [], isAdmin: req.session.isAdmin });
+    }
 });
 
 // ==================== RUTAS PARA SISTEMA DE CAJAS ====================
@@ -384,13 +471,48 @@ app.get('/product/:id', async (req, res) => {
     const id = req.params.id;
 
     try {
-        const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+        const productResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id WHERE p.id = $1', [id]);
 
         if (productResult.rows.length === 0) {
             return res.status(404).send('Producto no encontrado');
         }
 
-        const product = productResult.rows[0];
+        let product = productResult.rows[0];
+
+        // Verificar oferta específica
+        const ofertaResult = await pool.query(`
+            SELECT o.*, CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND($2::numeric * (1 - o.valor_descuento / 100), 2)
+            ELSE GREATEST(ROUND($2::numeric - o.valor_descuento, 2), 0) END as precio_con_descuento
+            FROM ofertas o WHERE o.product_id = $1 AND o.activo = TRUE LIMIT 1
+        `, [id, product.price]);
+
+        if (ofertaResult.rows.length > 0) {
+            const oferta = ofertaResult.rows[0];
+            product = { ...product, oferta_id: oferta.id, tipo_descuento: oferta.tipo_descuento,
+                valor_descuento: oferta.valor_descuento, precio_final: oferta.precio_con_descuento,
+                tiene_oferta_vigente: true, es_oferta_general: false };
+        } else {
+            // Verificar oferta general
+            const ofertaGeneralResult = await pool.query(`SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1`);
+            if (ofertaGeneralResult.rows.length > 0) {
+                const ofertaGeneral = ofertaGeneralResult.rows[0];
+                const categoriasExcluidas = ofertaGeneral.categorias_excluidas
+                    ? ofertaGeneral.categorias_excluidas.split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c)) : [];
+                if (!categoriasExcluidas.includes(product.categoria_id)) {
+                    const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
+                        ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
+                        : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                    product = { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
+                        valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                        tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
+                } else {
+                    product = { ...product, tiene_oferta_vigente: false, precio_final: product.price };
+                }
+            } else {
+                product = { ...product, tiene_oferta_vigente: false, precio_final: product.price };
+            }
+        }
+
         res.render('product', { product, isAdmin: req.session.isAdmin });
     } catch (err) {
         console.error('Error al obtener el producto:', err);
@@ -413,7 +535,7 @@ app.post('/product', (req, res) => {
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
-    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id } = req.body;
     let imageUrl;
 
     if (req.file) {
@@ -421,7 +543,8 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
     }
 
     try {
-        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado]);
+        const catId = categoria_id && categoria_id !== '' ? parseInt(categoria_id) : null;
+        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado, categoria_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al agregar nuevo producto:', err);
@@ -790,7 +913,7 @@ app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock, bateria, almacenamiento, estado } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id } = req.body;
     let imageUrl = req.body.image; // Mantener la URL actual de la imagen
 
     if (req.file) {
@@ -798,9 +921,10 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
     }
 
     try {
+        const catId = categoria_id && categoria_id !== '' ? parseInt(categoria_id) : null;
         await pool.query(
-            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8 WHERE id = $9',
-            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, id]
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8, categoria_id = $9 WHERE id = $10',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, id]
         );
         res.redirect('/');
     } catch (err) {
@@ -1204,7 +1328,349 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 });
 
-// Endpoint para robots.txt dinámico
+// ==================== RUTAS PARA GESTIÓN DE CATEGORÍAS ====================
+
+app.get('/categorias', requireAdmin, async (req, res) => {
+    try {
+        const categoriasResult = await pool.query('SELECT * FROM categorias ORDER BY orden, nombre');
+        const productsResult = await pool.query('SELECT id, name, categoria_id, price FROM products ORDER BY name');
+        res.render('categorias', { categorias: categoriasResult.rows, products: productsResult.rows, isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al obtener categorías:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Página para editar categoría
+app.get('/categorias/:id/editar', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const categoriaResult = await pool.query('SELECT * FROM categorias WHERE id = $1', [id]);
+        if (categoriaResult.rows.length === 0) {
+            return res.redirect('/categorias');
+        }
+        res.render('categoria-editar', { 
+            categoria: categoriaResult.rows[0], 
+            user: req.session.isAdmin ? { isAdmin: true } : null,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
+        console.error('Error al obtener categoría:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Página para asignar productos a categoría
+app.get('/categorias/:id/productos', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const categoriaResult = await pool.query('SELECT * FROM categorias WHERE id = $1', [id]);
+        if (categoriaResult.rows.length === 0) {
+            return res.redirect('/categorias');
+        }
+        const productsResult = await pool.query('SELECT id, name, categoria_id, price FROM products ORDER BY name');
+        res.render('categoria-productos', { 
+            categoria: categoriaResult.rows[0], 
+            products: productsResult.rows,
+            user: req.session.isAdmin ? { isAdmin: true } : null,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
+        console.error('Error al obtener productos:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Agregar categoría
+app.post('/add-category', requireAdmin, async (req, res) => {
+    const { nombre, descripcion, icono, color, orden, cuotas_max, interes_cuotas } = req.body;
+    let cuotasPlanes = '[]';
+    const planCuotas = req.body['plan_cuotas[]'] || req.body.plan_cuotas;
+    const planInteres = req.body['plan_interes[]'] || req.body.plan_interes;
+    if (planCuotas) {
+        const cuotasArr = Array.isArray(planCuotas) ? planCuotas : [planCuotas];
+        const interesArr = Array.isArray(planInteres) ? planInteres : [planInteres || '0'];
+        const planes = cuotasArr.map((c, i) => ({
+            cuotas: parseInt(c) || 0,
+            interes: parseFloat(interesArr[i]) || 0
+        })).filter(p => p.cuotas > 0).sort((a, b) => a.cuotas - b.cuotas);
+        cuotasPlanes = JSON.stringify(planes);
+    }
+    try {
+        await pool.query(
+            'INSERT INTO categorias (nombre, descripcion, icono, color, orden, cuotas_max, interes_cuotas, cuotas_planes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [nombre, descripcion || null, icono || '📦', color || '#0052A3', parseInt(orden) || 0, parseInt(cuotas_max) || 0, parseFloat(interes_cuotas) || 0, cuotasPlanes]
+        );
+        res.redirect('/categorias');
+    } catch (err) {
+        console.error('Error al agregar categoría:', err);
+        res.status(500).send('Error al agregar categoría: ' + err.message);
+    }
+});
+
+// Editar categoría
+app.post('/edit-category/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion, icono, color, orden, cuotas_max, interes_cuotas } = req.body;
+    let cuotasPlanes = '[]';
+    const planCuotas = req.body['plan_cuotas[]'] || req.body.plan_cuotas;
+    const planInteres = req.body['plan_interes[]'] || req.body.plan_interes;
+    if (planCuotas) {
+        const cuotasArr = Array.isArray(planCuotas) ? planCuotas : [planCuotas];
+        const interesArr = Array.isArray(planInteres) ? planInteres : [planInteres || '0'];
+        const planes = cuotasArr.map((c, i) => ({
+            cuotas: parseInt(c) || 0,
+            interes: parseFloat(interesArr[i]) || 0
+        })).filter(p => p.cuotas > 0).sort((a, b) => a.cuotas - b.cuotas);
+        cuotasPlanes = JSON.stringify(planes);
+    }
+    try {
+        await pool.query(
+            'UPDATE categorias SET nombre = $1, descripcion = $2, icono = $3, color = $4, orden = $5, cuotas_max = $6, interes_cuotas = $7, cuotas_planes = $8 WHERE id = $9',
+            [nombre, descripcion || null, icono || '📦', color || '#0052A3', parseInt(orden) || 0, parseInt(cuotas_max) || 0, parseFloat(interes_cuotas) || 0, cuotasPlanes, id]
+        );
+        res.redirect('/categorias');
+    } catch (err) {
+        console.error('Error al editar categoría:', err);
+        res.status(500).send('Error al editar categoría: ' + err.message);
+    }
+});
+
+// Eliminar categoría
+app.post('/delete-category/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('UPDATE products SET categoria_id = NULL WHERE categoria_id = $1', [id]);
+        await pool.query('DELETE FROM categorias WHERE id = $1', [id]);
+        res.redirect('/categorias');
+    } catch (err) {
+        console.error('Error al eliminar categoría:', err);
+        res.status(500).send('Error al eliminar categoría: ' + err.message);
+    }
+});
+
+// Asignar productos a una categoría (múltiple)
+app.post('/assign-products-category/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    let productosIds = req.body.productos || [];
+    if (!Array.isArray(productosIds)) productosIds = [productosIds];
+    
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        // Primero quitar esta categoría de todos los productos que la tenían
+        await client.query('UPDATE products SET categoria_id = NULL WHERE categoria_id = $1', [id]);
+        // Luego asignar a los productos seleccionados
+        if (productosIds.length > 0) {
+            const placeholders = productosIds.map((_, i) => `$${i + 2}`).join(',');
+            await client.query(
+                `UPDATE products SET categoria_id = $1 WHERE id IN (${placeholders})`,
+                [id, ...productosIds.map(p => parseInt(p))]
+            );
+        }
+        await client.query('COMMIT');
+        res.redirect('/categorias');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error al asignar productos:', err);
+        res.status(500).send('Error al asignar productos: ' + err.message);
+    } finally {
+        client.release();
+    }
+});
+
+// ==================== RUTAS PARA GESTIÓN DE OFERTAS ====================
+
+app.get('/admin/ofertas', requireAdmin, async (req, res) => {
+    try {
+        const productsResult = await pool.query('SELECT * FROM products ORDER BY name');
+        const ofertasActivasResult = await pool.query(`
+            SELECT o.*, p.name as product_name, p.price as precio_original,
+                CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
+                ELSE GREATEST(ROUND(p.price - o.valor_descuento, 2), 0) END as precio_final
+            FROM ofertas o JOIN products p ON o.product_id = p.id WHERE o.activo = TRUE ORDER BY o.fecha_inicio DESC
+        `);
+        const todasOfertasResult = await pool.query(`
+            SELECT o.*, p.name as product_name FROM ofertas o JOIN products p ON o.product_id = p.id ORDER BY o.created_at DESC
+        `);
+        const ofertasGeneralesResult = await pool.query(`SELECT * FROM ofertas_generales ORDER BY created_at DESC`);
+        const categoriasResult = await pool.query('SELECT * FROM categorias ORDER BY orden, nombre');
+        res.render('ofertas', {
+            products: productsResult.rows,
+            ofertasActivas: ofertasActivasResult.rows,
+            todasOfertas: todasOfertasResult.rows,
+            ofertasGenerales: ofertasGeneralesResult.rows,
+            categorias: categoriasResult.rows,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
+        console.error('Error al cargar página de ofertas:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Crear ofertas para múltiples productos
+app.post('/admin/ofertas/crear', requireAdmin, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const { productos, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin } = req.body;
+        if (!productos || (Array.isArray(productos) && productos.length === 0)) {
+            await client.query('ROLLBACK'); return res.status(400).send('Debes seleccionar al menos un producto');
+        }
+        if (!tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) {
+            await client.query('ROLLBACK'); return res.status(400).send('Todos los campos son obligatorios');
+        }
+        const valorDesc = parseFloat(valor_descuento);
+        if (valorDesc <= 0) { await client.query('ROLLBACK'); return res.status(400).send('El valor del descuento debe ser mayor a 0'); }
+        if (tipo_descuento === 'porcentaje' && (valorDesc < 0 || valorDesc > 100)) {
+            await client.query('ROLLBACK'); return res.status(400).send('El porcentaje debe estar entre 0 y 100');
+        }
+        const fechaInicioDate = new Date(fecha_inicio);
+        const fechaFinDate = new Date(fecha_fin);
+        if (fechaFinDate <= fechaInicioDate) {
+            await client.query('ROLLBACK'); return res.status(400).send('La fecha de fin debe ser posterior a la fecha de inicio');
+        }
+        const productosArray = Array.isArray(productos) ? productos : [productos];
+        for (const productId of productosArray) {
+            await client.query('UPDATE ofertas SET activo = FALSE WHERE product_id = $1 AND activo = TRUE', [productId]);
+            await client.query(`INSERT INTO ofertas (product_id, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin, activo) VALUES ($1, $2, $3, $4, $5, TRUE)`,
+                [productId, tipo_descuento, valorDesc, fechaInicioDate, fechaFinDate]);
+        }
+        await client.query('COMMIT');
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error al crear ofertas:', err);
+        res.status(500).send('Error al crear ofertas: ' + err.message);
+    } finally { client.release(); }
+});
+
+// Eliminar oferta
+app.post('/admin/ofertas/eliminar/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM ofertas WHERE id = $1', [id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al eliminar oferta:', err);
+        res.status(500).send('Error al eliminar oferta: ' + err.message);
+    }
+});
+
+// Toggle oferta
+app.post('/admin/ofertas/toggle/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('SELECT activo FROM ofertas WHERE id = $1', [id]);
+        if (result.rows.length === 0) return res.status(404).send('Oferta no encontrada');
+        const nuevoEstado = !result.rows[0].activo;
+        await pool.query('UPDATE ofertas SET activo = $1 WHERE id = $2', [nuevoEstado, id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al cambiar estado de oferta:', err);
+        res.status(500).send('Error al cambiar estado: ' + err.message);
+    }
+});
+
+// Editar oferta específica
+app.post('/admin/ofertas/editar/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { tipo_descuento, valor_descuento, fecha_inicio, fecha_fin } = req.body;
+    try {
+        const valorDesc = parseFloat(valor_descuento);
+        if (!tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) return res.status(400).send('Todos los campos son obligatorios');
+        if (valorDesc <= 0) return res.status(400).send('El valor del descuento debe ser mayor a 0');
+        if (tipo_descuento === 'porcentaje' && (valorDesc < 0 || valorDesc > 100)) return res.status(400).send('El porcentaje debe estar entre 0 y 100');
+        await pool.query(`UPDATE ofertas SET tipo_descuento = $1, valor_descuento = $2, fecha_inicio = $3, fecha_fin = $4, updated_at = NOW() WHERE id = $5`,
+            [tipo_descuento, valorDesc, fecha_inicio, fecha_fin, id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al editar oferta:', err);
+        res.status(500).send('Error al editar oferta: ' + err.message);
+    }
+});
+
+// API productos con ofertas
+app.get('/api/productos-ofertas', async (req, res) => {
+    try {
+        const result = await pool.query(`SELECT * FROM productos_con_ofertas ORDER BY tiene_oferta_vigente DESC, name`);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error al obtener productos con ofertas:', err);
+        res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// ==================== OFERTAS GENERALES ====================
+
+app.post('/admin/ofertas/general/crear', requireAdmin, async (req, res) => {
+    try {
+        const { nombre, descripcion, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin } = req.body;
+        let categoriasExcluidas = req.body.categorias_excluidas || [];
+        if (!Array.isArray(categoriasExcluidas)) categoriasExcluidas = [categoriasExcluidas];
+        const categoriasExcluidasStr = categoriasExcluidas.join(',');
+        if (!nombre || !tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) return res.status(400).send('Todos los campos son obligatorios');
+        const valorDesc = parseFloat(valor_descuento);
+        if (valorDesc <= 0) return res.status(400).send('El valor del descuento debe ser mayor a 0');
+        if (tipo_descuento === 'porcentaje' && (valorDesc < 0 || valorDesc > 100)) return res.status(400).send('El porcentaje debe estar entre 0 y 100');
+        await pool.query('UPDATE ofertas_generales SET activo = FALSE WHERE activo = TRUE');
+        await pool.query(`INSERT INTO ofertas_generales (nombre, descripcion, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin, activo, categorias_excluidas) VALUES ($1, $2, $3, $4, $5, $6, TRUE, $7)`,
+            [nombre, descripcion || null, tipo_descuento, valorDesc, fecha_inicio, fecha_fin, categoriasExcluidasStr]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al crear oferta general:', err);
+        res.status(500).send('Error al crear oferta general: ' + err.message);
+    }
+});
+
+app.post('/admin/ofertas/general/toggle/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('SELECT activo FROM ofertas_generales WHERE id = $1', [id]);
+        if (result.rows.length === 0) return res.status(404).send('Oferta general no encontrada');
+        const nuevoEstado = !result.rows[0].activo;
+        if (nuevoEstado) await pool.query('UPDATE ofertas_generales SET activo = FALSE WHERE activo = TRUE');
+        await pool.query('UPDATE ofertas_generales SET activo = $1 WHERE id = $2', [nuevoEstado, id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al cambiar estado de oferta general:', err);
+        res.status(500).send('Error al cambiar estado: ' + err.message);
+    }
+});
+
+app.post('/admin/ofertas/general/editar/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { nombre, descripcion, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin } = req.body;
+    let categoriasExcluidas = req.body.categorias_excluidas || [];
+    if (!Array.isArray(categoriasExcluidas)) categoriasExcluidas = [categoriasExcluidas];
+    const categoriasExcluidasStr = categoriasExcluidas.join(',');
+    try {
+        const valorDesc = parseFloat(valor_descuento);
+        if (!nombre || !tipo_descuento || !valor_descuento || !fecha_inicio || !fecha_fin) return res.status(400).send('Todos los campos son obligatorios');
+        if (valorDesc <= 0) return res.status(400).send('El valor del descuento debe ser mayor a 0');
+        if (tipo_descuento === 'porcentaje' && (valorDesc < 0 || valorDesc > 100)) return res.status(400).send('El porcentaje debe estar entre 0 y 100');
+        await pool.query(`UPDATE ofertas_generales SET nombre = $1, descripcion = $2, tipo_descuento = $3, valor_descuento = $4, fecha_inicio = $5, fecha_fin = $6, categorias_excluidas = $7, updated_at = NOW() WHERE id = $8`,
+            [nombre, descripcion || null, tipo_descuento, valorDesc, fecha_inicio, fecha_fin, categoriasExcluidasStr, id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al editar oferta general:', err);
+        res.status(500).send('Error al editar oferta general: ' + err.message);
+    }
+});
+
+app.post('/admin/ofertas/general/eliminar/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await pool.query('DELETE FROM ofertas_generales WHERE id = $1', [id]);
+        res.redirect('/admin/ofertas');
+    } catch (err) {
+        console.error('Error al eliminar oferta general:', err);
+        res.status(500).send('Error al eliminar oferta general: ' + err.message);
+    }
+});
+
+// Ruta para robots.txt
 app.get('/robots.txt', (req, res) => {
     const baseUrl = process.env.BASE_URL || 'https://iloop.com.ar';
     const robotsTxt = `# robots.txt para iLoop - Tienda de iPhones en Córdoba, Argentina

@@ -379,3 +379,116 @@
 .orden-chip:nth-of-type(1) { animation-delay: 0.3s; }
 .orden-chip:nth-of-type(2) { animation-delay: 0.35s; }
 
+/* ==================== ESTILOS PARA OFERTAS ==================== */
+
+/* Badge de oferta en la esquina de la tarjeta */
+.oferta-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    z-index: 10;
+    box-shadow: 0 3px 10px rgba(255, 71, 87, 0.4);
+    animation: pulseOferta 2s ease-in-out infinite;
+}
+
+@keyframes pulseOferta {
+    0%, 100% { transform: scale(1); box-shadow: 0 3px 10px rgba(255, 71, 87, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 5px 15px rgba(255, 71, 87, 0.5); }
+}
+
+.product-card { position: relative; }
+
+/* Contenedor de precios con oferta */
+.precio-container--oferta {
+    margin-bottom: 8px;
+    margin-top: 8px;
+    text-align: left;
+}
+
+.oferta-precios {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.oferta-precios .precio-original {
+    font-size: 0.85rem;
+    color: #86868b;
+    text-decoration: line-through;
+    font-weight: 400;
+}
+
+.oferta-precios .precio-oferta {
+    font-size: 1.15rem;
+    color: #bf4800;
+    font-weight: 700;
+}
+
+.oferta-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.ahorro-text {
+    font-size: 0.75rem;
+    color: #2d8a2d;
+    font-weight: 600;
+}
+
+.oferta-chip {
+    font-size: 0.7rem;
+    background: #fff3cd;
+    color: #856404;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* ==================== ESTILOS PARA CUOTAS ==================== */
+
+.cuotas-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #a5d6a7;
+}
+
+.cuotas-badge__icon {
+    font-size: 1rem;
+}
+
+.cuotas-badge__text {
+    font-size: 0.75rem;
+    color: #2e7d32;
+}
+
+.cuotas-badge__text strong {
+    color: #1b5e20;
+}
+
+/* Responsive para ofertas y cuotas */
+@media (max-width: 768px) {
+    .oferta-badge {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+        top: 8px;
+        left: 8px;
+    }
+    .oferta-precios .precio-original { font-size: 0.8rem; }
+    .oferta-precios .precio-oferta { font-size: 1rem; }
+    .cuotas-badge { padding: 5px 8px; }
+    .cuotas-badge__text { font-size: 0.7rem; }
+}

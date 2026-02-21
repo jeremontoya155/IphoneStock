@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asignar Productos - <%= categoria.nombre %></title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; }
+        .container { margin-top: 100px; padding-bottom: 40px; }
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .page-header {
+            background: linear-gradient(135deg, <%= categoria.color || '#800020' %> 0%, <%= categoria.color || '#800020' %>dd 100%);
+            color: white;
+            padding: 30px;
+        }
+        .page-header h2 { margin: 0; font-weight: 700; }
+        .page-body { padding: 30px; }
+        .category-badge {
+            font-size: 3rem;
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 15px;
+        }
+        .stats-bar {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+        .stat-item {
+            text-align: center;
+            padding: 10px 20px;
+            border-right: 2px solid #e0e0e0;
+        }
+        .stat-item:last-child { border-right: none; }
+        .stat-number { font-size: 2rem; font-weight: 700; color: #800020; }
+        .stat-label { font-size: 0.85rem; color: #666; }
+        .search-box {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        .search-box input {
+            padding: 15px 20px 15px 50px;
+            border-radius: 15px;
+            border: 2px solid #e0e0e0;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        .search-box input:focus { border-color: #800020; outline: none; }
+        .search-box::before {
+            content: '🔍';
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+        }
+        .filter-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 10px 20px;
+            border-radius: 25px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .filter-btn:hover { border-color: #800020; }
+        .filter-btn.active { background: #800020; color: white; border-color: #800020; }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        .product-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .product-item:hover { 
+            border-color: #800020; 
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        .product-item.selected {
+            background: linear-gradient(135deg, #fff0f3 0%, #ffe6eb 100%);
+            border-color: #800020;
+            box-shadow: 0 5px 20px rgba(128, 0, 32, 0.2);
+        }
+        .product-checkbox {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .product-item.selected .product-checkbox {
+            background: #800020;
+            border-color: #800020;
+            color: white;
+        }
+        .product-info { flex-grow: 1; }
+        .product-name { font-weight: 700; color: #333; margin-bottom: 5px; }
+        .product-price { color: #800020; font-weight: 600; font-size: 1.1rem; }
+        .product-category { 
+            font-size: 0.75rem; 
+            background: #e0e0e0; 
+            padding: 3px 10px; 
+            border-radius: 10px;
+            color: #666;
+        }
+        .product-item.selected .product-category {
+            background: #800020;
+            color: white;
+        }
+        .action-bar {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-top: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn-save {
+            background: linear-gradient(135deg, #800020 0%, #a00030 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: all 0.3s;
+        }
+        .btn-save:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 10px 30px rgba(128, 0, 32, 0.4); 
+            color: white; 
+        }
+        .btn-back {
+            background: #6c757d;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .btn-back:hover { background: #5a6268; color: white; text-decoration: none; }
+        .selection-info {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .selection-count {
+            background: #800020;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-left: 10px;
+        }
+        .bulk-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .bulk-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .bulk-btn.select-all { background: #28a745; color: white; }
+        .bulk-btn.select-all:hover { background: #218838; }
+        .bulk-btn.deselect-all { background: #dc3545; color: white; }
+        .bulk-btn.deselect-all:hover { background: #c82333; }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state-icon { font-size: 4rem; margin-bottom: 20px; }
+        input[type="checkbox"] { 
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .product-item {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .product-item:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbarUser', { user: user }) %>
+
+    <div class="container">
+        <div class="main-card">
+            <div class="page-header">
+                <div class="d-flex align-items-center">
+                    <span class="category-badge mr-4"><%= categoria.icono || '📦' %></span>
+                    <div>
+                        <h2>📦 Asignar Productos</h2>
+                        <p class="mb-0 opacity-75">Categoría: <strong><%= categoria.nombre %></strong></p>
+                    </div>
+                </div>
+            </div>
+            
+            <form action="/assign-products-category/<%= categoria.id %>" method="POST" id="assignForm">
+                <div class="page-body">
+                    <!-- Stats Bar -->
+                    <div class="stats-bar">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="totalProducts"><%= products.length %></div>
+                                    <div class="stat-label">Productos Totales</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="inCategory"><%= products.filter(p => p.categoria_id === categoria.id).length %></div>
+                                    <div class="stat-label">En esta Categoría</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-item">
+                                    <div class="stat-number" id="selectedCount"><%= products.filter(p => p.categoria_id === categoria.id).length %></div>
+                                    <div class="stat-label">Seleccionados</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search and Filters -->
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Buscar productos por nombre...">
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="filter-buttons">
+                            <button type="button" class="filter-btn active" data-filter="all">📋 Todos</button>
+                            <button type="button" class="filter-btn" data-filter="selected">✅ Seleccionados</button>
+                            <button type="button" class="filter-btn" data-filter="unselected">⬜ No seleccionados</button>
+                        </div>
+                        <div class="bulk-actions">
+                            <button type="button" class="bulk-btn select-all" onclick="selectAllVisible()">✅ Seleccionar visibles</button>
+                            <button type="button" class="bulk-btn deselect-all" onclick="deselectAll()">❌ Quitar todos</button>
+                        </div>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div class="products-grid" id="productsGrid">
+                        <% if (products.length === 0) { %>
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <h4>No hay productos</h4>
+                                <p>Crea productos primero para poder asignarlos a categorías</p>
+                            </div>
+                        <% } else { %>
+                            <% products.forEach(product => { 
+                                const isInCategory = product.categoria_id === categoria.id;
+                            %>
+                            <div class="product-item <%= isInCategory ? 'selected' : '' %>" 
+                                   data-name="<%= product.name.toLowerCase() %>"
+                                   data-selected="<%= isInCategory %>"
+                                   data-id="<%= product.id %>">
+                                <input type="checkbox" name="productos[]" value="<%= product.id %>" <%= isInCategory ? 'checked' : '' %>>
+                                <div class="product-checkbox">
+                                    <span class="check-icon">✓</span>
+                                </div>
+                                <div class="product-info">
+                                    <div class="product-name"><%= product.name %></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="product-price">$<%= parseFloat(product.price).toLocaleString('es-AR') %></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <% }); %>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <a href="/categorias" class="btn btn-back">← Volver a Categorías</a>
+                    <div class="selection-info">
+                        Productos seleccionados: <span class="selection-count" id="selectionBadge"><%= products.filter(p => p.categoria_id === categoria.id).length %></span>
+                    </div>
+                    <button type="submit" class="btn btn-save">💾 Guardar Asignación</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        // Update selected count
+        function updateCounts() {
+            const selected = document.querySelectorAll('.product-item input:checked').length;
+            document.getElementById('selectedCount').textContent = selected;
+            document.getElementById('selectionBadge').textContent = selected;
+        }
+
+        // Toggle product selection - funciona con click y touch
+        document.querySelectorAll('.product-item').forEach(item => {
+            // Click/tap handler
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleItem(this);
+            });
+        });
+
+        function toggleItem(item) {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            checkbox.checked = !checkbox.checked;
+            item.classList.toggle('selected', checkbox.checked);
+            item.dataset.selected = checkbox.checked ? 'true' : 'false';
+            updateCounts();
+        }
+
+        // Search functionality
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const search = this.value.toLowerCase();
+            document.querySelectorAll('.product-item').forEach(item => {
+                const name = item.dataset.name;
+                const matchesSearch = name.includes(search);
+                const matchesFilter = checkFilter(item);
+                item.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+            });
+        });
+
+        // Filter functionality
+        let currentFilter = 'all';
+        
+        function checkFilter(item) {
+            if (currentFilter === 'all') return true;
+            if (currentFilter === 'selected') return item.dataset.selected === 'true';
+            if (currentFilter === 'unselected') return item.dataset.selected === 'false';
+            return true;
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                
+                const search = document.getElementById('searchInput').value.toLowerCase();
+                document.querySelectorAll('.product-item').forEach(item => {
+                    const name = item.dataset.name;
+                    const matchesSearch = name.includes(search);
+                    const matchesFilter = checkFilter(item);
+                    item.style.display = (matchesSearch && matchesFilter) ? 'flex' : 'none';
+                });
+            });
+        });
+
+        // Bulk actions
+        function selectAllVisible() {
+            document.querySelectorAll('.product-item').forEach(item => {
+                if (item.style.display !== 'none') {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    checkbox.checked = true;
+                    item.classList.add('selected');
+                    item.dataset.selected = 'true';
+                }
+            });
+            updateCounts();
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('.product-item').forEach(item => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                checkbox.checked = false;
+                item.classList.remove('selected');
+                item.dataset.selected = 'false';
+            });
+            updateCounts();
+        }
+    </script>
+</body>
+</html>

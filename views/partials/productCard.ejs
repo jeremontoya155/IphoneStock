@@ -1,13 +1,33 @@
 <div class="product-card fade-in-section" 
      data-stock="<%= product.stock %>" 
-     data-estado="<%= product.estado %>" 
-     data-storage="<%= product.almacenamiento %>" 
-     data-battery="<%= product.bateria %>" 
+     data-estado="<%= product.estado || '' %>" 
+     data-storage="<%= product.almacenamiento || 0 %>" 
+     data-battery="<%= product.bateria || 0 %>" 
      data-model="<%= product.name %>" 
      data-price="<%= product.price %>"
+     data-category="<%= product.categoria_id || '' %>"
      data-toggle="modal" 
      data-target="#productModal<%= product.id %>">
 
+  <% 
+    // Verificar si el producto tiene oferta activa
+    const tieneOferta = product.tiene_oferta_vigente;
+    const precioOriginal = product.price;
+    const precioFinal = product.precio_final || product.price;
+    const porcentajeDescuento = tieneOferta && product.tipo_descuento === 'porcentaje' ? product.valor_descuento : null;
+    const esOfertaGeneral = product.es_oferta_general || false;
+    const nombreOfertaGeneral = product.nombre_oferta_general || '';
+  %>
+
+  <% if (tieneOferta) { %>
+  <div class="oferta-badge">
+    <% if (porcentajeDescuento) { %>
+      -<%= porcentajeDescuento %>%
+    <% } else { %>
+      OFERTA
+    <% } %>
+  </div>
+  <% } %>
 
   <div class="product-image-container">
     <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image">
@@ -34,9 +54,53 @@
       </h3>
     <% } %>
 
+    <% if (tieneOferta) { %>
+    <div class="precio-container precio-container--oferta">
+      <div class="oferta-precios">
+        <span class="precio-original">USD <%= precioOriginal %></span>
+        <span class="precio-oferta">USD <%= precioFinal %></span>
+      </div>
+      <div class="oferta-meta">
+        <span class="ahorro-text">Ahorrás USD <%= (precioOriginal - precioFinal).toFixed(2) %></span>
+        <% if (esOfertaGeneral && nombreOfertaGeneral) { %>
+        <span class="oferta-chip"><%= nombreOfertaGeneral %></span>
+        <% } else if (!esOfertaGeneral && porcentajeDescuento) { %>
+        <span class="oferta-chip">Desc. <%= porcentajeDescuento %>%</span>
+        <% } %>
+      </div>
+    </div>
+    <% } else { %>
     <p class="product-price precio" style="font-size: 1.1rem; color: #1d1d1f; margin-bottom: 8px; margin-top: 8px; text-align: left; font-weight: 600;">
       USD <%= product.price %>
     </p>
+    <% } %>
+
+    <% 
+      // Parsear planes de cuotas
+      let planesCard = [];
+      try { planesCard = JSON.parse(product.cuotas_planes || '[]'); } catch(e) { planesCard = []; }
+      if (planesCard.length === 0 && product.cuotas_max && product.cuotas_max > 0) {
+        planesCard = [{cuotas: product.cuotas_max, interes: product.interes_cuotas || 0}];
+      }
+    %>
+    <% if (planesCard.length > 0) { %>
+    <% 
+      const mejorPlan = planesCard[planesCard.length - 1];
+      const precioBaseCuota = tieneOferta ? precioFinal : product.price;
+      const totalCuota = mejorPlan.interes > 0 ? (precioBaseCuota * (1 + mejorPlan.interes / 100)) : precioBaseCuota;
+      const valorCuotaCard = (totalCuota / mejorPlan.cuotas).toFixed(2);
+    %>
+    <div class="cuotas-badge">
+      <span class="cuotas-badge__icon">💳</span>
+      <span class="cuotas-badge__text">
+        <% if (planesCard.length > 1) { %>
+          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>USD <%= valorCuotaCard %></strong>
+        <% } else { %>
+          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>USD <%= valorCuotaCard %></strong>
+        <% } %>
+      </span>
+    </div>
+    <% } %>
 
     <div class="product-footer">
       <div class="battery-status">

@@ -5,12 +5,46 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <title>Shopping Cart</title>
+    <title>Panel de Administración</title>
 </head>
 <body>
     <div class="container">
         
-<h1 class="my-4">Agregar Producto</h1>
+<h1 class="my-4">Panel de Administración</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">📦 Productos</h5>
+                <p class="card-text">Gestionar catálogo de productos</p>
+                <a href="/new" class="btn btn-primary">Agregar Producto</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">🏷️ Categorías</h5>
+                <p class="card-text">Gestionar categorías y cuotas</p>
+                <a href="/categorias" class="btn btn-success">Ver Categorías</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">🔥 Ofertas</h5>
+                <p class="card-text">Gestionar ofertas y descuentos</p>
+                <a href="/admin/ofertas" class="btn btn-danger">Ver Ofertas</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<hr>
+
+<h2 class="my-4">Agregar Producto Rápido</h2>
 <form action="/admin" method="POST">
     <div class="form-group">
         <label for="name">Nombre del Producto</label>

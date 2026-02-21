@@ -35,6 +35,14 @@
                         <%= product.name %>
                     </h1>
 
+                    <% if (product.categoria_nombre) { %>
+                    <p><strong>Categoría:</strong>
+                        <span style="background: <%= product.categoria_color || '#0052A3' %>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; display: inline-block;">
+                            <%= product.categoria_icono %> <%= product.categoria_nombre %>
+                        </span>
+                    </p>
+                    <% } %>
+
                     <p><strong>Estado:</strong>
                         <%= product.estado %>
                     </p>
@@ -131,8 +139,56 @@
                     <p><strong>Stock:</strong>
                         <%= product.stock %>
                     </p>
+                    <% if (product.tiene_oferta_vigente) { %>
+                    <div style="margin-bottom: 10px;">
+                      <p style="margin-bottom: 2px;"><strong>Precio:</strong></p>
+                      <span style="font-size: 0.95rem; color: #86868b; text-decoration: line-through;">$<%= product.price %></span>
+                      <span style="font-size: 1.4rem; color: #ff3b30; font-weight: 700; margin-left: 8px;">$<%= product.precio_final %></span>
+                      <div style="margin-top: 4px;">
+                        <span style="background: rgba(52,199,89,0.12); color: #34c759; padding: 3px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+                          Ahorrás $<%= (product.price - product.precio_final).toFixed(2) %>
+                        </span>
+                        <% if (product.es_oferta_general && product.nombre_oferta_general) { %>
+                        <span style="background: rgba(255,59,48,0.08); color: #ff3b30; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">
+                          <%= product.nombre_oferta_general %>
+                        </span>
+                        <% } else if (product.tipo_descuento === 'porcentaje') { %>
+                        <span style="background: rgba(255,59,48,0.08); color: #ff3b30; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">
+                          -<%= product.valor_descuento %>%
+                        </span>
+                        <% } %>
+                      </div>
+                    </div>
+                    <% } else { %>
                     <p><strong>Precio:</strong> $<%= product.price %>
                     </p>
+                    <% } %>
+
+                    <% 
+                      let planesProducto = [];
+                      try { planesProducto = JSON.parse(product.cuotas_planes || '[]'); } catch(e) { planesProducto = []; }
+                      if (planesProducto.length === 0 && product.cuotas_max && product.cuotas_max > 0) {
+                        planesProducto = [{cuotas: product.cuotas_max, interes: product.interes_cuotas || 0}];
+                      }
+                    %>
+                    <% if (planesProducto.length > 0) { %>
+                    <div style="margin-top: 8px; margin-bottom: 12px; padding: 10px 14px; background: rgba(46,125,50,0.06); border-radius: 10px; border: 1px solid rgba(46,125,50,0.15);">
+                        <div style="font-size: 0.9rem; color: #2e7d32; font-weight: 700; margin-bottom: 6px;">💳 Opciones de cuotas</div>
+                        <% const precioBase = product.tiene_oferta_vigente ? product.precio_final : product.price; %>
+                        <% planesProducto.forEach(plan => { %>
+                        <% 
+                            const totalPlan = plan.interes > 0 
+                                ? (precioBase * (1 + plan.interes / 100)) 
+                                : precioBase;
+                            const valorCuotaPlan = (totalPlan / plan.cuotas).toFixed(2);
+                        %>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(46,125,50,0.08);">
+                            <span style="font-size: 0.9rem; color: #333; font-weight: 600;"><%= plan.cuotas %> cuotas</span>
+                            <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 700;">$<%= valorCuotaPlan %>/mes</span>
+                        </div>
+                        <% }); %>
+                    </div>
+                    <% } %>
 
                     <!-- Botones de acción -->
                     <div class="productPage-actions">
