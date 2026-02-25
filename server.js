@@ -995,11 +995,17 @@ app.post('/buy/:id', (req, res) => {
 app.post('/delete/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
     try {
+        // Eliminar registros dependientes primero para evitar errores de foreign key
+        // Usamos try/catch individual por si alguna tabla no existe
+        try { await pool.query('DELETE FROM stock_historial WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
+        try { await pool.query('DELETE FROM carrito_items WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
+        try { await pool.query('DELETE FROM ofertas WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
+        
         await pool.query('DELETE FROM products WHERE id = $1', [id]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al eliminar producto:', err);
-        res.status(500).send('Error interno del servidor');
+        res.status(500).send('Error al eliminar producto: ' + err.message);
     }
 });
 
