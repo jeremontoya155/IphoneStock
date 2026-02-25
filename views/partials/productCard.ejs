@@ -93,16 +93,23 @@
     <% 
       const mejorPlan = planesCard[planesCard.length - 1];
       const precioBaseCuota = tieneOferta ? precioFinal : product.price;
-      const totalCuota = mejorPlan.interes > 0 ? (precioBaseCuota * (1 + mejorPlan.interes / 100)) : precioBaseCuota;
-      const valorCuotaCard = (totalCuota / mejorPlan.cuotas).toFixed(2);
+      // Cuotas siempre en pesos argentinos (ARS) — convertir si es USD
+      const precioBasePesos = esUSD ? (precioBaseCuota * cotiz) : precioBaseCuota;
+      const totalCuota = mejorPlan.interes > 0 ? (precioBasePesos * (1 + mejorPlan.interes / 100)) : precioBasePesos;
+      const valorCuotaNum = Math.round(totalCuota / mejorPlan.cuotas);
+      const valorCuotaCard = valorCuotaNum.toLocaleString('es-AR');
+      const sinInteres = !mejorPlan.interes || mejorPlan.interes === 0;
     %>
     <div class="cuotas-badge">
       <span class="cuotas-badge__icon">💳</span>
       <span class="cuotas-badge__text">
         <% if (planesCard.length > 1) { %>
-          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong><%= simbolo %> <%= valorCuotaCard %></strong>
+          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>ARS $<%= valorCuotaCard %></strong>
         <% } else { %>
-          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong><%= simbolo %> <%= valorCuotaCard %></strong>
+          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>ARS $<%= valorCuotaCard %></strong>
+        <% } %>
+        <% if (sinInteres) { %>
+        <span class="cuotas-sin-interes">sin interés</span>
         <% } %>
       </span>
     </div>

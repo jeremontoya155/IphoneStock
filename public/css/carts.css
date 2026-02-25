@@ -669,24 +669,44 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
-    padding: 6px 10px;
+    background: linear-gradient(135deg, #f0faf1 0%, #e0f2e1 100%);
+    padding: 7px 10px;
     border-radius: 8px;
     margin-bottom: 8px;
-    border: 1px solid #a5d6a7;
+    border: 1px solid #c8e6c9;
 }
 
 .cuotas-badge__icon {
-    font-size: 1rem;
+    font-size: 0.95rem;
+    line-height: 1;
 }
 
 .cuotas-badge__text {
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: #2e7d32;
+    line-height: 1.4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
 }
 
 .cuotas-badge__text strong {
     color: #1b5e20;
+}
+
+.cuotas-sin-interes {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.4;
+    vertical-align: middle;
 }
 
 /* Responsive para ofertas y cuotas */
@@ -700,5 +720,6 @@
     .oferta-precios .precio-original { font-size: 0.8rem; }
     .oferta-precios .precio-oferta { font-size: 1rem; }
     .cuotas-badge { padding: 5px 8px; }
-    .cuotas-badge__text { font-size: 0.7rem; }
+    .cuotas-badge__text { font-size: 0.68rem; }
+    .cuotas-sin-interes { font-size: 0.58rem; padding: 1px 5px; }
 }
