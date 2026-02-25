@@ -17,6 +17,12 @@
     const porcentajeDescuento = tieneOferta && product.tipo_descuento === 'porcentaje' ? product.valor_descuento : null;
     const esOfertaGeneral = product.es_oferta_general || false;
     const nombreOfertaGeneral = product.nombre_oferta_general || '';
+    
+    // Cotización y moneda
+    const cotiz = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
+    const monedaProd = product.moneda || 'USD';
+    const esUSD = monedaProd === 'USD';
+    const simbolo = esUSD ? 'USD' : 'ARS $';
   %>
 
   <% if (tieneOferta) { %>
@@ -57,11 +63,11 @@
     <% if (tieneOferta) { %>
     <div class="precio-container precio-container--oferta">
       <div class="oferta-precios">
-        <span class="precio-original">USD <%= precioOriginal %></span>
-        <span class="precio-oferta">USD <%= precioFinal %></span>
+        <span class="precio-original"><%= simbolo %> <%= precioOriginal %></span>
+        <span class="precio-oferta"><%= simbolo %> <%= precioFinal %></span>
       </div>
       <div class="oferta-meta">
-        <span class="ahorro-text">Ahorrás USD <%= (precioOriginal - precioFinal).toFixed(2) %></span>
+        <span class="ahorro-text">Ahorrás <%= simbolo %> <%= (precioOriginal - precioFinal).toFixed(2) %></span>
         <% if (esOfertaGeneral && nombreOfertaGeneral) { %>
         <span class="oferta-chip"><%= nombreOfertaGeneral %></span>
         <% } else if (!esOfertaGeneral && porcentajeDescuento) { %>
@@ -71,7 +77,7 @@
     </div>
     <% } else { %>
     <p class="product-price precio" style="font-size: 1.1rem; color: #1d1d1f; margin-bottom: 8px; margin-top: 8px; text-align: left; font-weight: 600;">
-      USD <%= product.price %>
+      <%= simbolo %> <%= product.price %>
     </p>
     <% } %>
 
@@ -94,9 +100,9 @@
       <span class="cuotas-badge__icon">💳</span>
       <span class="cuotas-badge__text">
         <% if (planesCard.length > 1) { %>
-          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>USD <%= valorCuotaCard %></strong>
+          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong><%= simbolo %> <%= valorCuotaCard %></strong>
         <% } else { %>
-          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>USD <%= valorCuotaCard %></strong>
+          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong><%= simbolo %> <%= valorCuotaCard %></strong>
         <% } %>
       </span>
     </div>

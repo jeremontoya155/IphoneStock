@@ -100,26 +100,56 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <%- include('partials/navbarUser') %>
 
         <div class="container cart-container ">
-            <div class="catalogo-content">
-                <h2 class="catalogo-title">CATÁLOGO</h2>
-                <!-- Productos aquí -->
+            <!-- Header del catálogo con diseño único -->
+            <div class="catalog-header">
+                <div class="catalog-header-content">
+                    <h2 class="catalogo-title">CATÁLOGO</h2>
+                    <p class="catalog-subtitle">Encuentra tu iPhone ideal</p>
+                </div>
+                <div class="catalogo-logo">
+                    <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="iLoop Logo">
+                </div>
             </div>
 
-            <div class="catalogo-logo">
-                <img style="width: 8em;" src="<%= imagenUrl2 %>" alt="">
+            <!-- Filtro fijo y sutil -->
+            <div class="filter-bar-fixed">
+                <div class="filter-bar-content">
+                    <div class="filter-search-box">
+                        <input type="text" id="quick-search" class="filter-input" placeholder="🔍 Buscar productos...">
+                    </div>
+                    <div class="filter-category-box">
+                        <select id="category-filter" class="filter-select">
+                            <option value="">📂 Todas las categorías</option>
+                            <% 
+                            const categorias = new Map();
+                            products.forEach(product => {
+                                if (product.categoria_id && product.categoria_nombre && !categorias.has(product.categoria_id)) {
+                                    categorias.set(product.categoria_id, {
+                                        nombre: product.categoria_nombre,
+                                        icono: product.categoria_icono || '📦'
+                                    });
+                                }
+                            });
+                            categorias.forEach((cat, id) => { %>
+                                <option value="<%= id %>"><%= cat.icono %> <%= cat.nombre %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="filter-sort-box">
+                        <select id="price-sort" class="filter-select">
+                            <option value="">💰 Ordenar por precio</option>
+                            <option value="asc">Menor a mayor</option>
+                            <option value="desc">Mayor a menor</option>
+                        </select>
+                    </div>
+                    <button class="filter-reset-btn" id="reset-filters">✖ Limpiar</button>
+                </div>
             </div>
 
-            <div class="sidebar">
-                <button class="filters-modal-btn-sidebar">Buscador</button>
-            </div>
-
-            <!-- Botón flotante para abrir los filtros en mobile -->
-            <div class="filters-modal-btn-phone">🔍</div>
-
-            <!-- Modal de filtros -->
+            <!-- Modal de filtros (avanzados) -->
             <div class="filters-modal">
                 <div class="filters-modal-content">
-                    <h3>Filtrar productos</h3>
+                    <h3>Filtros avanzados</h3>
                     <div class="input-group mb-3">
                         <input id="search-input" type="text" class="form-control" placeholder="Buscar productos">
                     </div>

@@ -188,6 +188,13 @@ app.get('/about', (req, res) => {
 // Ruta principal para renderizar la página principal
 app.get('/', async (req, res) => {
     try {
+        // Obtener cotización del dólar
+        let cotizacionDolar = 1200;
+        try {
+            const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
+            if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+        } catch (e) { console.log('Tabla configuracion no existe aún'); }
+
         // Consulta con JOIN a categorías para cuotas
         const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
         const carouselResult = await pool.query('SELECT * FROM carousel');
@@ -248,7 +255,7 @@ app.get('/', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagen2Url = images.imagen2;
 
-        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin });
+        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar });
     } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
@@ -265,6 +272,13 @@ app.get('/edit-images', requireAdmin, async (req, res) => {
 // Ruta para carrito de compras
 app.get('/cart', async (req, res) => {
     try {
+        // Obtener cotización del dólar
+        let cotizacionDolar = 1200;
+        try {
+            const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
+            if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+        } catch (e) { }
+
         const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
         const aboutResult = await pool.query('SELECT * FROM about LIMIT 1');
         const imagesResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
@@ -316,7 +330,7 @@ app.get('/cart', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagenUrl2 = images.imagen2;
 
-        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin });
+        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar });
     } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
@@ -471,6 +485,13 @@ app.get('/product/:id', async (req, res) => {
     const id = req.params.id;
 
     try {
+        // Obtener cotización del dólar
+        let cotizacionDolar = 1200;
+        try {
+            const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
+            if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+        } catch (e) { }
+
         const productResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id WHERE p.id = $1', [id]);
 
         if (productResult.rows.length === 0) {
@@ -513,7 +534,7 @@ app.get('/product/:id', async (req, res) => {
             }
         }
 
-        res.render('product', { product, isAdmin: req.session.isAdmin });
+        res.render('product', { product, isAdmin: req.session.isAdmin, cotizacionDolar });
     } catch (err) {
         console.error('Error al obtener el producto:', err);
         res.status(500).send('Error interno del servidor');
@@ -535,7 +556,7 @@ app.post('/product', (req, res) => {
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
 app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
-    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id, moneda } = req.body;
     let imageUrl;
 
     if (req.file) {
@@ -544,7 +565,8 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
 
     try {
         const catId = categoria_id && categoria_id !== '' ? parseInt(categoria_id) : null;
-        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado, categoria_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId]);
+        const monedaVal = moneda === 'ARS' ? 'ARS' : 'USD';
+        await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado, categoria_id, moneda) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, monedaVal]);
         res.redirect('/');
     } catch (err) {
         console.error('Error al agregar nuevo producto:', err);
@@ -913,7 +935,7 @@ app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) 
 // Ruta para procesar la edición de un producto (requiere autenticación de administrador)
 app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => {
     const id = req.params.id;
-    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id } = req.body;
+    const { name, description, price, stock, bateria, almacenamiento, estado, categoria_id, moneda } = req.body;
     let imageUrl = req.body.image; // Mantener la URL actual de la imagen
 
     if (req.file) {
@@ -922,9 +944,10 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
 
     try {
         const catId = categoria_id && categoria_id !== '' ? parseInt(categoria_id) : null;
+        const monedaVal = moneda === 'ARS' ? 'ARS' : 'USD';
         await pool.query(
-            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8, categoria_id = $9 WHERE id = $10',
-            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, id]
+            'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8, categoria_id = $9, moneda = $10 WHERE id = $11',
+            [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, monedaVal, id]
         );
         res.redirect('/');
     } catch (err) {
@@ -1667,6 +1690,65 @@ app.post('/admin/ofertas/general/eliminar/:id', requireAdmin, async (req, res) =
     } catch (err) {
         console.error('Error al eliminar oferta general:', err);
         res.status(500).send('Error al eliminar oferta general: ' + err.message);
+    }
+});
+
+// ==================== COTIZACIÓN DEL DÓLAR ====================
+
+// Página admin para cotización
+app.get('/admin/cotizacion', requireAdmin, async (req, res) => {
+    try {
+        let cotizacionDolar = 1200;
+        try {
+            const cotizResult = await pool.query("SELECT valor, updated_at FROM configuracion WHERE clave = 'cotizacion_dolar'");
+            if (cotizResult.rows.length > 0) {
+                cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+            }
+        } catch (e) {
+            console.log('Tabla configuracion no existe, creando...');
+        }
+        const logoResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
+        const images = logoResult.rows[0] || {};
+        res.render('cotizacion', {
+            cotizacionDolar,
+            logoUrl: images.imagen1,
+            imagen2Url: images.imagen2,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
+        console.error('Error al cargar cotización:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Guardar cotización
+app.post('/admin/cotizacion', requireAdmin, async (req, res) => {
+    try {
+        const { cotizacion } = req.body;
+        const valor = parseFloat(cotizacion);
+        if (isNaN(valor) || valor <= 0) {
+            return res.status(400).send('La cotización debe ser un número positivo');
+        }
+        await pool.query(
+            "INSERT INTO configuracion (clave, valor, updated_at) VALUES ('cotizacion_dolar', $1, NOW()) ON CONFLICT (clave) DO UPDATE SET valor = $1, updated_at = NOW()",
+            [valor.toString()]
+        );
+        res.redirect('/admin/cotizacion');
+    } catch (err) {
+        console.error('Error al guardar cotización:', err);
+        res.status(500).send('Error al guardar cotización: ' + err.message);
+    }
+});
+
+// API para obtener cotización actual
+app.get('/api/cotizacion', async (req, res) => {
+    try {
+        let cotizacionDolar = 1200;
+        const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
+        if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+        res.json({ cotizacion: cotizacionDolar });
+    } catch (err) {
+        res.json({ cotizacion: 1200 });
     }
 });
 

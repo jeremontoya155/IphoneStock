@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotización del Dólar</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        .cotizacion-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 30px;
+        }
+        .cotizacion-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+            text-align: center;
+        }
+        .cotizacion-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        .cotizacion-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 5px;
+        }
+        .cotizacion-subtitle {
+            font-size: 0.9rem;
+            color: #86868b;
+            margin-bottom: 25px;
+        }
+        .cotizacion-actual {
+            background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .cotizacion-actual-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        .cotizacion-actual-valor {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+        .cotizacion-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .cotizacion-input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border: 2px solid #e5e5ea;
+            border-radius: 10px;
+            text-align: center;
+            transition: border-color 0.2s;
+        }
+        .cotizacion-input:focus {
+            border-color: #007aff;
+            outline: none;
+        }
+        .cotizacion-btn {
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background: #007aff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .cotizacion-btn:hover {
+            background: #0056b3;
+        }
+        .cotizacion-ejemplo {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f5f5f7;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .cotizacion-ejemplo h4 {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+        .cotizacion-ejemplo p {
+            font-size: 0.85rem;
+            color: #555;
+            margin: 4px 0;
+        }
+        .cotizacion-ejemplo .resultado {
+            color: #34c759;
+            font-weight: 700;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007aff;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbarUser') %>
+
+    <div class="cotizacion-container">
+        <div class="cotizacion-card">
+            <div class="cotizacion-icon">💲</div>
+            <h1 class="cotizacion-title">Cotización del Dólar</h1>
+            <p class="cotizacion-subtitle">Configurá el valor del dólar para que tus clientes vean los precios en pesos argentinos</p>
+
+            <div class="cotizacion-actual">
+                <div class="cotizacion-actual-label">Cotización actual</div>
+                <div class="cotizacion-actual-valor">$<%= cotizacionDolar.toLocaleString('es-AR') %></div>
+                <div class="cotizacion-actual-label">1 USD = $<%= cotizacionDolar.toLocaleString('es-AR') %> ARS</div>
+            </div>
+
+            <form action="/admin/cotizacion" method="POST">
+                <div class="cotizacion-input-group">
+                    <input type="number" step="0.01" min="1" name="cotizacion" class="cotizacion-input" 
+                           placeholder="Ej: 1200" value="<%= cotizacionDolar %>" required id="cotizInput">
+                    <button type="submit" class="cotizacion-btn">💾 Guardar</button>
+                </div>
+            </form>
+
+            <div class="cotizacion-ejemplo" id="ejemplo">
+                <h4>📱 Ejemplo de conversión:</h4>
+                <p>Producto de <strong>USD 1000</strong></p>
+                <p class="resultado">= ARS $<span id="ejemploValor"><%= (1000 * cotizacionDolar).toLocaleString('es-AR') %></span></p>
+                <p style="font-size: 0.8rem; color: #86868b; margin-top: 8px;">
+                    Las cuotas de los productos en USD se mostrarán en pesos argentinos automáticamente.
+                </p>
+            </div>
+
+            <a href="/" class="back-link">← Volver al inicio</a>
+        </div>
+    </div>
+
+    <script>
+        const input = document.getElementById('cotizInput');
+        const ejemploValor = document.getElementById('ejemploValor');
+        input.addEventListener('input', function() {
+            const val = parseFloat(this.value) || 0;
+            ejemploValor.textContent = (1000 * val).toLocaleString('es-AR');
+        });
+    </script>
+</body>
+</html>

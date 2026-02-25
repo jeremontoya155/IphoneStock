@@ -1,30 +1,240 @@
 /* CSS personalizado para mejorar la apariencia */
 .cart-container {
     margin-top: 65px;
-    padding-bottom: 20px;
-    background-color: #f8f9fa;
-    /* Color de fondo */
+    padding-bottom: 40px;
+    background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%);
+    min-height: 100vh;
+    max-width: 100%;
+    overflow-x: hidden;
 }
 
 .row {
     justify-content: center;
+    margin: 0;
+    max-width: 100%;
 }
 
-/* Estilos para las Cards de Productos */
+/* ============= HEADER DEL CATÁLOGO ============= */
+.catalog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 3rem 0 2rem 0;
+    padding: 30px;
+    background: linear-gradient(135deg, rgba(128, 0, 32, 0.03) 0%, rgba(160, 0, 40, 0.03) 100%);
+    border-radius: 30px;
+    border: 2px solid rgba(128, 0, 32, 0.08);
+}
+
+.catalog-header-content {
+    flex: 1;
+}
 
 .catalogo-title {
-    text-align: center;
-    margin-top: 3rem;
-    margin-bottom: 0;
-    font-size: 2.5rem;
-    color: #800020;
-    font-weight: 600;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    text-align: left;
+    margin: 0 0 10px 0;
+    font-size: 3.5rem;
+    background: linear-gradient(135deg, #800020, #a00028);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    position: relative;
+    letter-spacing: -0.03em;
+}
+
+.catalog-subtitle {
+    font-size: 1.2rem;
+    color: #666;
+    font-weight: 500;
+    margin: 0;
+    font-style: italic;
 }
 
 .catalogo-logo {
     text-align: center;
 }
+
+/* ============= FILTRO FIJO Y SUTIL ============= */
+.filter-bar-fixed {
+    position: sticky;
+    top: 65px;
+    z-index: 900;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 15px 20px;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(128, 0, 32, 0.08);
+    margin-bottom: 30px;
+    border: 1px solid rgba(128, 0, 32, 0.1);
+    animation: slideDown 0.4s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.filter-bar-content {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-search-box {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 12px 18px;
+    border: 2px solid rgba(128, 0, 32, 0.15);
+    border-radius: 15px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: #800020;
+    box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+}
+
+.filter-category-box {
+    flex: 0 0 auto;
+    min-width: 200px;
+}
+
+.filter-sort-box {
+    flex: 0 0 auto;
+    min-width: 200px;
+}
+
+.filter-select {
+    width: 100%;
+    padding: 12px 18px;
+    border: 2px solid rgba(128, 0, 32, 0.15);
+    border-radius: 15px;
+    font-size: 0.95rem;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #800020;
+    box-shadow: 0 0 0 3px rgba(128, 0, 32, 0.1);
+}
+
+.filter-reset-btn {
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #e63946, #f07167);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.filter-reset-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
+}
+
+/* ============= RESPONSIVE FILTRO FIJO ============= */
+@media (max-width: 768px) {
+    .cart-container {
+        padding: 0 10px 30px;
+        margin-top: 60px;
+        overflow-x: hidden;
+    }
+
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    .row {
+        margin-left: 0;
+        margin-right: 0;
+    }
+
+    .catalog-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 20px 15px;
+        margin: 2rem 0 1.5rem 0;
+        border-radius: 20px;
+    }
+
+    .catalogo-title {
+        text-align: center;
+        font-size: 1.8rem;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .catalog-subtitle {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1rem;
+    }
+
+    .catalogo-logo img {
+        width: 6em !important;
+        max-width: 100%;
+    }
+
+    .filter-bar-fixed {
+        top: 60px;
+        padding: 12px 15px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+
+    .filter-bar-content {
+        flex-direction: column;
+    }
+
+    .filter-search-box,
+    .filter-category-box,
+    .filter-sort-box {
+        width: 100%;
+        min-width: 100%;
+    }
+
+    .filter-reset-btn {
+        width: 100%;
+    }
+
+    .featured-products {
+        padding: 20px 10px !important;
+    }
+
+    .products-container {
+        padding: 0 5px;
+    }
+}
+
+/* ============= FIN FILTRO FIJO ============= */
+
+/* Estilos para las Cards de Productos */
 
 .sidebar {
     text-align: center;

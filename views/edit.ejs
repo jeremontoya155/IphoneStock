@@ -34,6 +34,14 @@
             </div>
             
             <div class="form-group">
+                <label for="moneda">Moneda del precio</label>
+                <select class="form-control" id="moneda" name="moneda">
+                    <option value="USD" <%= (product.moneda || 'USD') === 'USD' ? 'selected' : '' %>>USD (Dólares)</option>
+                    <option value="ARS" <%= product.moneda === 'ARS' ? 'selected' : '' %>>ARS (Pesos Argentinos)</option>
+                </select>
+                <small class="form-text text-muted">Si el precio está en USD, se mostrará también en pesos según la cotización.</small>
+            </div>
+            <div class="form-group">
                 <label for="price">Precio</label>
                 <input type="number" class="form-control" id="price" name="price" value="<%= product.price %>" required>
             </div>
