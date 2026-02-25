@@ -116,6 +116,84 @@
         .back-link:hover {
             text-decoration: underline;
         }
+        /* Toggle switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #f5f5f7;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 25px;
+            margin-bottom: 10px;
+        }
+        .toggle-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .toggle-label-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #1d1d1f;
+        }
+        .toggle-label-desc {
+            font-size: 0.8rem;
+            color: #86868b;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 28px;
+            flex-shrink: 0;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            border-radius: 28px;
+            transition: 0.3s;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            border-radius: 50%;
+            transition: 0.3s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        .toggle-switch input:checked + .toggle-slider {
+            background: linear-gradient(135deg, #34c759 0%, #30d158 100%);
+        }
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        .toggle-status {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 8px;
+            text-align: center;
+            padding: 6px 12px;
+            border-radius: 8px;
+        }
+        .toggle-status.active {
+            color: #2e7d32;
+            background: rgba(46,125,50,0.08);
+        }
+        .toggle-status.inactive {
+            color: #c62828;
+            background: rgba(198,40,40,0.08);
+        }
     </style>
 </head>
 <body>
@@ -139,6 +217,21 @@
                            placeholder="Ej: 1200" value="<%= cotizacionDolar %>" required id="cotizInput">
                     <button type="submit" class="cotizacion-btn">💾 Guardar</button>
                 </div>
+
+                <!-- Toggle mostrar precio en pesos -->
+                <div class="toggle-container">
+                    <div class="toggle-label">
+                        <span class="toggle-label-title">💱 Mostrar precio en pesos</span>
+                        <span class="toggle-label-desc">Muestra la conversión a ARS en la página del producto</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="mostrar_pesos" id="togglePesos" <%= mostrarPrecioPesos ? 'checked' : '' %>>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="toggle-status <%= mostrarPrecioPesos ? 'active' : 'inactive' %>" id="toggleStatus">
+                    <%= mostrarPrecioPesos ? '✅ Precio en pesos VISIBLE para los clientes' : '🚫 Precio en pesos OCULTO — solo se muestra en dólares' %>
+                </div>
             </form>
 
             <div class="cotizacion-ejemplo" id="ejemplo">
@@ -160,6 +253,19 @@
         input.addEventListener('input', function() {
             const val = parseFloat(this.value) || 0;
             ejemploValor.textContent = (1000 * val).toLocaleString('es-AR');
+        });
+
+        // Toggle status text
+        const togglePesos = document.getElementById('togglePesos');
+        const toggleStatus = document.getElementById('toggleStatus');
+        togglePesos.addEventListener('change', function() {
+            if (this.checked) {
+                toggleStatus.textContent = '✅ Precio en pesos VISIBLE para los clientes';
+                toggleStatus.className = 'toggle-status active';
+            } else {
+                toggleStatus.textContent = '🚫 Precio en pesos OCULTO — solo se muestra en dólares';
+                toggleStatus.className = 'toggle-status inactive';
+            }
         });
     </script>
 </body>

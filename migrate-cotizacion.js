@@ -51,6 +51,15 @@ async function migrate() {
         `);
         console.log(`${colors.green}  ✔ Columna moneda agregada (default: USD)${colors.reset}`);
 
+        // 4. Insertar configuración de visibilidad del precio en pesos
+        console.log(`${colors.yellow}► Insertando configuración mostrar_precio_pesos...${colors.reset}`);
+        await pool.query(`
+            INSERT INTO configuracion (clave, valor) 
+            VALUES ('mostrar_precio_pesos', 'true')
+            ON CONFLICT (clave) DO NOTHING
+        `);
+        console.log(`${colors.green}  ✔ Configuración mostrar_precio_pesos insertada${colors.reset}`);
+
         // Verificar resultado
         const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
         const cotiz = cotizResult.rows[0]?.valor || 'N/A';

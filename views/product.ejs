@@ -145,12 +145,13 @@
                       const monedaProd = product.moneda || 'USD';
                       const esUSD = monedaProd === 'USD';
                       const simbolo = esUSD ? 'USD' : 'ARS $';
+                      const mostrarPesos = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
                     %>
                     <div style="margin-bottom: 10px;">
                       <p style="margin-bottom: 2px;"><strong>Precio:</strong></p>
                       <span style="font-size: 0.95rem; color: #86868b; text-decoration: line-through;"><%= simbolo %> <%= product.price %></span>
                       <span style="font-size: 1.4rem; color: #ff3b30; font-weight: 700; margin-left: 8px;"><%= simbolo %> <%= product.precio_final %></span>
-                      <% if (esUSD) { %>
+                      <% if (esUSD && mostrarPesos) { %>
                       <div style="font-size: 0.95rem; color: #2e7d32; font-weight: 600; margin-top: 4px;">
                         ARS $<%= Math.round(product.precio_final * cotiz).toLocaleString('es-AR') %>
                       </div>
@@ -176,10 +177,11 @@
                       const monedaProd2 = product.moneda || 'USD';
                       const esUSD2 = monedaProd2 === 'USD';
                       const simbolo2 = esUSD2 ? 'USD' : 'ARS $';
+                      const mostrarPesos2 = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
                     %>
                     <p><strong>Precio:</strong> <%= simbolo2 %> <%= product.price %>
                     </p>
-                    <% if (esUSD2) { %>
+                    <% if (esUSD2 && mostrarPesos2) { %>
                     <p style="color: #2e7d32; font-weight: 600; font-size: 1rem; margin-top: -8px;">
                       ARS $<%= Math.round(product.price * cotiz2).toLocaleString('es-AR') %>
                     </p>
@@ -194,8 +196,9 @@
                       }
                       const cotizCuotas = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
                       const esUSDCuotas = (product.moneda || 'USD') === 'USD';
+                      const mostrarPesosCuotas = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
                     %>
-                    <% if (planesProducto.length > 0) { %>
+                    <% if (planesProducto.length > 0 && mostrarPesosCuotas) { %>
                     <div style="margin-top: 8px; margin-bottom: 12px; padding: 10px 14px; background: rgba(46,125,50,0.06); border-radius: 10px; border: 1px solid rgba(46,125,50,0.15);">
                         <div style="font-size: 0.9rem; color: #2e7d32; font-weight: 700; margin-bottom: 6px;">💳 Opciones de cuotas <span style="font-size: 0.75rem; font-weight: 400; color: #666;">(en pesos argentinos)</span></div>
                         <% const precioBase = product.tiene_oferta_vigente ? product.precio_final : product.price; %>

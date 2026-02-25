@@ -188,11 +188,14 @@ app.get('/about', (req, res) => {
 // Ruta principal para renderizar la página principal
 app.get('/', async (req, res) => {
     try {
-        // Obtener cotización del dólar
+        // Obtener cotización del dólar y configuración de visibilidad
         let cotizacionDolar = 1200;
+        let mostrarPrecioPesos = true;
         try {
             const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
             if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+            const pesosResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'mostrar_precio_pesos'");
+            if (pesosResult.rows.length > 0) mostrarPrecioPesos = pesosResult.rows[0].valor === 'true';
         } catch (e) { console.log('Tabla configuracion no existe aún'); }
 
         // Consulta con JOIN a categorías para cuotas
@@ -255,7 +258,7 @@ app.get('/', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagen2Url = images.imagen2;
 
-        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar });
+        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
@@ -272,11 +275,14 @@ app.get('/edit-images', requireAdmin, async (req, res) => {
 // Ruta para carrito de compras
 app.get('/cart', async (req, res) => {
     try {
-        // Obtener cotización del dólar
+        // Obtener cotización del dólar y configuración de visibilidad
         let cotizacionDolar = 1200;
+        let mostrarPrecioPesos = true;
         try {
             const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
             if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+            const pesosResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'mostrar_precio_pesos'");
+            if (pesosResult.rows.length > 0) mostrarPrecioPesos = pesosResult.rows[0].valor === 'true';
         } catch (e) { }
 
         const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
@@ -330,7 +336,7 @@ app.get('/cart', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagenUrl2 = images.imagen2;
 
-        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar });
+        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
@@ -485,11 +491,14 @@ app.get('/product/:id', async (req, res) => {
     const id = req.params.id;
 
     try {
-        // Obtener cotización del dólar
+        // Obtener cotización del dólar y configuración de visibilidad
         let cotizacionDolar = 1200;
+        let mostrarPrecioPesos = true;
         try {
             const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
             if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+            const pesosResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'mostrar_precio_pesos'");
+            if (pesosResult.rows.length > 0) mostrarPrecioPesos = pesosResult.rows[0].valor === 'true';
         } catch (e) { }
 
         const productResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id WHERE p.id = $1', [id]);
@@ -534,7 +543,7 @@ app.get('/product/:id', async (req, res) => {
             }
         }
 
-        res.render('product', { product, isAdmin: req.session.isAdmin, cotizacionDolar });
+        res.render('product', { product, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener el producto:', err);
         res.status(500).send('Error interno del servidor');
@@ -1699,11 +1708,14 @@ app.post('/admin/ofertas/general/eliminar/:id', requireAdmin, async (req, res) =
 app.get('/admin/cotizacion', requireAdmin, async (req, res) => {
     try {
         let cotizacionDolar = 1200;
+        let mostrarPrecioPesos = true;
         try {
             const cotizResult = await pool.query("SELECT valor, updated_at FROM configuracion WHERE clave = 'cotizacion_dolar'");
             if (cotizResult.rows.length > 0) {
                 cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
             }
+            const pesosResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'mostrar_precio_pesos'");
+            if (pesosResult.rows.length > 0) mostrarPrecioPesos = pesosResult.rows[0].valor === 'true';
         } catch (e) {
             console.log('Tabla configuracion no existe, creando...');
         }
@@ -1711,6 +1723,7 @@ app.get('/admin/cotizacion', requireAdmin, async (req, res) => {
         const images = logoResult.rows[0] || {};
         res.render('cotizacion', {
             cotizacionDolar,
+            mostrarPrecioPesos,
             logoUrl: images.imagen1,
             imagen2Url: images.imagen2,
             isAdmin: req.session.isAdmin
@@ -1724,7 +1737,7 @@ app.get('/admin/cotizacion', requireAdmin, async (req, res) => {
 // Guardar cotización
 app.post('/admin/cotizacion', requireAdmin, async (req, res) => {
     try {
-        const { cotizacion } = req.body;
+        const { cotizacion, mostrar_pesos } = req.body;
         const valor = parseFloat(cotizacion);
         if (isNaN(valor) || valor <= 0) {
             return res.status(400).send('La cotización debe ser un número positivo');
@@ -1732,6 +1745,12 @@ app.post('/admin/cotizacion', requireAdmin, async (req, res) => {
         await pool.query(
             "INSERT INTO configuracion (clave, valor, updated_at) VALUES ('cotizacion_dolar', $1, NOW()) ON CONFLICT (clave) DO UPDATE SET valor = $1, updated_at = NOW()",
             [valor.toString()]
+        );
+        // Guardar configuración de visibilidad del precio en pesos
+        const mostrarPesosVal = mostrar_pesos === 'on' ? 'true' : 'false';
+        await pool.query(
+            "INSERT INTO configuracion (clave, valor, updated_at) VALUES ('mostrar_precio_pesos', $1, NOW()) ON CONFLICT (clave) DO UPDATE SET valor = $1, updated_at = NOW()",
+            [mostrarPesosVal]
         );
         res.redirect('/admin/cotizacion');
     } catch (err) {

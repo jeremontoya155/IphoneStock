@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS configuracion (
 INSERT INTO configuracion (clave, valor) VALUES ('cotizacion_dolar', '1200')
 ON CONFLICT (clave) DO NOTHING;
 
+-- Insertar configuración de visibilidad del precio en pesos
+INSERT INTO configuracion (clave, valor) VALUES ('mostrar_precio_pesos', 'true')
+ON CONFLICT (clave) DO NOTHING;
+
 -- Agregar columna moneda a productos (USD o ARS)
 ALTER TABLE products ADD COLUMN IF NOT EXISTS moneda VARCHAR(3) DEFAULT 'USD';
 
