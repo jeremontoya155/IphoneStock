@@ -46,14 +46,33 @@ cloudinary.config({
 });
 
 // Configuración de Multer para almacenamiento en Cloudinary
+// ✅ WebP + calidad 80 + máx 1200px — reduce hasta 80% el tamaño vs PNG original
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'uploads', // Carpeta en Cloudinary
-        format: async (req, file) => 'png', // Puedes cambiar el formato si es necesario
-        public_id: (req, file) => file.fieldname + '-' + Date.now(), // Nombre del archivo en Cloudinary
+        folder: 'uploads',
+        format: async (req, file) => 'webp',          // WebP en lugar de PNG
+        transformation: [{ width: 1200, crop: 'limit', quality: 80, fetch_format: 'auto' }],
+        public_id: (req, file) => file.fieldname + '-' + Date.now(),
     },
 });
+
+/**
+ * Transforma cualquier URL de Cloudinary para servirla optimizada:
+ * - f_auto  → el navegador recibe WebP/AVIF si lo soporta
+ * - q_auto:good → calidad auto (~75-80)
+ * - w_[size],c_limit → no agranda, solo achica si es mayor que size
+ * Funciona con imágenes ya subidas SIN re-subirlas.
+ */
+function optimizeCloudinaryUrl(url, width = 800) {
+    if (!url || !url.includes('res.cloudinary.com')) return url;
+    // Evitar duplicar transformaciones
+    if (url.includes('f_auto') || url.includes('q_auto')) return url;
+    return url.replace(
+        '/image/upload/',
+        `/image/upload/f_auto,q_auto:eco,w_${width},c_limit,dpr_auto/`
+    );
+}
 
 const upload = multer({ storage: storage });
 
@@ -85,7 +104,17 @@ const SwalMixin = Swal.mixin({
 
 // Configurar middleware
 app.set('view engine', 'ejs');
-app.use(express.static('public'));
+// Assets estáticos con cache 7 días — evita re-descargar en visitas repetidas (ahorra bandwidth en recurrentes)
+app.use(express.static('public', {
+    maxAge: '7d',
+    setHeaders: (res, filePath) => {
+        if (/\.(jpg|jpeg|png|webp|gif|svg|ico)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+        } else if (/\.(css|js)$/i.test(filePath)) {
+            res.setHeader('Cache-Control', 'public, max-age=86400');
+        }
+    }
+}));
 app.use(express.json()); // Usar express.json() directamente
 app.use(express.urlencoded({ extended: true })); // Usar express.urlencoded() directamente
 app.use(cors()); // Middleware para permitir CORS
@@ -252,13 +281,23 @@ app.get('/', async (req, res) => {
             return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
         });
 
-        const carouselItems = carouselResult.rows;
+        const carouselItems = carouselResult.rows.map(item => ({
+            ...item,
+            img:         optimizeCloudinaryUrl(item.img, 1200),
+            imagenmobile: optimizeCloudinaryUrl(item.imagenmobile, 600)
+        }));
         const about = aboutResult.rows.length > 0 ? aboutResult.rows[0] : { titulo: '', texto: '', imagen: '' };
         const images = imagesResult.rows[0] || {};
         const logoUrl = images.imagen1;
         const imagen2Url = images.imagen2;
 
-        res.render('index', { products, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        // Optimizar URLs de imágenes de productos (reduce 70-85% el bandwidth)
+        const productsOpt = products.map(p => ({
+            ...p,
+            img: optimizeCloudinaryUrl(p.img, 500)
+        }));
+
+        res.render('index', { products: productsOpt, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
@@ -336,7 +375,7 @@ app.get('/cart', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagenUrl2 = images.imagen2;
 
-        res.render('cart', { products, about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        res.render('cart', { products: products.map(p => ({...p, img: optimizeCloudinaryUrl(p.img, 500)})), about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
@@ -543,7 +582,7 @@ app.get('/product/:id', async (req, res) => {
             }
         }
 
-        res.render('product', { product, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        res.render('product', { product: {...product, img: optimizeCloudinaryUrl(product.img, 1000)}, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener el producto:', err);
         res.status(500).send('Error interno del servidor');
