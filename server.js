@@ -1033,18 +1033,142 @@ app.post('/buy/:id', (req, res) => {
 // Ruta para eliminar un producto (requiere autenticación de administrador)
 app.post('/delete/:id', requireAdmin, async (req, res) => {
     const id = req.params.id;
+    
+    if (!id || isNaN(id)) {
+        console.error('ID de producto inválido:', id);
+        return res.status(400).send('ID de producto inválido');
+    }
+    
     try {
+        // Verificar si el producto existe
+        const checkProduct = await pool.query('SELECT id FROM products WHERE id = $1', [id]);
+        if (checkProduct.rows.length === 0) {
+            console.error('Producto no encontrado:', id);
+            return res.status(404).send('Producto no encontrado');
+        }
+        
         // Eliminar registros dependientes primero para evitar errores de foreign key
         // Usamos try/catch individual por si alguna tabla no existe
-        try { await pool.query('DELETE FROM stock_historial WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
-        try { await pool.query('DELETE FROM carrito_items WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
-        try { await pool.query('DELETE FROM ofertas WHERE product_id = $1', [id]); } catch(e) { /* tabla puede no existir */ }
+        try { 
+            const result1 = await pool.query('DELETE FROM stock_historial WHERE product_id = $1', [id]); 
+            console.log(`Eliminados ${result1.rowCount} registros de stock_historial para producto ${id}`);
+        } catch(e) { 
+            console.log('Tabla stock_historial no existe o error:', e.message); 
+        }
         
-        await pool.query('DELETE FROM products WHERE id = $1', [id]);
-        res.redirect('/');
+        try { 
+            const result2 = await pool.query('DELETE FROM carrito_items WHERE product_id = $1', [id]); 
+            console.log(`Eliminados ${result2.rowCount} registros de carrito_items para producto ${id}`);
+        } catch(e) { 
+            console.log('Tabla carrito_items no existe o error:', e.message); 
+        }
+        
+        // La tabla ofertas tiene ON DELETE CASCADE, pero por las dudas lo hacemos manualmente
+        try { 
+            const result3 = await pool.query('DELETE FROM ofertas WHERE product_id = $1', [id]); 
+            console.log(`Eliminadas ${result3.rowCount} ofertas para producto ${id}`);
+        } catch(e) { 
+            console.log('Error al eliminar ofertas:', e.message); 
+        }
+        
+        // Finalmente eliminar el producto
+        const deleteResult = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+        console.log(`Producto ${id} eliminado correctamente (${deleteResult.rowCount} filas afectadas)`);
+        
+        res.redirect('/?success=producto_eliminado');
     } catch (err) {
         console.error('Error al eliminar producto:', err);
         res.status(500).send('Error al eliminar producto: ' + err.message);
+    }
+});
+
+// Ruta para eliminar múltiples productos (requiere autenticación de administrador)
+app.post('/products/delete-multiple', requireAdmin, async (req, res) => {
+    const { productIds } = req.body;
+    
+    if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'No se proporcionaron IDs de productos válidos' 
+        });
+    }
+    
+    // Validar que todos los IDs sean números válidos
+    const validIds = productIds.filter(id => !isNaN(id) && id > 0);
+    if (validIds.length === 0) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'No se proporcionaron IDs de productos válidos' 
+        });
+    }
+    
+    try {
+        let deletedCount = 0;
+        const errors = [];
+        
+        // Eliminar cada producto con sus dependencias
+        for (const id of validIds) {
+            try {
+                // Verificar si el producto existe
+                const checkProduct = await pool.query('SELECT id, name FROM products WHERE id = $1', [id]);
+                if (checkProduct.rows.length === 0) {
+                    console.log(`Producto ${id} no encontrado, saltando...`);
+                    errors.push(`Producto ID ${id} no encontrado`);
+                    continue;
+                }
+                
+                const productName = checkProduct.rows[0].name;
+                
+                // Eliminar registros dependientes primero
+                try { 
+                    await pool.query('DELETE FROM stock_historial WHERE product_id = $1', [id]); 
+                } catch(e) { 
+                    console.log(`Error al eliminar stock_historial para producto ${id}:`, e.message); 
+                }
+                
+                try { 
+                    await pool.query('DELETE FROM carrito_items WHERE product_id = $1', [id]); 
+                } catch(e) { 
+                    console.log(`Error al eliminar carrito_items para producto ${id}:`, e.message); 
+                }
+                
+                try { 
+                    await pool.query('DELETE FROM ofertas WHERE product_id = $1', [id]); 
+                } catch(e) { 
+                    console.log(`Error al eliminar ofertas para producto ${id}:`, e.message); 
+                }
+                
+                // Eliminar el producto
+                const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+                if (result.rowCount > 0) {
+                    deletedCount++;
+                    console.log(`Producto ${id} (${productName}) eliminado correctamente`);
+                }
+            } catch (err) {
+                console.error(`Error al eliminar producto ${id}:`, err);
+                errors.push(`Error al eliminar producto ID ${id}: ${err.message}`);
+            }
+        }
+        
+        const response = {
+            success: true, 
+            deletedCount,
+            totalRequested: validIds.length,
+            message: `${deletedCount} de ${validIds.length} producto${validIds.length !== 1 ? 's' : ''} eliminado${deletedCount !== 1 ? 's' : ''} correctamente`
+        };
+        
+        if (errors.length > 0) {
+            response.errors = errors;
+            response.message += `. ${errors.length} error${errors.length !== 1 ? 'es' : ''} encontrado${errors.length !== 1 ? 's' : ''}`;
+        }
+        
+        res.json(response);
+    } catch (err) {
+        console.error('Error general al eliminar productos:', err);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error al eliminar productos: ' + err.message 
+        });
     }
 });
 
