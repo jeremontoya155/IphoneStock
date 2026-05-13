@@ -9,10 +9,22 @@
         <% carouselItems.forEach((item, index) => { %>
             <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
                 <!-- Imagen para pantallas grandes -->
-                <img loading="lazy" src="<%= item.img %>" class="img-desktop" alt="<%= item.alt %>">
+                <img
+                  loading="lazy"
+                  src="<%= optimizeImageUrl(item.img, { width: 1200, quality: 80, format: 'auto' }) %>"
+                  srcset="<%= optimizeImageUrl(item.img, { width: 600, quality: 75 }) %> 600w, <%= optimizeImageUrl(item.img, { width: 1200, quality: 80 }) %> 1200w"
+                  sizes="(max-width: 768px) 600px, 1200px"
+                  class="img-desktop"
+                  alt="<%= item.alt %>">
                 
                 <!-- Imagen para dispositivos móviles -->
-                <img src="<%= item.imagenmobile %>"  loading="lazy" class="img-mobile" alt="<%= item.alt %>">
+                <img
+                  src="<%= optimizeImageUrl(item.imagenmobile, { width: 480, quality: 75, format: 'auto' }) %>"
+                  loading="lazy"
+                  srcset="<%= optimizeImageUrl(item.imagenmobile, { width: 320, quality: 70 }) %> 320w, <%= optimizeImageUrl(item.imagenmobile, { width: 480, quality: 75 }) %> 480w"
+                  sizes="100vw"
+                  class="img-mobile"
+                  alt="<%= item.alt %>">
 <!-- 
                 <div class="carousel-caption" style="background: linear-gradient(to right, <%= item.color1 %>, <%= item.color2 %>);"> -->
                 <div class="carousel-caption" >

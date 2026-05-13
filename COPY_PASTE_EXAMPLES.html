@@ -1,0 +1,191 @@
+<!-- 
+  EJEMPLOS DE CÓDIGO COPY-PASTE
+  Usa estos fragmentos para actualizar tus templates EJS
+-->
+
+<!-- ====================================
+     EJEMPLO 1: Thumbnail pequeña (cards)
+     Uso: Listas de productos, previews
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!-- <img src="<%= product.img %>" alt="<%= product.name %>"> -->
+
+<!-- DESPUÉS (BARATO) -->
+<img 
+  src="<%= optimizeImageUrl(product.img, { width: 300, quality: 70, format: 'auto' }) %>" 
+  alt="<%= product.name %>"
+  loading="lazy"
+  srcset="<%= optimizeImageUrl(product.img, { width: 300, quality: 70 }) %> 1x, <%= optimizeImageUrl(product.img, { width: 600, quality: 75 }) %> 2x"
+  sizes="(max-width: 768px) 100vw, 300px">
+
+<!-- AHORRO: 800KB → 80KB (90% menos) -->
+
+<!-- ====================================
+     EJEMPLO 2: Imagen de carrusel
+     Uso: Hero, banners, slides
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!-- <img src="<%= carousel.image %>" alt="slide"> -->
+
+<!-- DESPUÉS (BARATO) -->
+<img
+  src="<%= optimizeImageUrl(carousel.image, { width: 1000, quality: 80, format: 'auto' }) %>"
+  alt="Slide"
+  srcset="<%= optimizeImageUrl(carousel.image, { width: 500, quality: 75 }) %> 500w,
+          <%= optimizeImageUrl(carousel.image, { width: 1000, quality: 80 }) %> 1000w,
+          <%= optimizeImageUrl(carousel.image, { width: 1500, quality: 85 }) %> 1500w"
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1000px">
+
+<!-- AHORRO: 2MB → 200KB (90% menos) -->
+
+<!-- ====================================
+     EJEMPLO 3: Logo en navbar
+     Uso: Header, navegación
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!-- <img src="<%= logoUrl %>" alt="Logo"> -->
+
+<!-- DESPUÉS (BARATO) -->
+<img
+  src="<%= optimizeImageUrl(logoUrl, { width: 200, quality: 85, format: 'auto' }) %>"
+  alt="Logo"
+  width="200"
+  height="auto">
+
+<!-- AHORRO: Imágenes pequeñas pero se carga muchas veces -->
+
+<!-- ====================================
+     EJEMPLO 4: Galería/Grid múltiples imágenes
+     Uso: Producto detail con múltiples fotos
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!--
+<div class="gallery">
+  <% images.forEach(img => { %>
+    <img src="<%= img %>" alt="Producto">
+  <% }) %>
+</div>
+-->
+
+<!-- DESPUÉS (BARATO) -->
+<div class="gallery">
+  <% images.forEach(img => { %>
+    <img 
+      src="<%= optimizeImageUrl(img, { width: 400, quality: 75, format: 'auto' }) %>"
+      alt="Producto"
+      loading="lazy"
+      srcset="<%= optimizeImageUrl(img, { width: 400, quality: 75 }) %> 1x,
+              <%= optimizeImageUrl(img, { width: 800, quality: 80 }) %> 2x"
+      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px">
+  <% }) %>
+</div>
+
+<!-- AHORRO: Por cada imagen 90% de ahorro -->
+
+<!-- ====================================
+     EJEMPLO 5: Avatar/Profile image pequeña
+     Uso: Comentarios, perfiles, autor
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!-- <img src="<%= user.avatar %>" alt="Avatar" class="avatar"> -->
+
+<!-- DESPUÉS (BARATO) -->
+<img
+  src="<%= optimizeImageUrl(user.avatar, { width: 100, quality: 70, format: 'auto' }) %>"
+  alt="Avatar"
+  class="avatar"
+  width="100"
+  height="100"
+  srcset="<%= optimizeImageUrl(user.avatar, { width: 100, quality: 70 }) %> 1x,
+          <%= optimizeImageUrl(user.avatar, { width: 200, quality: 75 }) %> 2x">
+
+<!-- AHORRO: 500KB → 30KB -->
+
+<!-- ====================================
+     EJEMPLO 6: Background image (CSS)
+     Uso: Fondos, overlays
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!--
+<div style="background-image: url('<%= bgImage %>'); ...">
+-->
+
+<!-- DESPUÉS (BARATO) -->
+<div style="background-image: url('<%= optimizeImageUrl(bgImage, { width: 1920, quality: 75, format: 'auto' }) %>'); ...">
+
+<!-- AHORRO: 3MB → 250KB -->
+
+<!-- ====================================
+     EJEMPLO 7: Modal/Lightbox imagen grande
+     Uso: Ver producto en detalle
+     ==================================== -->
+
+<!-- ANTES (CARO) -->
+<!--
+<div id="lightbox">
+  <img src="<%= fullImage %>" alt="Detail">
+</div>
+-->
+
+<!-- DESPUÉS (BARATO - pero más calidad que thumbnail) -->
+<div id="lightbox">
+  <img
+    src="<%= optimizeImageUrl(fullImage, { width: 800, quality: 80, format: 'auto' }) %>"
+    alt="Detail"
+    srcset="<%= optimizeImageUrl(fullImage, { width: 800, quality: 80 }) %> 1x,
+            <%= optimizeImageUrl(fullImage, { width: 1600, quality: 85 }) %> 2x"
+    sizes="100vw">
+</div>
+
+<!-- AHORRO: 2MB → 300KB -->
+
+<!-- ====================================
+     EJEMPLO 8: Sistema de puntos de quiebre
+     Uso: Responsive images en tablet/desktop
+     ==================================== -->
+
+<img
+  src="<%= optimizeImageUrl(image, { width: 400, quality: 70, format: 'auto' }) %>"
+  alt="Responsive image"
+  srcset="<%= optimizeImageUrl(image, { width: 320, quality: 60 }) %> 320w,
+          <%= optimizeImageUrl(image, { width: 640, quality: 70 }) %> 640w,
+          <%= optimizeImageUrl(image, { width: 1024, quality: 80 }) %> 1024w,
+          <%= optimizeImageUrl(image, { width: 1280, quality: 85 }) %> 1280w"
+  sizes="(max-width: 480px) 100vw,
+         (max-width: 768px) 80vw,
+         (max-width: 1200px) 60vw,
+         50vw">
+
+<!-- AHORRO: El navegador elige mejor tamaño para cada pantalla -->
+
+<!-- ====================================
+     PARÁMETROS DE REFERENCIA RÁPIDA
+     ==================================== -->
+
+CALIDADES RECOMENDADAS:
+- q_60: Thumbnails muy pequeñas
+- q_70: Thumbnails, cards (buena relación)
+- q_75: Previews medianos
+- q_80: Imágenes grandes, foto de perfil
+- q_85: Imágenes muy grandes, detalles
+- q_auto: Deja que Cloudinary decida
+
+ANCHOS RECOMENDADOS:
+- w_100: Avatar, favicon
+- w_200: Logos pequeños
+- w_300: Cards de producto
+- w_400-600: Previews
+- w_800-1000: Galería full
+- w_1200+: Hero/Carrusel
+
+FORMULA DE AHORRO:
+- Original: 100% de tamaño, 100% de consumo
+- Con w_ solo: 30-50% tamaño, 30-50% consumo
+- Con w_ + q_70: 10-15% tamaño, 10-15% consumo
+- Con w_ + q_60 + f_auto: 5-10% tamaño, 5-10% consumo

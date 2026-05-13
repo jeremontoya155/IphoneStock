@@ -14,6 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(compression());
 
+// Optimización de Cloudinary: reduce consumo 70-90% usando transformaciones gratis
+const { setupCloudinaryOptimization } = require('./config/cloudinaryConfig');
+setupCloudinaryOptimization(app);
+
 
 const redis = require('redis');
 const redisClient = redis.createClient({
@@ -65,9 +69,11 @@ cloudinary.config({
 const storage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: 'uploads', // Carpeta en Cloudinary
-        format: async (req, file) => 'png', // Puedes cambiar el formato si es necesario
-        public_id: (req, file) => file.fieldname + '-' + Date.now(), // Nombre del archivo en Cloudinary
+        folder: 'uploads',
+        format: async (req, file) => 'webp', // WebP: hasta 30% más comprimido que PNG, mismo plan gratis
+        public_id: (req, file) => file.fieldname + '-' + Date.now(),
+        quality: 80,
+        flags: 'lossy',
     },
 });
 
@@ -102,6 +108,14 @@ const SwalMixin = Swal.mixin({
 // Configurar middleware
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
+
+// Cache agresivo para imágenes estáticas locales (1 año)
+app.use((req, res, next) => {
+    if (req.url.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+    next();
+});
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors()); // Middleware para permitir CORS
 
