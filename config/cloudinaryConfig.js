@@ -3,7 +3,7 @@
  * Reduce consumo de créditos del 70-90% sin afectar calidad visual
  */
 
-const { optimizeCloudinaryUrl, generateResponsiveImageSrcset } = require('./cloudinaryOptimizer');
+const { optimizeCloudinaryUrl, generateResponsiveImageSrcset } = require('../utils/cloudinaryOptimizer');
 
 /**
  * Configura Express para optimizar Cloudinary

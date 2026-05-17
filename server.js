@@ -12,6 +12,7 @@ const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.set('trust proxy', true);
 app.use(compression());
 
 // Optimización de Cloudinary: reduce consumo 70-90% usando transformaciones gratis
@@ -154,6 +155,43 @@ function requireAdmin(req, res, next) {
     } else {
         res.redirect('/login');
     }
+}
+
+function getPublicBaseUrl(req) {
+    return (process.env.PUBLIC_SITE_URL || process.env.SITE_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+}
+
+function toAbsoluteUrl(value, baseUrl) {
+    if (!value) return '';
+
+    try {
+        return new URL(value, baseUrl).toString();
+    } catch (err) {
+        return '';
+    }
+}
+
+function formatCsvPrice(value) {
+    const normalized = String(value || '').replace(/[^0-9.,-]/g, '').replace(',', '.');
+    const price = Number.parseFloat(normalized);
+
+    if (!Number.isFinite(price)) return '';
+
+    return `${price.toFixed(2)} USD`;
+}
+
+function mapCatalogCondition(value) {
+    const condition = String(value || '').toLowerCase();
+
+    if (condition.includes('nuevo') || condition.includes('new')) return 'new';
+    if (condition.includes('reacond') || condition.includes('refurb')) return 'refurbished';
+
+    return 'used';
+}
+
+function escapeCsv(value) {
+    const text = String(value ?? '').replace(/\r?\n|\r/g, ' ').trim();
+    return `"${text.replace(/"/g, '""')}"`;
 }
 
 //TODOS LOS GET
@@ -335,6 +373,62 @@ app.get('/cart', async (req, res) => {
         });
     } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Export CSV público de productos para Meta/Commerce Manager y hojas de cálculo.
+app.get(['/exports/products.csv', '/products.csv', '/catalog/products.csv'], async (req, res) => {
+    try {
+        const { rows: products } = await pool.query('SELECT * FROM products ORDER BY id');
+        const baseUrl = getPublicBaseUrl(req);
+        const headers = [
+            'id',
+            'title',
+            'description',
+            'availability',
+            'condition',
+            'price',
+            'link',
+            'image_link',
+            'brand',
+            'inventory',
+            'custom_label_0',
+            'custom_label_1'
+        ];
+
+        const lines = products
+            .map((product) => {
+                const price = formatCsvPrice(product.price);
+                const imageLink = toAbsoluteUrl(product.img, baseUrl);
+
+                if (!product.id || !product.name || !price || !imageLink) return null;
+
+                const stock = Number.parseInt(product.stock, 10) || 0;
+                const title = [product.name, product.almacenamiento ? `${product.almacenamiento}GB` : null].filter(Boolean).join(' ');
+
+                return [
+                    product.id,
+                    title,
+                    product.description || title,
+                    stock > 0 ? 'in stock' : 'out of stock',
+                    mapCatalogCondition(product.estado),
+                    price,
+                    `${baseUrl}/?product=${encodeURIComponent(product.id)}`,
+                    imageLink,
+                    'Apple',
+                    stock,
+                    product.estado || '',
+                    product.bateria ? `Bateria ${product.bateria}%` : ''
+                ].map(escapeCsv).join(',');
+            })
+            .filter(Boolean);
+
+        res.set('Content-Type', 'text/csv; charset=utf-8');
+        res.set('Cache-Control', 'public, max-age=300');
+        res.send(`${headers.join(',')}\n${lines.join('\n')}\n`);
+    } catch (err) {
+        console.error('Error al exportar productos en CSV:', err);
         res.status(500).send('Error interno del servidor');
     }
 });
