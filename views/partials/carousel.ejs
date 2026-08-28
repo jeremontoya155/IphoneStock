@@ -1,25 +1,69 @@
-<div id="carouselExampleIndicators" class="carousel slide my-4" data-ride="carousel">
-    <ol class="carousel-indicators">
-        <% carouselItems.forEach((item, index) => { %>
-            <% console.log(item) %>
-            <li data-target="#carouselExampleIndicators" data-slide-to="<%= index %>" class="<%= index === 0 ? 'active' : '' %>"></li>
-        <% }); %>
-    </ol>
-    <div class="carousel-inner">
-        <% carouselItems.forEach((item, index) => { %>
-            <div class="carousel-item <%= index === 0 ? 'active' : '' %>">
+<% const items = carouselItems || []; %>
+<% if (items.length > 0) { %>
+<div id="carouselExampleIndicators" class="iloop-carousel my-4" data-interval="4000">
+    <div class="iloop-carousel-inner">
+        <% items.forEach((item, index) => { %>
+            <% const altText = item.text || 'Banner iLoop'; %>
+            <% const mobileImage = item.imagenmobile || item.img; %>
+            <div class="iloop-carousel-item <%= index === 0 ? 'active' : '' %>">
                 <!-- Imagen para pantallas grandes -->
-                <img src="<%= item.img %>" class="img-desktop" alt="<%= item.alt %>">
+                <img src="<%= item.img %>" class="iloop-carousel-img-desktop" alt="<%= altText %>">
                 
                 <!-- Imagen para dispositivos móviles -->
-                <img src="<%= item.imagenmobile %>" class="img-mobile" alt="<%= item.alt %>">
-<!-- 
-                <div class="carousel-caption" style="background: linear-gradient(to right, <%= item.color1 %>, <%= item.color2 %>);"> -->
-                <div class="carousel-caption" >
-                    
-                    
-                </div>
+                <img src="<%= mobileImage %>" class="iloop-carousel-img-mobile" alt="<%= altText %>">
             </div>
         <% }); %>
     </div>
+    <% if (items.length > 1) { %>
+        <div class="iloop-carousel-dots" aria-label="Indicadores del carrusel">
+            <% items.forEach((item, index) => { %>
+                <button type="button" class="iloop-carousel-dot <%= index === 0 ? 'active' : '' %>" data-slide-to="<%= index %>" aria-label="Ver banner <%= index + 1 %>"></button>
+            <% }); %>
+        </div>
+    <% } %>
 </div>
+<script>
+    (function () {
+        function initIloopCarousel(carousel) {
+            if (carousel.dataset.ready === 'true') return;
+            carousel.dataset.ready = 'true';
+
+            const slides = carousel.querySelectorAll('.iloop-carousel-item');
+            const dots = carousel.querySelectorAll('.iloop-carousel-dot');
+            if (slides.length < 2) return;
+
+            let activeIndex = 0;
+            const interval = Number(carousel.dataset.interval) || 4000;
+
+            function showSlide(nextIndex) {
+                slides[activeIndex].classList.remove('active');
+                if (dots[activeIndex]) dots[activeIndex].classList.remove('active');
+
+                activeIndex = nextIndex;
+                slides[activeIndex].classList.add('active');
+                if (dots[activeIndex]) dots[activeIndex].classList.add('active');
+            }
+
+            dots.forEach(function (dot) {
+                dot.addEventListener('click', function () {
+                    showSlide(Number(dot.dataset.slideTo));
+                });
+            });
+
+            setInterval(function () {
+                showSlide((activeIndex + 1) % slides.length);
+            }, interval);
+        }
+
+        function initAll() {
+            document.querySelectorAll('.iloop-carousel').forEach(initIloopCarousel);
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAll);
+        } else {
+            initAll();
+        }
+    })();
+</script>
+<% } %>

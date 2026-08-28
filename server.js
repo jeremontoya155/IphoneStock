@@ -227,7 +227,7 @@ app.get('/logoImageUrl', (req, res) => {
 
 // Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
 app.get('/edit-carousel', requireAdmin, (req, res) => {
-    pool.query('SELECT * FROM carousel', (err, result) => {
+    pool.query('SELECT * FROM carousel ORDER BY id ASC', (err, result) => {
         if (err) {
             console.error('Error al obtener elementos del carrusel:', err);
             res.status(500).send('Error interno del servidor');
@@ -267,7 +267,7 @@ app.get('/', async (req, res) => {
 
         // Consulta con JOIN a categorías para cuotas
         const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
-        const carouselResult = await pool.query('SELECT * FROM carousel');
+        const carouselResult = await pool.query('SELECT * FROM carousel ORDER BY id ASC');
         const aboutResult = await pool.query('SELECT * FROM about LIMIT 1');
         const imagesResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
         
@@ -1359,17 +1359,23 @@ app.post('/add-carousel', requireAdmin, upload.fields([{ name: 'image', maxCount
     let mobileImageUrl;
 
     try {
+        if (!req.files || !req.files['image']) {
+            return res.status(400).send('Tenés que cargar una imagen para el carrusel');
+        }
+
         if (req.files['image']) {
-            imageUrl = req.files['image'][0].path; // Guardar la URL de la nueva imagen
+            imageUrl = req.files['image'][0].path; // Guardar la URL de Cloudinary
         }
         if (req.files['mobileImage']) {
-            mobileImageUrl = req.files['mobileImage'][0].path; // Guardar la URL de la nueva imagen móvil
+            mobileImageUrl = req.files['mobileImage'][0].path; // Guardar la URL móvil de Cloudinary
+        } else {
+            mobileImageUrl = imageUrl;
         }
 
         // Insertar el nuevo elemento en la base de datos
         await pool.query(
             'INSERT INTO carousel (text, img, imagenMobile, color1, color2) VALUES ($1, $2, $3, $4, $5)',
-            [text, imageUrl, mobileImageUrl, color1, color2]
+            [text || 'Banner iLoop', imageUrl, mobileImageUrl, color1 || '#ffffff', color2 || '#ffffff']
         );
 
         res.redirect('/edit-carousel');
