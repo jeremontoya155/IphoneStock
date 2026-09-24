@@ -229,9 +229,7 @@
                         <div id="planes"></div>
                         <div class="cz-plan-add">
                             <input type="number" id="nuevaCuota" class="form-control form-control-sm" min="2" max="60" placeholder="Ej: 24">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCuota">+ Agregar cuotas</button>
-                            <button type="button" class="btn btn-sm btn-primary ml-auto" id="btnGuardarCuotas">💾 Guardar porcentajes</button>
-                        </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCuota">+ Agregar cuotas</button>                        </div>
                         <div class="text-muted mt-2" id="cuotasGuardadasInfo" style="font-size:.78rem"></div>
                         <div class="cz-rate mt-2">Las cuotas se calculan en pesos sobre el total con descuento. El interés es el recargo total del plan (ej: 20% en 6 cuotas).</div>
                     </div>
@@ -445,6 +443,7 @@
             planes[i].editado = true;
         }
         actualizar();
+        programarGuardadoCuotas();
     });
     $('btnAddCuota').addEventListener('click', () => {
         const n = parseInt($('nuevaCuota').value);
@@ -456,26 +455,39 @@
         $('nuevaCuota').value = '';
         renderPlanes();
         renderSheet();
+        programarGuardadoCuotas();
     });
-    $('btnGuardarCuotas').addEventListener('click', () => conBoton($('btnGuardarCuotas'), async () => {
-        const datos = planes.map(({ cuotas, interes, on }) => ({ cuotas, interes, on }));
-        const res = await fetch('/admin/cotizador/cuotas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ planes: datos, vendedor: vendedor() })
-        });
-        if (!res.ok) throw new Error('No se pudieron guardar los porcentajes');
-        CUOTAS_INFO = await res.json();
-        CUOTAS_GUARDADAS = datos;
-        planes.forEach(p => { p.editado = true; });
-        infoCuotasGuardadas();
-        alert('Porcentajes guardados. La próxima vez que entres ya van a estar cargados.');
-    }));
+
+    // Los porcentajes se guardan solos al cambiarlos (no hace falta ningún botón)
+    let cuotasTimer = null;
+    const datosCuotas = () => JSON.stringify({ planes: planes.map(({ cuotas, interes, on }) => ({ cuotas, interes, on })), vendedor: vendedor() });
+    function programarGuardadoCuotas() {
+        clearTimeout(cuotasTimer);
+        $('cuotasGuardadasInfo').textContent = '⏳ Guardando porcentajes...';
+        cuotasTimer = setTimeout(guardarCuotas, 700);
+    }
+    async function guardarCuotas() {
+        cuotasTimer = null;
+        const body = datosCuotas();
+        try {
+            const res = await fetch('/admin/cotizador/cuotas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+            if (!res.ok) throw new Error();
+            CUOTAS_INFO = await res.json();
+            CUOTAS_GUARDADAS = JSON.parse(body).planes;
+            infoCuotasGuardadas();
+        } catch (e) {
+            $('cuotasGuardadasInfo').innerHTML = '<span style="color:#e0353b">⚠️ No se pudieron guardar los porcentajes. Revisá la conexión y volvé a cambiar un valor.</span>';
+        }
+    }
+    // Si recargan o cierran antes de que termine el guardado, se manda igual
+    window.addEventListener('pagehide', () => {
+        if (cuotasTimer) navigator.sendBeacon('/admin/cotizador/cuotas', new Blob([datosCuotas()], { type: 'application/json' }));
+    });
     function infoCuotasGuardadas() {
         const f = CUOTAS_INFO.fecha ? new Date(CUOTAS_INFO.fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '';
         $('cuotasGuardadasInfo').textContent = CUOTAS_GUARDADAS.length
-            ? `💾 Porcentajes guardados${CUOTAS_INFO.por ? ' por ' + CUOTAS_INFO.por : ''}${f ? ' · ' + f : ''}`
-            : 'Todavía no hay porcentajes guardados.';
+            ? `✅ Porcentajes guardados${CUOTAS_INFO.por ? ' por ' + CUOTAS_INFO.por : ''}${f ? ' · ' + f : ''}`
+            : 'Los porcentajes que cargues se guardan solos.';
     }
     $('nuevaCuota').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('btnAddCuota').click(); } });
 
