@@ -2064,15 +2064,21 @@ pool.query(`
         user_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
-`).then(() => pool.query('ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS opciones JSONB'))
+`).then(() => pool.query('ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS opciones JSONB, ADD COLUMN IF NOT EXISTS vendedor VARCHAR(80)'))
   .catch(err => console.error('Error creando tabla cotizaciones:', err.message));
 
 app.get('/admin/cotizador', requireAdmin, async (req, res) => {
     try {
         let cotizacionDolar = 1200;
+        let cuotasGuardadas = { planes: [] };
         try {
             const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
             if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+            const cuotasResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizador_cuotas'");
+            if (cuotasResult.rows.length > 0) {
+                const v = JSON.parse(cuotasResult.rows[0].valor);
+                cuotasGuardadas = Array.isArray(v) ? { planes: v } : v; // formato viejo: solo el array de planes
+            }
         } catch (e) { console.log('Tabla configuracion no existe aún'); }
 
         const productsResult = await pool.query('SELECT p.id, p.name, p.img, p.price, p.stock, p.moneda, p.bateria, p.almacenamiento, p.estado, p.categoria_id, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id ORDER BY p.name');
@@ -2114,9 +2120,12 @@ app.get('/admin/cotizador', requireAdmin, async (req, res) => {
         });
 
         const images = (await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1')).rows[0] || {};
+        const usuario = (await pool.query('SELECT username FROM users WHERE id = $1', [req.session.userId])).rows[0];
         res.render('cotizador', {
             products,
             cotizacionDolar,
+            cuotasGuardadas,
+            usuarioActual: usuario ? usuario.username : '',
             logoUrl: images.imagen1,
             imagenUrl2: images.imagen2,
             isAdmin: req.session.isAdmin
@@ -2127,15 +2136,39 @@ app.get('/admin/cotizador', requireAdmin, async (req, res) => {
     }
 });
 
+// Guarda los intereses de cuotas del cotizador para que queden cargados la próxima vez
+app.post('/admin/cotizador/cuotas', requireAdmin, async (req, res) => {
+    try {
+        const planes = (Array.isArray(req.body.planes) ? req.body.planes : [])
+            .map(p => ({ cuotas: parseInt(p.cuotas), interes: Math.max(0, parseFloat(p.interes) || 0), on: !!p.on }))
+            .filter(p => p.cuotas >= 2 && p.cuotas <= 60);
+        const guardado = { planes, por: String(req.body.vendedor || '').slice(0, 80) || null, fecha: new Date().toISOString() };
+        await pool.query(
+            "INSERT INTO configuracion (clave, valor, updated_at) VALUES ('cotizador_cuotas', $1, NOW()) ON CONFLICT (clave) DO UPDATE SET valor = $1, updated_at = NOW()",
+            [JSON.stringify(guardado)]
+        );
+        res.json(guardado);
+    } catch (err) {
+        console.error('Error al guardar cuotas del cotizador:', err);
+        res.status(500).json({ error: 'Error al guardar los porcentajes' });
+    }
+});
+
 app.get('/admin/cotizador/historial', requireAdmin, async (req, res) => {
     try {
         const q = (req.query.q || '').trim();
+        const vendedor = (req.query.vendedor || '').trim();
         const params = [];
-        let where = '';
+        const conds = [];
         if (q) {
             params.push(`%${q}%`);
-            where = 'WHERE cliente_nombre ILIKE $1 OR cliente_contacto ILIKE $1';
+            conds.push(`(cliente_nombre ILIKE $${params.length} OR cliente_contacto ILIKE $${params.length} OR vendedor ILIKE $${params.length})`);
         }
+        if (vendedor) {
+            params.push(vendedor);
+            conds.push(`LOWER(vendedor) = LOWER($${params.length})`);
+        }
+        const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
         const result = await pool.query(`SELECT * FROM cotizaciones ${where} ORDER BY created_at DESC LIMIT 200`, params);
         res.json(result.rows);
     } catch (err) {
@@ -2146,15 +2179,15 @@ app.get('/admin/cotizador/historial', requireAdmin, async (req, res) => {
 
 app.post('/admin/cotizador/guardar', requireAdmin, async (req, res) => {
     try {
-        const { cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, opciones } = req.body;
+        const { cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, opciones, vendedor } = req.body;
         if (!['whatsapp', 'pdf', 'imagen', 'excel'].includes(canal)) return res.status(400).json({ error: 'Canal inválido' });
         if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'La cotización no tiene productos' });
         const result = await pool.query(
-            `INSERT INTO cotizaciones (cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, user_id, opciones)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at`,
+            `INSERT INTO cotizaciones (cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, user_id, opciones, vendedor)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, created_at`,
             [cliente_nombre || null, cliente_contacto || null, canal, JSON.stringify(items), parseFloat(descuento) || 0,
              parseFloat(total_usd) || 0, parseFloat(total_ars) || 0, parseFloat(cotizacion_dolar) || null, notas || null, req.session.userId || null,
-             opciones ? JSON.stringify(opciones) : null]
+             opciones ? JSON.stringify(opciones) : null, String(vendedor || '').slice(0, 80) || null]
         );
         res.json(result.rows[0]);
     } catch (err) {

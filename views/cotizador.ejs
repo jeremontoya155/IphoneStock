@@ -33,6 +33,9 @@
         .cz-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 18px; padding: 0 15px; }
         .cz-title { font-size: 1.6rem; font-weight: 700; color: #1d1d1f; margin: 0; }
         .cz-sub { color: #86868b; font-size: .88rem; margin: 2px 0 0; }
+        .cz-vendedor { display: inline-flex; align-items: center; gap: 6px; background: #fff; border: 1px solid #e5e5ea; border-radius: 12px; padding: 4px 10px; font-size: .9rem; }
+        .cz-vendedor input { border: 0; outline: 0; font-weight: 600; width: 130px; background: transparent; color: #1d1d1f; }
+        .cz-vendedor.falta { border-color: #e0353b; box-shadow: 0 0 0 3px rgba(224,53,59,.15); }
         .cz-tabs { display: inline-flex; background: #e8e8ed; border-radius: 12px; padding: 4px; }
         .cz-tabs button { border: 0; background: transparent; padding: 8px 18px; border-radius: 9px; font-weight: 600; font-size: .9rem; color: #6e6e73; }
         .cz-tabs button.active { background: #fff; color: #1d1d1f; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
@@ -145,9 +148,14 @@
                 <h1 class="cz-title">🧾 Cotizador</h1>
                 <p class="cz-sub">No modifica precios, stock ni la cotización del dólar del sitio.</p>
             </div>
-            <div class="cz-tabs">
-                <button type="button" class="active" data-tab="nueva">Nueva cotización</button>
-                <button type="button" data-tab="historial">Historial <span class="count" id="histCount">0</span></button>
+            <div class="d-flex flex-wrap align-items-center" style="gap:10px">
+                <label class="cz-vendedor mb-0" for="vendedor">👤
+                    <input type="text" id="vendedor" maxlength="80" placeholder="¿Quién sos?" autocomplete="off">
+                </label>
+                <div class="cz-tabs">
+                    <button type="button" class="active" data-tab="nueva">Nueva cotización</button>
+                    <button type="button" data-tab="historial">Historial <span class="count" id="histCount">0</span></button>
+                </div>
             </div>
         </div>
 
@@ -222,7 +230,9 @@
                         <div class="cz-plan-add">
                             <input type="number" id="nuevaCuota" class="form-control form-control-sm" min="2" max="60" placeholder="Ej: 24">
                             <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCuota">+ Agregar cuotas</button>
+                            <button type="button" class="btn btn-sm btn-primary ml-auto" id="btnGuardarCuotas">💾 Guardar porcentajes</button>
                         </div>
+                        <div class="text-muted mt-2" id="cuotasGuardadasInfo" style="font-size:.78rem"></div>
                         <div class="cz-rate mt-2">Las cuotas se calculan en pesos sobre el total con descuento. El interés es el recargo total del plan (ej: 20% en 6 cuotas).</div>
                     </div>
 
@@ -264,12 +274,15 @@
             <div class="cz-card">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3" style="gap:10px">
                     <div class="cz-step mb-0">Cotizaciones enviadas y descargadas</div>
-                    <input type="text" id="histBuscar" class="form-control form-control-sm" style="max-width:260px;border-radius:10px" placeholder="🔍 Buscar por cliente o contacto...">
+                    <div class="d-flex flex-wrap align-items-center" style="gap:12px">
+                        <label class="mb-0" style="font-size:.85rem;font-weight:600;cursor:pointer"><input type="checkbox" id="histMias"> Solo mías</label>
+                        <input type="text" id="histBuscar" class="form-control form-control-sm" style="max-width:260px;border-radius:10px" placeholder="🔍 Buscar por cliente, contacto o vendedor...">
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover cz-hist mb-0">
-                        <thead><tr><th>#</th><th>Fecha</th><th>Cliente</th><th>Contacto</th><th>Canal</th><th>Productos</th><th class="text-right">Total</th><th></th></tr></thead>
-                        <tbody id="histBody"><tr><td colspan="8" class="cz-empty">Cargando...</td></tr></tbody>
+                        <thead><tr><th>#</th><th>Fecha</th><th>Vendedor</th><th>Cliente</th><th>Contacto</th><th>Canal</th><th>Productos</th><th class="text-right">Total</th><th></th></tr></thead>
+                        <tbody id="histBody"><tr><td colspan="9" class="cz-empty">Cargando...</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -285,6 +298,23 @@
     const LOGO = <%- JSON.stringify(imagenUrl2 || '/imgs/logoNegro.png').replace(/</g, '\\u003c') %>;
     const DOLAR_SITIO = <%= Number(cotizacionDolar) %>;
     const CUOTAS_BASE = [3, 6, 9, 12, 18];
+    let CUOTAS_INFO = <%- JSON.stringify(cuotasGuardadas || { planes: [] }).replace(/</g, '\\u003c') %>;
+    let CUOTAS_GUARDADAS = CUOTAS_INFO.planes || [];
+    const USUARIO = <%- JSON.stringify(usuarioActual || '').replace(/</g, '\\u003c') %>;
+
+    // ---------- Quién está cotizando ----------
+    // Por defecto el usuario del login; si alguien escribe otro nombre, queda recordado en este navegador.
+    const ls = {
+        get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+        set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} }
+    };
+    const vendedorInput = document.getElementById('vendedor');
+    vendedorInput.value = ls.get('cotizador_vendedor') || USUARIO;
+    vendedorInput.addEventListener('input', () => {
+        ls.set('cotizador_vendedor', vendedorInput.value.trim());
+        vendedorInput.parentElement.classList.remove('falta');
+    });
+    const vendedor = () => vendedorInput.value.trim();
 
     const $ = id => document.getElementById(id);
     let items = [];  // {id, name, detalle, img, qty, precio, moneda, planes}
@@ -368,8 +398,11 @@
     });
 
     // ---------- Cuotas ----------
+    // Arranca con los porcentajes guardados (botón "Guardar porcentajes"); si no hay, 3/6/9/12/18 en 0%
     function resetPlanes() {
-        planes = CUOTAS_BASE.map(n => ({ cuotas: n, interes: 0, on: false, editado: false }));
+        planes = CUOTAS_GUARDADAS.length
+            ? CUOTAS_GUARDADAS.map(p => ({ cuotas: p.cuotas, interes: p.interes, on: p.on, editado: true }))
+            : CUOTAS_BASE.map(n => ({ cuotas: n, interes: 0, on: false, editado: false }));
     }
     // Toma el interés configurado en la categoría de los productos, si el admin no lo tocó
     function sugerirInteres() {
@@ -424,6 +457,26 @@
         renderPlanes();
         renderSheet();
     });
+    $('btnGuardarCuotas').addEventListener('click', () => conBoton($('btnGuardarCuotas'), async () => {
+        const datos = planes.map(({ cuotas, interes, on }) => ({ cuotas, interes, on }));
+        const res = await fetch('/admin/cotizador/cuotas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planes: datos, vendedor: vendedor() })
+        });
+        if (!res.ok) throw new Error('No se pudieron guardar los porcentajes');
+        CUOTAS_INFO = await res.json();
+        CUOTAS_GUARDADAS = datos;
+        planes.forEach(p => { p.editado = true; });
+        infoCuotasGuardadas();
+        alert('Porcentajes guardados. La próxima vez que entres ya van a estar cargados.');
+    }));
+    function infoCuotasGuardadas() {
+        const f = CUOTAS_INFO.fecha ? new Date(CUOTAS_INFO.fecha).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+        $('cuotasGuardadasInfo').textContent = CUOTAS_GUARDADAS.length
+            ? `💾 Porcentajes guardados${CUOTAS_INFO.por ? ' por ' + CUOTAS_INFO.por : ''}${f ? ' · ' + f : ''}`
+            : 'Todavía no hay porcentajes guardados.';
+    }
     $('nuevaCuota').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('btnAddCuota').click(); } });
 
     // ---------- Cálculos ----------
@@ -521,6 +574,7 @@
                 total_ars: t.totalARS.toFixed(2),
                 cotizacion_dolar: t.dolar,
                 notas: $('notas').value.trim(),
+                vendedor: vendedor(),
                 opciones: {
                     mostrarEn: $('mostrarEn').value,
                     validez: parseInt($('validez').value) || 0,
@@ -534,6 +588,13 @@
 
     function validar() {
         if (!items.length) { alert('Agregá al menos un producto.'); return false; }
+        if (!vendedor()) {
+            vendedorInput.parentElement.classList.add('falta');
+            vendedorInput.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            alert('Poné tu nombre arriba (👤) así queda registrado quién hizo la cotización.');
+            return false;
+        }
         return true;
     }
     const nombreArchivo = ext => `cotizacion-${($('clienteNombre').value.trim() || 'cliente').replace(/[^\w\-]+/g, '_')}-${new Date().toISOString().slice(0, 10)}.${ext}`;
@@ -644,7 +705,8 @@
             L.push('💳 *En cuotas:*');
             activos.forEach(p => {
                 const c = calcPlan(p, t.totalARS);
-                L.push(`• ${p.cuotas} cuotas de *${fmtARS(c.cuota)}*${p.interes > 0 ? ` (total ${fmtARS(c.total)})` : ' sin interés'}`);
+                // Sin el total financiado: al cliente le basta el valor de la cuota
+                L.push(`• ${p.cuotas} cuotas de *${fmtARS(c.cuota)}*${p.interes > 0 ? '' : ' sin interés'}`);
             });
         }
         const notas = $('notas').value.trim();
@@ -685,12 +747,16 @@
     const CANALES = { whatsapp: '📲 WhatsApp', pdf: '📄 PDF', imagen: '🖼️ Imagen', excel: '📊 Excel' };
     async function cargarHistorial() {
         const q = $('histBuscar').value.trim();
+        const mias = $('histMias').checked && vendedor();
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (mias) params.set('vendedor', vendedor());
         try {
-            const res = await fetch('/admin/cotizador/historial' + (q ? '?q=' + encodeURIComponent(q) : ''));
+            const res = await fetch('/admin/cotizador/historial?' + params);
             historial = await res.json();
             if (!Array.isArray(historial)) throw new Error(historial.error);
         } catch (e) {
-            $('histBody').innerHTML = '<tr><td colspan="8" class="cz-empty">No se pudo cargar el historial.</td></tr>';
+            $('histBody').innerHTML = '<tr><td colspan="9" class="cz-empty">No se pudo cargar el historial.</td></tr>';
             return;
         }
         if (!q) $('histCount').textContent = historial.length;
@@ -700,6 +766,7 @@
             return `<tr>
                 <td>${c.id}</td>
                 <td style="white-space:nowrap">${new Date(c.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                <td><strong>${esc(c.vendedor || '—')}</strong></td>
                 <td>${esc(c.cliente_nombre || '—')}</td>
                 <td>${esc(c.cliente_contacto || '—')}</td>
                 <td><span class="badge-canal canal-${esc(c.canal)}">${CANALES[c.canal] || esc(c.canal)}</span></td>
@@ -710,10 +777,12 @@
                     <button class="btn btn-sm btn-outline-danger" data-borrar="${c.id}" title="Eliminar del historial">✕</button>
                 </td>
             </tr>`;
-        }).join('') : `<tr><td colspan="8" class="cz-empty">${q ? 'Sin resultados.' : 'Todavía no hay cotizaciones.'}</td></tr>`;
+        }).join('') : `<tr><td colspan="9" class="cz-empty">${q || mias ? 'Sin resultados.' : 'Todavía no hay cotizaciones.'}</td></tr>`;
     }
     let histTimer;
     $('histBuscar').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(cargarHistorial, 300); });
+    $('histMias').checked = ls.get('cotizador_solo_mias') === '1';
+    $('histMias').addEventListener('change', () => { ls.set('cotizador_solo_mias', $('histMias').checked ? '1' : '0'); cargarHistorial(); });
     $('histBody').addEventListener('click', async e => {
         const cargar = e.target.dataset.cargar, borrar = e.target.dataset.borrar;
         if (cargar !== undefined) {
@@ -749,6 +818,7 @@
 
     resetPlanes();
     render();
+    infoCuotasGuardadas();
     cargarHistorial();
     </script>
 </body>
