@@ -2045,6 +2045,217 @@ app.get('/api/cotizacion', async (req, res) => {
     }
 });
 
+// ==================== COTIZADOR (presupuestos a clientes) ====================
+// Solo lee la cotización del dólar: nunca la modifica. El PDF/imagen se genera en el navegador
+// al momento de descargar; acá solo se guarda el registro para el historial.
+
+pool.query(`
+    CREATE TABLE IF NOT EXISTS cotizaciones (
+        id SERIAL PRIMARY KEY,
+        cliente_nombre VARCHAR(150),
+        cliente_contacto VARCHAR(150),
+        canal VARCHAR(20) NOT NULL,
+        items JSONB NOT NULL,
+        descuento NUMERIC(12,2) DEFAULT 0,
+        total_usd NUMERIC(14,2),
+        total_ars NUMERIC(16,2),
+        cotizacion_dolar NUMERIC(12,2),
+        notas TEXT,
+        user_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+`).then(() => pool.query('ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS opciones JSONB'))
+  .catch(err => console.error('Error creando tabla cotizaciones:', err.message));
+
+app.get('/admin/cotizador', requireAdmin, async (req, res) => {
+    try {
+        let cotizacionDolar = 1200;
+        try {
+            const cotizResult = await pool.query("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'");
+            if (cotizResult.rows.length > 0) cotizacionDolar = parseFloat(cotizResult.rows[0].valor);
+        } catch (e) { console.log('Tabla configuracion no existe aún'); }
+
+        const productsResult = await pool.query('SELECT p.id, p.name, p.img, p.price, p.stock, p.moneda, p.bateria, p.almacenamiento, p.estado, p.categoria_id, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id ORDER BY p.name');
+
+        // Ofertas vigentes (específicas y general) para sugerir el precio final
+        let ofertaGeneral = null;
+        let categoriasExcluidas = [];
+        const ofertasMap = {};
+        try {
+            ofertaGeneral = (await pool.query('SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1')).rows[0];
+            categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
+                ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                : [];
+            const ofertasResult = await pool.query(`
+                SELECT o.product_id,
+                    CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
+                    ELSE GREATEST(ROUND(p.price - o.valor_descuento, 2), 0) END as precio_con_descuento
+                FROM ofertas o JOIN products p ON o.product_id = p.id WHERE o.activo = TRUE
+            `);
+            ofertasResult.rows.forEach(o => { ofertasMap[o.product_id] = parseFloat(o.precio_con_descuento); });
+        } catch (e) { console.log('Tablas de ofertas no existen aún'); }
+
+        const products = productsResult.rows.map(p => {
+            let precioFinal = parseFloat(p.price);
+            if (ofertasMap[p.id] !== undefined) precioFinal = ofertasMap[p.id];
+            else if (ofertaGeneral && !categoriasExcluidas.includes(p.categoria_id)) {
+                precioFinal = ofertaGeneral.tipo_descuento === 'porcentaje'
+                    ? Math.round(p.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
+                    : Math.max(Math.round((p.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+            }
+            let planes = [];
+            try { planes = JSON.parse(p.cuotas_planes || '[]'); } catch (e) { planes = []; }
+            if (planes.length === 0 && p.cuotas_max > 0) planes = [{ cuotas: p.cuotas_max, interes: p.interes_cuotas || 0 }];
+            return {
+                id: p.id, name: p.name, img: optimizeCloudinaryUrl(p.img, 200), stock: p.stock,
+                moneda: p.moneda || 'USD', price: parseFloat(p.price), precio_final: precioFinal,
+                bateria: p.bateria, almacenamiento: p.almacenamiento, estado: p.estado, planes
+            };
+        });
+
+        const images = (await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1')).rows[0] || {};
+        res.render('cotizador', {
+            products,
+            cotizacionDolar,
+            logoUrl: images.imagen1,
+            imagenUrl2: images.imagen2,
+            isAdmin: req.session.isAdmin
+        });
+    } catch (err) {
+        console.error('Error al cargar cotizador:', err);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+app.get('/admin/cotizador/historial', requireAdmin, async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim();
+        const params = [];
+        let where = '';
+        if (q) {
+            params.push(`%${q}%`);
+            where = 'WHERE cliente_nombre ILIKE $1 OR cliente_contacto ILIKE $1';
+        }
+        const result = await pool.query(`SELECT * FROM cotizaciones ${where} ORDER BY created_at DESC LIMIT 200`, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Error al obtener historial de cotizaciones:', err);
+        res.status(500).json({ error: 'Error al obtener historial' });
+    }
+});
+
+app.post('/admin/cotizador/guardar', requireAdmin, async (req, res) => {
+    try {
+        const { cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, opciones } = req.body;
+        if (!['whatsapp', 'pdf', 'imagen', 'excel'].includes(canal)) return res.status(400).json({ error: 'Canal inválido' });
+        if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'La cotización no tiene productos' });
+        const result = await pool.query(
+            `INSERT INTO cotizaciones (cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, user_id, opciones)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at`,
+            [cliente_nombre || null, cliente_contacto || null, canal, JSON.stringify(items), parseFloat(descuento) || 0,
+             parseFloat(total_usd) || 0, parseFloat(total_ars) || 0, parseFloat(cotizacion_dolar) || null, notas || null, req.session.userId || null,
+             opciones ? JSON.stringify(opciones) : null]
+        );
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('Error al guardar cotización de cliente:', err);
+        res.status(500).json({ error: 'Error al guardar la cotización' });
+    }
+});
+
+// Planilla Excel de la cotización: se arma en el momento y no se guarda en el servidor
+app.post('/admin/cotizador/excel', requireAdmin, async (req, res) => {
+    try {
+        const ExcelJS = require('exceljs');
+        const d = req.body || {};
+        const items = Array.isArray(d.items) ? d.items : [];
+        const cuotas = Array.isArray(d.cuotas) ? d.cuotas : [];
+        const num = v => Number(v) || 0;
+        const fmtUSD = '"USD" #,##0.00';
+        const fmtARS = '"$" #,##0';
+        const bold = { bold: true };
+        const gris = { argb: 'FFF2F2F7' };
+
+        const wb = new ExcelJS.Workbook();
+        wb.creator = 'iLoop';
+        const ws = wb.addWorksheet('Cotización', { views: [{ showGridLines: false }] });
+        ws.columns = [{ width: 42 }, { width: 30 }, { width: 8 }, { width: 16 }, { width: 9 }, { width: 18 }];
+
+        ws.mergeCells('A1:F1');
+        ws.getCell('A1').value = 'COTIZACIÓN iLoop';
+        ws.getCell('A1').font = { bold: true, size: 16 };
+        ws.addRow(['Fecha', d.fecha || new Date().toLocaleDateString('es-AR')]);
+        if (d.validez) ws.addRow(['Válida hasta', d.vence || '']);
+        if (d.cliente_nombre) ws.addRow(['Cliente', d.cliente_nombre]);
+        if (d.cliente_contacto) ws.addRow(['Contacto', d.cliente_contacto]);
+        ws.addRow(['Dólar', num(d.dolar)]).getCell(2).numFmt = fmtARS;
+        ws.addRow([]);
+
+        const head = ws.addRow(['Producto', 'Detalle', 'Cant.', 'Precio unitario', 'Moneda', 'Subtotal']);
+        head.eachCell(c => { c.font = { bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D1D1F' } }; });
+        items.forEach(it => {
+            const row = ws.addRow([it.name || 'Ítem', it.detalle || '', num(it.qty), num(it.precio), it.moneda || 'USD', null]);
+            row.getCell(6).value = { formula: `C${row.number}*D${row.number}`, result: num(it.qty) * num(it.precio) };
+            const f = it.moneda === 'ARS' ? fmtARS : fmtUSD;
+            row.getCell(4).numFmt = f;
+            row.getCell(6).numFmt = f;
+            row.eachCell(c => { c.border = { bottom: { style: 'thin', color: { argb: 'FFE5E5EA' } } }; });
+        });
+        ws.addRow([]);
+
+        const total = (label, valor, fmt, strong) => {
+            const r = ws.addRow(['', '', '', '', label, valor]);
+            r.getCell(6).numFmt = fmt;
+            if (strong) { r.getCell(5).font = bold; r.getCell(6).font = bold; }
+        };
+        if (num(d.desc) > 0) {
+            total('Subtotal', num(d.subUSD), fmtUSD);
+            total(`Desc. ${num(d.desc)}%`, -num(d.descUSD), fmtUSD);
+        }
+        total('Total USD', num(d.totalUSD), fmtUSD, true);
+        total('Total ARS', num(d.totalARS), fmtARS, true);
+
+        if (cuotas.length) {
+            ws.addRow([]);
+            ws.addRow(['Opciones en cuotas']).getCell(1).font = bold;
+            const h = ws.addRow(['Plan', 'Interés', '', 'Valor cuota', '', 'Total']);
+            h.eachCell(c => { c.font = bold; c.fill = { type: 'pattern', pattern: 'solid', fgColor: gris }; });
+            cuotas.forEach(p => {
+                const r = ws.addRow([`${num(p.cuotas)} cuotas`, num(p.interes) > 0 ? num(p.interes) / 100 : 'Sin interés', '', num(p.cuota), '', num(p.total)]);
+                if (num(p.interes) > 0) r.getCell(2).numFmt = '0.##%';
+                r.getCell(4).numFmt = fmtARS;
+                r.getCell(6).numFmt = fmtARS;
+            });
+        }
+        if (d.notas) {
+            ws.addRow([]);
+            ws.addRow(['Notas']).getCell(1).font = bold;
+            ws.addRow([d.notas]).getCell(1).alignment = { wrapText: true };
+        }
+        ws.addRow([]);
+        ws.addRow(['Precios sujetos a disponibilidad de stock.']).getCell(1).font = { italic: true, color: { argb: 'FF86868B' } };
+
+        const nombre = String(d.cliente_nombre || 'cliente').replace(/[^\w\-]+/g, '_');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="cotizacion-${nombre}-${new Date().toISOString().slice(0, 10)}.xlsx"`);
+        await wb.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        console.error('Error al generar Excel de cotización:', err);
+        res.status(500).json({ error: 'Error al generar el Excel' });
+    }
+});
+
+app.post('/admin/cotizador/eliminar/:id', requireAdmin, async (req, res) => {
+    try {
+        await pool.query('DELETE FROM cotizaciones WHERE id = $1', [req.params.id]);
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('Error al eliminar cotización de cliente:', err);
+        res.status(500).json({ error: 'Error al eliminar' });
+    }
+});
+
 // Ruta para robots.txt
 app.get('/robots.txt', (req, res) => {
     const baseUrl = process.env.BASE_URL || 'https://iloop.com.ar';
@@ -2069,6 +2280,7 @@ Disallow: /new
 Disallow: /delete/*
 Disallow: /buy/*
 Disallow: /api/*
+Disallow: /admin/
 
 # Bloquear archivos y carpetas innecesarias
 Disallow: /wp-admin/

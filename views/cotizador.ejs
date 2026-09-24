@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Cotizador</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <style>
+        body { background: #f5f5f7; }
+        .cz-wrap { max-width: 1300px; margin: 0 auto 60px; padding: 100px 16px 0; }
+        /* styles.css pinta todos los .btn de azul: acá se redefinen solo para esta página */
+        .cz-wrap .btn { display: inline-block; padding: 8px 14px; font-size: .9rem; font-weight: 600; border-radius: 10px; border: 1px solid transparent; transition: all .15s; }
+        .cz-wrap .btn-sm { padding: 4px 10px; font-size: .8rem; border-radius: 8px; }
+        .cz-wrap .btn-link { background: transparent; color: #007aff; border-color: transparent; padding-left: 0; padding-right: 0; }
+        .cz-wrap .btn-link:hover { background: transparent; color: #0056b3; text-decoration: underline; }
+        .cz-wrap .btn-link.text-muted { color: #86868b !important; }
+        .cz-wrap .btn-primary { background: #007aff; color: #fff; }
+        .cz-wrap .btn-primary:hover { background: #0066d6; }
+        .cz-wrap .btn-danger { background: #e0353b; color: #fff; }
+        .cz-wrap .btn-danger:hover { background: #c62d32; }
+        .cz-wrap .btn-excel { background: #1d6f42; color: #fff; }
+        .cz-wrap .btn-excel:hover { background: #185c37; }
+        .cz-wrap .btn-outline-secondary { background: #fff; color: #1d1d1f; border-color: #d2d2d7; }
+        .cz-wrap .btn-outline-secondary:hover { background: #f5f5f7; }
+        .cz-wrap .btn-outline-primary { background: #fff; color: #007aff; border-color: #b3d4ff; }
+        .cz-wrap .btn-outline-primary:hover { background: #f0f7ff; }
+        .cz-wrap .btn-outline-danger { background: #fff; color: #e0353b; border-color: #f3c1c3; }
+        .cz-wrap .btn-outline-danger:hover { background: #fdecec; }
+        .cz-wrap .btn:disabled { opacity: .6; }
+        .cz-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 18px; padding: 0 15px; }
+        .cz-title { font-size: 1.6rem; font-weight: 700; color: #1d1d1f; margin: 0; }
+        .cz-sub { color: #86868b; font-size: .88rem; margin: 2px 0 0; }
+        .cz-tabs { display: inline-flex; background: #e8e8ed; border-radius: 12px; padding: 4px; }
+        .cz-tabs button { border: 0; background: transparent; padding: 8px 18px; border-radius: 9px; font-weight: 600; font-size: .9rem; color: #6e6e73; }
+        .cz-tabs button.active { background: #fff; color: #1d1d1f; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+        .cz-tabs .count { background: #d2d2d7; color: #1d1d1f; border-radius: 10px; padding: 1px 7px; font-size: .75rem; margin-left: 4px; }
+
+        .cz-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.06); padding: 20px; margin-bottom: 16px; }
+        .cz-step { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1rem; margin-bottom: 14px; }
+        .cz-step .num { width: 26px; height: 26px; border-radius: 50%; background: #1d1d1f; color: #fff; font-size: .8rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .cz-step .hint { font-weight: 400; font-size: .8rem; color: #86868b; margin-left: auto; }
+        .cz-card label { font-size: .78rem; font-weight: 600; color: #6e6e73; margin-bottom: 4px; }
+        .cz-card .form-control { border-radius: 10px; }
+
+        .cz-search { position: relative; }
+        .cz-search-results { position: absolute; z-index: 20; left: 0; right: 0; background: #fff; max-height: 300px; overflow-y: auto; border: 1px solid #e5e5ea; border-radius: 12px; margin-top: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+        .cz-result { display: flex; align-items: center; gap: 10px; padding: 8px 10px; cursor: pointer; border-bottom: 1px solid #f0f0f2; }
+        .cz-result:last-child { border-bottom: 0; }
+        .cz-result:hover { background: #f5f9ff; }
+        .cz-result img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; background: #f5f5f7; }
+        .cz-result .n { flex: 1; font-size: .88rem; font-weight: 600; line-height: 1.2; }
+        .cz-result .n small { display: block; color: #86868b; font-weight: 400; }
+        .cz-result .p { font-size: .85rem; font-weight: 700; white-space: nowrap; }
+        .cz-result.sin-stock { opacity: .55; }
+
+        .cz-item { display: grid; grid-template-columns: 1fr 70px 120px 78px 34px; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f2; }
+        .cz-item:last-child { border-bottom: 0; }
+        .cz-item .name { font-size: .88rem; font-weight: 600; line-height: 1.25; min-width: 0; }
+        .cz-item .name small { display: block; color: #86868b; font-weight: 400; }
+        .cz-item input, .cz-item select { font-size: .85rem; padding: 5px 8px; height: auto; }
+        .cz-item-head { display: grid; grid-template-columns: 1fr 70px 120px 78px 34px; gap: 8px; font-size: .72rem; text-transform: uppercase; color: #86868b; font-weight: 600; padding-bottom: 4px; border-bottom: 1px solid #e5e5ea; }
+        @media (max-width: 576px) {
+            .cz-item, .cz-item-head { grid-template-columns: 1fr 56px 96px 34px; }
+            .cz-item .mon, .cz-item-head .mon { display: none; }
+        }
+        .cz-empty { color: #86868b; font-size: .9rem; text-align: center; padding: 18px; }
+        .cz-subtotal { display: flex; justify-content: space-between; font-weight: 700; padding-top: 12px; margin-top: 4px; border-top: 1px solid #e5e5ea; font-size: .95rem; }
+        .cz-rate { background: #f5f5f7; border-radius: 10px; padding: 8px 12px; font-size: .78rem; color: #6e6e73; margin-top: 4px; }
+
+        /* Cuotas */
+        .cz-plan { display: grid; grid-template-columns: 112px 104px 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 10px; border: 1px solid #e5e5ea; margin-bottom: 8px; transition: all .15s; }
+        .cz-plan.on { border-color: #007aff; background: #f5f9ff; }
+        .cz-plan .chk { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: .92rem; margin: 0; cursor: pointer; color: #1d1d1f; }
+        .cz-plan .chk input { width: 18px; height: 18px; }
+        .cz-plan .int { display: flex; align-items: center; gap: 4px; font-size: .8rem; color: #6e6e73; }
+        .cz-plan .int input { width: 68px; padding: 4px 6px; height: auto; font-size: .85rem; text-align: right; }
+        .cz-plan .res { text-align: right; font-size: .82rem; line-height: 1.3; color: #86868b; }
+        .cz-plan.on .res { color: #1d1d1f; }
+        .cz-plan .res strong { font-size: .92rem; }
+        .cz-plan-add { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+        .cz-plan-add input { width: 90px; }
+        @media (max-width: 576px) { .cz-plan { grid-template-columns: 1fr 1fr; } .cz-plan .res { grid-column: 1 / -1; text-align: left; } }
+
+        /* Columna derecha */
+        .cz-side { position: sticky; top: 90px; }
+        .cz-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .cz-actions .btn { font-weight: 600; border-radius: 10px; padding: 10px 8px; font-size: .9rem; }
+        .cz-actions .btn-wa { grid-column: 1 / -1; background: #25d366; color: #fff; font-size: 1rem; }
+        .cz-actions .btn-wa:hover { background: #1ebe5b; color: #fff; }
+        .cz-total-box { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+        .cz-total-box .l { color: #86868b; font-size: .85rem; }
+        .cz-total-box .v { font-size: 1.5rem; font-weight: 800; text-align: right; line-height: 1.1; }
+        .cz-total-box .v small { display: block; font-size: .85rem; font-weight: 600; color: #6e6e73; }
+        .cz-preview-label { font-size: .72rem; text-transform: uppercase; color: #86868b; font-weight: 600; margin: 4px 0 8px; }
+        .cz-preview { background: #e8e8ed; border-radius: 12px; padding: 12px; max-height: 70vh; overflow-y: auto; }
+
+        /* Hoja de la cotización (lo que se exporta a PDF/imagen) */
+        .qs { width: 100%; max-width: 600px; margin: 0 auto; background: #fff; color: #1d1d1f; padding: 28px; border-radius: 4px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        .qs-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1d1d1f; padding-bottom: 14px; margin-bottom: 16px; }
+        .qs-head img { max-height: 54px; max-width: 170px; }
+        .qs-head .meta { text-align: right; font-size: 12px; color: #6e6e73; }
+        .qs-head .meta strong { display: block; font-size: 18px; color: #1d1d1f; letter-spacing: .5px; }
+        .qs-client { font-size: 13px; margin-bottom: 14px; }
+        .qs-client span { color: #6e6e73; }
+        .qs-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .qs-table th { text-align: left; font-size: 11px; text-transform: uppercase; color: #6e6e73; border-bottom: 1px solid #d2d2d7; padding: 6px 4px; }
+        .qs-table td { border-bottom: 1px solid #f0f0f2; padding: 8px 4px; vertical-align: middle; }
+        .qs-table .r { text-align: right; white-space: nowrap; }
+        .qs-table .c { text-align: center; }
+        .qs-prod { display: flex; align-items: center; gap: 8px; }
+        .qs-prod img { width: 36px; height: 36px; object-fit: cover; border-radius: 6px; }
+        .qs-prod small { display: block; color: #86868b; font-size: 11px; }
+        .qs-totals { margin-top: 14px; margin-left: auto; width: 62%; font-size: 13px; }
+        .qs-totals div { display: flex; justify-content: space-between; padding: 3px 0; }
+        .qs-totals .grand { font-size: 17px; font-weight: 800; border-top: 2px solid #1d1d1f; margin-top: 4px; padding-top: 8px; }
+        .qs-cuotas { margin-top: 16px; }
+        .qs-cuotas h6 { font-size: 12px; text-transform: uppercase; color: #6e6e73; font-weight: 700; margin: 0 0 6px; }
+        .qs-cuotas table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #f5f5f7; border-radius: 8px; overflow: hidden; }
+        .qs-cuotas th { font-size: 10.5px; text-transform: uppercase; color: #86868b; text-align: left; padding: 6px 10px; }
+        .qs-cuotas td { padding: 6px 10px; border-top: 1px solid #e5e5ea; }
+        .qs-cuotas .r { text-align: right; white-space: nowrap; }
+        .qs-cuotas .si { color: #1f9d55; font-weight: 700; }
+        .qs-notes { margin-top: 14px; font-size: 12.5px; white-space: pre-wrap; }
+        .qs-foot { margin-top: 20px; padding-top: 10px; border-top: 1px solid #d2d2d7; font-size: 11px; color: #86868b; text-align: center; }
+        #exportHost { position: fixed; left: -10000px; top: 0; width: 600px; }
+        #exportHost .qs { width: 600px; max-width: none; border-radius: 0; }
+
+        .cz-hist td { font-size: .85rem; vertical-align: middle; }
+        .badge-canal { font-size: .72rem; padding: 4px 8px; border-radius: 20px; white-space: nowrap; }
+        .canal-whatsapp { background: #e3f9eb; color: #128c4a; }
+        .canal-pdf { background: #fde8e8; color: #c0392b; }
+        .canal-imagen { background: #e8f0fe; color: #1a5fd0; }
+        .canal-excel { background: #e6f4ea; color: #1d6f42; }
+    </style>
+</head>
+<body>
+    <%- include('partials/navbarUser') %>
+
+    <div class="cz-wrap">
+        <div class="cz-header">
+            <div>
+                <h1 class="cz-title">🧾 Cotizador</h1>
+                <p class="cz-sub">No modifica precios, stock ni la cotización del dólar del sitio.</p>
+            </div>
+            <div class="cz-tabs">
+                <button type="button" class="active" data-tab="nueva">Nueva cotización</button>
+                <button type="button" data-tab="historial">Historial <span class="count" id="histCount">0</span></button>
+            </div>
+        </div>
+
+        <!-- ============ NUEVA COTIZACIÓN ============ -->
+        <div id="tab-nueva">
+            <div class="row">
+                <div class="col-lg-7">
+                    <!-- 1. Cliente -->
+                    <div class="cz-card">
+                        <div class="cz-step"><span class="num">1</span>Cliente <span class="hint">opcional</span></div>
+                        <div class="form-row">
+                            <div class="col-sm-6 mb-2 mb-sm-0">
+                                <label for="clienteNombre">Nombre</label>
+                                <input type="text" id="clienteNombre" class="form-control" placeholder="Ej: Juan Pérez">
+                            </div>
+                            <div class="col-sm-6">
+                                <label for="clienteContacto">WhatsApp</label>
+                                <input type="tel" id="clienteContacto" class="form-control" placeholder="Ej: 351 123 4567">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Productos -->
+                    <div class="cz-card">
+                        <div class="cz-step"><span class="num">2</span>Productos</div>
+                        <div class="cz-search">
+                            <input type="text" id="buscar" class="form-control" placeholder="🔍 Buscar producto por nombre..." autocomplete="off">
+                            <div class="cz-search-results" id="resultados" style="display:none"></div>
+                        </div>
+                        <button type="button" class="btn btn-link btn-sm px-0 mt-1" id="btnManual">+ Ítem manual (accesorio, servicio, etc.)</button>
+
+                        <div class="cz-item-head mt-2" id="itemsHead" style="display:none">
+                            <span>Producto</span><span>Cant.</span><span>Precio u.</span><span class="mon">Moneda</span><span></span>
+                        </div>
+                        <div id="itemsBody"></div>
+                        <div class="cz-empty" id="itemsEmpty">Buscá un producto para empezar.</div>
+                        <div class="cz-subtotal" id="itemsSubtotal" style="display:none"><span>Subtotal</span><span id="subtotalTxt"></span></div>
+                    </div>
+
+                    <!-- 3. Precio -->
+                    <div class="cz-card">
+                        <div class="cz-step"><span class="num">3</span>Precio</div>
+                        <div class="form-row">
+                            <div class="col-6 col-sm-3 mb-2">
+                                <label for="descuento">Descuento %</label>
+                                <input type="number" id="descuento" class="form-control" min="0" max="100" step="0.5" value="0">
+                            </div>
+                            <div class="col-6 col-sm-3 mb-2">
+                                <label for="dolar">Dólar</label>
+                                <input type="number" id="dolar" class="form-control" min="1" step="1" value="<%= cotizacionDolar %>">
+                            </div>
+                            <div class="col-6 col-sm-3 mb-2">
+                                <label for="mostrarEn">Total en</label>
+                                <select id="mostrarEn" class="form-control">
+                                    <option value="ambos">USD y ARS</option>
+                                    <option value="USD">Solo USD</option>
+                                    <option value="ARS">Solo ARS</option>
+                                </select>
+                            </div>
+                            <div class="col-6 col-sm-3 mb-2">
+                                <label for="validez">Validez (días)</label>
+                                <input type="number" id="validez" class="form-control" min="0" value="3">
+                            </div>
+                        </div>
+                        <div class="cz-rate">Dólar del sitio: <strong>ARS $<%= Number(cotizacionDolar).toLocaleString('es-AR') %></strong>. Si lo cambiás acá, solo aplica a esta cotización.</div>
+                    </div>
+
+                    <!-- 4. Cuotas -->
+                    <div class="cz-card">
+                        <div class="cz-step"><span class="num">4</span>Cuotas <span class="hint">marcá todas las que quieras ofrecer</span></div>
+                        <div id="planes"></div>
+                        <div class="cz-plan-add">
+                            <input type="number" id="nuevaCuota" class="form-control form-control-sm" min="2" max="60" placeholder="Ej: 24">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAddCuota">+ Agregar cuotas</button>
+                        </div>
+                        <div class="cz-rate mt-2">Las cuotas se calculan en pesos sobre el total con descuento. El interés es el recargo total del plan (ej: 20% en 6 cuotas).</div>
+                    </div>
+
+                    <!-- 5. Notas -->
+                    <div class="cz-card">
+                        <div class="cz-step"><span class="num">5</span>Notas <span class="hint">aparecen en la cotización</span></div>
+                        <textarea id="notas" class="form-control" rows="2" placeholder="Ej: Incluye cargador. Garantía 3 meses."></textarea>
+                    </div>
+                </div>
+
+                <!-- Columna derecha: total, acciones y vista previa -->
+                <div class="col-lg-5">
+                    <div class="cz-side">
+                        <div class="cz-card">
+                            <div class="cz-total-box">
+                                <span class="l">Total</span>
+                                <span class="v" id="totalBox">USD 0</span>
+                            </div>
+                            <div class="cz-actions">
+                                <button type="button" class="btn btn-wa" id="btnWhatsapp">📲 Enviar por WhatsApp</button>
+                                <button type="button" class="btn btn-danger" id="btnPdf">📄 PDF</button>
+                                <button type="button" class="btn btn-primary" id="btnImagen">🖼️ Imagen</button>
+                                <button type="button" class="btn btn-excel" id="btnExcel">📊 Excel</button>
+                                <button type="button" class="btn btn-outline-secondary" id="btnCompartir" style="display:none;grid-column:1/-1">📤 Compartir imagen</button>
+                            </div>
+                            <div class="text-center mt-2">
+                                <button type="button" class="btn btn-link btn-sm text-muted" id="btnNueva">Limpiar y empezar otra</button>
+                            </div>
+                        </div>
+                        <div class="cz-preview-label">Vista previa</div>
+                        <div class="cz-preview"><div class="qs" id="quoteSheet"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ HISTORIAL ============ -->
+        <div id="tab-historial" style="display:none">
+            <div class="cz-card">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-3" style="gap:10px">
+                    <div class="cz-step mb-0">Cotizaciones enviadas y descargadas</div>
+                    <input type="text" id="histBuscar" class="form-control form-control-sm" style="max-width:260px;border-radius:10px" placeholder="🔍 Buscar por cliente o contacto...">
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover cz-hist mb-0">
+                        <thead><tr><th>#</th><th>Fecha</th><th>Cliente</th><th>Contacto</th><th>Canal</th><th>Productos</th><th class="text-right">Total</th><th></th></tr></thead>
+                        <tbody id="histBody"><tr><td colspan="8" class="cz-empty">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="exportHost"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script>
+    const PRODUCTS = <%- JSON.stringify(products).replace(/</g, '\\u003c') %>;
+    const LOGO = <%- JSON.stringify(imagenUrl2 || '/imgs/logoNegro.png').replace(/</g, '\\u003c') %>;
+    const DOLAR_SITIO = <%= Number(cotizacionDolar) %>;
+    const CUOTAS_BASE = [3, 6, 9, 12, 18];
+
+    const $ = id => document.getElementById(id);
+    let items = [];  // {id, name, detalle, img, qty, precio, moneda, planes}
+    let planes = []; // {cuotas, interes, on, editado}
+
+    const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmtUSD = n => 'USD ' + (Math.round(n * 100) / 100).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+    const fmtARS = n => 'ARS $' + Math.round(n).toLocaleString('es-AR');
+    const fmt = (n, moneda) => moneda === 'ARS' ? fmtARS(n) : fmtUSD(n);
+    const detalleProducto = p => [p.almacenamiento ? p.almacenamiento + 'GB' : '', p.bateria ? 'Batería ' + p.bateria + '%' : '', p.estado || ''].filter(Boolean).join(' · ');
+
+    // ---------- Pestañas ----------
+    document.querySelectorAll('.cz-tabs button').forEach(b => b.addEventListener('click', () => {
+        document.querySelectorAll('.cz-tabs button').forEach(x => x.classList.toggle('active', x === b));
+        $('tab-nueva').style.display = b.dataset.tab === 'nueva' ? '' : 'none';
+        $('tab-historial').style.display = b.dataset.tab === 'historial' ? '' : 'none';
+    }));
+    function irANueva() { document.querySelector('.cz-tabs button[data-tab="nueva"]').click(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+    // ---------- Búsqueda y alta de ítems ----------
+    $('buscar').addEventListener('input', () => {
+        const q = $('buscar').value.trim().toLowerCase();
+        const box = $('resultados');
+        if (!q) { box.style.display = 'none'; return; }
+        const found = PRODUCTS.filter(p => p.name.toLowerCase().includes(q)).slice(0, 30);
+        box.style.display = 'block';
+        box.innerHTML = found.length ? found.map(p => `
+            <div class="cz-result ${p.stock > 0 ? '' : 'sin-stock'}" data-id="${p.id}">
+                <img src="${esc(p.img)}" alt="" loading="lazy">
+                <div class="n">${esc(p.name)}<small>${esc(detalleProducto(p))} · Stock: ${p.stock}</small></div>
+                <div class="p">${fmt(p.precio_final, p.moneda)}</div>
+            </div>`).join('') : '<div class="cz-empty">Sin resultados</div>';
+    });
+    document.addEventListener('click', e => { if (!e.target.closest('.cz-search')) $('resultados').style.display = 'none'; });
+    $('resultados').addEventListener('click', e => {
+        const row = e.target.closest('.cz-result');
+        if (!row) return;
+        const p = PRODUCTS.find(x => x.id == row.dataset.id);
+        const existing = items.find(i => i.id === p.id);
+        if (existing) existing.qty++;
+        else items.push({ id: p.id, name: p.name, detalle: detalleProducto(p), img: p.img, qty: 1, precio: p.precio_final, moneda: p.moneda, planes: p.planes });
+        $('buscar').value = '';
+        $('resultados').style.display = 'none';
+        sugerirInteres();
+        render();
+    });
+    $('btnManual').addEventListener('click', () => {
+        items.push({ id: null, name: '', detalle: '', img: '', qty: 1, precio: 0, moneda: 'USD', planes: [] });
+        render();
+        const inputs = document.querySelectorAll('#itemsBody input[data-f="name"]');
+        if (inputs.length) inputs[inputs.length - 1].focus();
+    });
+
+    function renderItems() {
+        const hay = items.length > 0;
+        $('itemsEmpty').style.display = hay ? 'none' : 'block';
+        $('itemsHead').style.display = hay ? '' : 'none';
+        $('itemsSubtotal').style.display = hay ? '' : 'none';
+        $('itemsBody').innerHTML = items.map((it, i) => `
+            <div class="cz-item">
+                <div class="name">${it.id ? esc(it.name) + (it.detalle ? `<small>${esc(it.detalle)}</small>` : '')
+                            : `<input class="form-control" data-i="${i}" data-f="name" value="${esc(it.name)}" placeholder="Descripción">`}</div>
+                <input type="number" min="1" class="form-control" data-i="${i}" data-f="qty" value="${it.qty}">
+                <input type="number" min="0" step="0.01" class="form-control" data-i="${i}" data-f="precio" value="${it.precio}">
+                <select class="form-control mon" data-i="${i}" data-f="moneda">
+                    <option ${it.moneda === 'USD' ? 'selected' : ''}>USD</option><option ${it.moneda === 'ARS' ? 'selected' : ''}>ARS</option></select>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-del="${i}" title="Quitar">✕</button>
+            </div>`).join('');
+    }
+    $('itemsBody').addEventListener('input', e => {
+        const t = e.target, i = t.dataset.i, f = t.dataset.f;
+        if (i === undefined) return;
+        items[i][f] = f === 'qty' ? Math.max(1, parseInt(t.value) || 1) : f === 'precio' ? (parseFloat(t.value) || 0) : t.value;
+        actualizar(); // sin re-renderizar la lista para no perder el foco
+    });
+    $('itemsBody').addEventListener('change', () => render());
+    $('itemsBody').addEventListener('click', e => {
+        if (e.target.dataset.del === undefined) return;
+        items.splice(e.target.dataset.del, 1);
+        render();
+    });
+
+    // ---------- Cuotas ----------
+    function resetPlanes() {
+        planes = CUOTAS_BASE.map(n => ({ cuotas: n, interes: 0, on: false, editado: false }));
+    }
+    // Toma el interés configurado en la categoría de los productos, si el admin no lo tocó
+    function sugerirInteres() {
+        items.forEach(it => (it.planes || []).forEach(pc => {
+            let p = planes.find(x => x.cuotas === Number(pc.cuotas));
+            if (!p) { p = { cuotas: Number(pc.cuotas), interes: 0, on: false, editado: false }; planes.push(p); }
+            if (!p.editado) p.interes = Number(pc.interes) || 0;
+        }));
+        planes.sort((a, b) => a.cuotas - b.cuotas);
+    }
+    const calcPlan = (p, totalARS) => { const total = totalARS * (1 + p.interes / 100); return { total, cuota: total / p.cuotas }; };
+
+    function renderPlanes() {
+        $('planes').innerHTML = planes.map((p, i) => `
+            <div class="cz-plan ${p.on ? 'on' : ''}">
+                <label class="chk"><input type="checkbox" data-p="${i}" data-f="on" ${p.on ? 'checked' : ''}> ${p.cuotas} cuotas</label>
+                <span class="int"><input type="number" class="form-control" min="0" step="0.5" data-p="${i}" data-f="interes" value="${p.interes}"> % int.</span>
+                <span class="res" data-res="${i}"></span>
+            </div>`).join('');
+        actualizarPlanes();
+    }
+    function actualizarPlanes() {
+        const t = calcular();
+        planes.forEach((p, i) => {
+            const el = document.querySelector(`[data-res="${i}"]`);
+            if (!el) return;
+            if (!items.length) { el.textContent = '—'; return; }
+            const c = calcPlan(p, t.totalARS);
+            el.innerHTML = `<strong>${p.cuotas} x ${fmtARS(c.cuota)}</strong><br>${p.interes > 0 ? 'Total ' + fmtARS(c.total) : '<span style="color:#1f9d55;font-weight:600">sin interés</span>'}`;
+        });
+    }
+    $('planes').addEventListener('input', e => {
+        const i = e.target.dataset.p;
+        if (i === undefined) return;
+        if (e.target.dataset.f === 'on') {
+            planes[i].on = e.target.checked;
+            e.target.closest('.cz-plan').classList.toggle('on', planes[i].on);
+        } else {
+            planes[i].interes = Math.max(0, parseFloat(e.target.value) || 0);
+            planes[i].editado = true;
+        }
+        actualizar();
+    });
+    $('btnAddCuota').addEventListener('click', () => {
+        const n = parseInt($('nuevaCuota').value);
+        if (!n || n < 2) return;
+        const existe = planes.find(p => p.cuotas === n);
+        if (existe) existe.on = true;
+        else planes.push({ cuotas: n, interes: 0, on: true, editado: false });
+        planes.sort((a, b) => a.cuotas - b.cuotas);
+        $('nuevaCuota').value = '';
+        renderPlanes();
+        renderSheet();
+    });
+    $('nuevaCuota').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('btnAddCuota').click(); } });
+
+    // ---------- Cálculos ----------
+    function calcular() {
+        const dolar = parseFloat($('dolar').value) || 1;
+        const desc = Math.min(Math.max(parseFloat($('descuento').value) || 0, 0), 100);
+        let subUSD = 0;
+        items.forEach(it => { const sub = it.precio * it.qty; subUSD += it.moneda === 'ARS' ? sub / dolar : sub; });
+        const descUSD = subUSD * desc / 100;
+        const totalUSD = subUSD - descUSD;
+        return { dolar, desc, subUSD, descUSD, totalUSD, totalARS: totalUSD * dolar };
+    }
+    const planesActivos = () => planes.filter(p => p.on);
+
+    // ---------- Hoja ----------
+    function sheetHTML() {
+        const t = calcular();
+        const modo = $('mostrarEn').value;
+        const hoy = new Date();
+        const validez = parseInt($('validez').value) || 0;
+        const vence = new Date(hoy.getTime() + validez * 86400000);
+        const nombre = $('clienteNombre').value.trim();
+        const contacto = $('clienteContacto').value.trim();
+        const notas = $('notas').value.trim();
+        const linea = usd => modo === 'ARS' ? fmtARS(usd * t.dolar) : fmtUSD(usd);
+        const activos = planesActivos();
+        const cuotasHtml = activos.length && items.length ? `
+            <div class="qs-cuotas">
+                <h6>💳 Opciones en cuotas</h6>
+                <table>
+                    <thead><tr><th>Plan</th><th class="r">Valor cuota</th><th class="r">Total</th></tr></thead>
+                    <tbody>${activos.map(p => { const c = calcPlan(p, t.totalARS); return `
+                        <tr><td><strong>${p.cuotas} cuotas</strong>${p.interes > 0 ? '' : ' <span class="si">sin interés</span>'}</td>
+                        <td class="r"><strong>${fmtARS(c.cuota)}</strong></td><td class="r">${fmtARS(c.total)}</td></tr>`; }).join('')}
+                    </tbody>
+                </table>
+            </div>` : '';
+        return `
+            <div class="qs-head">
+                <img src="${esc(LOGO)}" crossorigin="anonymous" alt="Logo">
+                <div class="meta"><strong>COTIZACIÓN</strong>${hoy.toLocaleDateString('es-AR')}${validez ? `<br>Válida hasta ${vence.toLocaleDateString('es-AR')}` : ''}</div>
+            </div>
+            ${nombre || contacto ? `<div class="qs-client"><span>Cliente:</span> <strong>${esc(nombre)}</strong>${contacto ? ` <span>· ${esc(contacto)}</span>` : ''}</div>` : ''}
+            <table class="qs-table">
+                <thead><tr><th>Producto</th><th class="c">Cant.</th><th class="r">Precio</th><th class="r">Subtotal</th></tr></thead>
+                <tbody>${items.length ? items.map(it => `
+                    <tr>
+                        <td><div class="qs-prod">${it.img ? `<img src="${esc(it.img)}" crossorigin="anonymous" alt="">` : ''}<div>${esc(it.name || 'Ítem')}${it.detalle ? `<small>${esc(it.detalle)}</small>` : ''}</div></div></td>
+                        <td class="c">${it.qty}</td>
+                        <td class="r">${fmt(it.precio, it.moneda)}</td>
+                        <td class="r">${fmt(it.precio * it.qty, it.moneda)}</td>
+                    </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:#86868b;padding:20px">Agregá productos para armar la cotización</td></tr>'}
+                </tbody>
+            </table>
+            <div class="qs-totals">
+                ${t.desc > 0 ? `<div><span>Subtotal</span><span>${linea(t.subUSD)}</span></div>
+                <div><span>Descuento ${t.desc}%</span><span>- ${linea(t.descUSD)}</span></div>` : ''}
+                <div class="grand"><span>Total contado</span><span>${linea(t.totalUSD)}</span></div>
+                ${modo === 'ambos' ? `<div style="font-weight:700"><span>En pesos</span><span>${fmtARS(t.totalARS)}</span></div>
+                <div style="color:#86868b;font-size:11px"><span>Dólar</span><span>ARS $${t.dolar.toLocaleString('es-AR')}</span></div>` : ''}
+            </div>
+            ${cuotasHtml}
+            ${notas ? `<div class="qs-notes">${esc(notas)}</div>` : ''}
+            <div class="qs-foot">Precios sujetos a disponibilidad de stock${validez ? ' y válidos hasta la fecha indicada' : ''}. · iLoop · instagram.com/iloop.cba</div>`;
+    }
+    function renderSheet() { $('quoteSheet').innerHTML = sheetHTML(); }
+
+    function actualizar() {
+        const t = calcular();
+        const modo = $('mostrarEn').value;
+        $('subtotalTxt').textContent = fmtUSD(t.subUSD) + ' · ' + fmtARS(t.subUSD * t.dolar);
+        $('totalBox').innerHTML = modo === 'ARS' ? fmtARS(t.totalARS)
+            : modo === 'USD' ? fmtUSD(t.totalUSD)
+            : `${fmtUSD(t.totalUSD)}<small>${fmtARS(t.totalARS)}</small>`;
+        actualizarPlanes();
+        renderSheet();
+    }
+    function render() { renderItems(); renderPlanes(); actualizar(); }
+    ['clienteNombre', 'clienteContacto', 'notas', 'descuento', 'dolar', 'validez'].forEach(id => $(id).addEventListener('input', actualizar));
+    $('mostrarEn').addEventListener('change', actualizar);
+
+    // ---------- Guardar en historial ----------
+    async function guardar(canal) {
+        const t = calcular();
+        const res = await fetch('/admin/cotizador/guardar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cliente_nombre: $('clienteNombre').value.trim(),
+                cliente_contacto: $('clienteContacto').value.trim(),
+                canal,
+                items: items.map(({ planes, ...it }) => it),
+                descuento: t.desc,
+                total_usd: t.totalUSD.toFixed(2),
+                total_ars: t.totalARS.toFixed(2),
+                cotizacion_dolar: t.dolar,
+                notas: $('notas').value.trim(),
+                opciones: {
+                    mostrarEn: $('mostrarEn').value,
+                    validez: parseInt($('validez').value) || 0,
+                    cuotas: planesActivos().map(p => ({ cuotas: p.cuotas, interes: p.interes }))
+                }
+            })
+        });
+        if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Error al guardar');
+        cargarHistorial();
+    }
+
+    function validar() {
+        if (!items.length) { alert('Agregá al menos un producto.'); return false; }
+        return true;
+    }
+    const nombreArchivo = ext => `cotizacion-${($('clienteNombre').value.trim() || 'cliente').replace(/[^\w\-]+/g, '_')}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+
+    // Se exporta una copia de 600px de ancho, así el PDF sale igual en celu y en PC
+    async function capturar() {
+        const host = $('exportHost');
+        host.innerHTML = `<div class="qs">${sheetHTML()}</div>`;
+        await Promise.all([...host.querySelectorAll('img')].map(img => img.complete ? null : new Promise(r => { img.onload = img.onerror = r; })));
+        try {
+            return await html2canvas(host.firstElementChild, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        } finally {
+            host.innerHTML = '';
+        }
+    }
+    function descargarBlob(blob, name) {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    }
+    async function conBoton(btn, fn) {
+        const txt = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = 'Generando...';
+        try { await fn(); } catch (e) { console.error(e); alert('Ocurrió un error: ' + e.message); }
+        finally { btn.disabled = false; btn.innerHTML = txt; }
+    }
+
+    // PDF e imagen: se generan en el momento, no se guardan en el servidor.
+    $('btnPdf').addEventListener('click', () => validar() && conBoton($('btnPdf'), async () => {
+        const canvas = await capturar();
+        const w = 210, h = canvas.height * w / canvas.width;
+        const pdf = new jspdf.jsPDF({ unit: 'mm', format: [w, Math.max(h, 100)] });
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
+        pdf.save(nombreArchivo('pdf'));
+        await guardar('pdf');
+    }));
+
+    $('btnImagen').addEventListener('click', () => validar() && conBoton($('btnImagen'), async () => {
+        const canvas = await capturar();
+        const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+        descargarBlob(blob, nombreArchivo('png'));
+        await guardar('imagen');
+    }));
+
+    $('btnExcel').addEventListener('click', () => validar() && conBoton($('btnExcel'), async () => {
+        const t = calcular();
+        const validez = parseInt($('validez').value) || 0;
+        const res = await fetch('/admin/cotizador/excel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...t,
+                fecha: new Date().toLocaleDateString('es-AR'),
+                validez,
+                vence: new Date(Date.now() + validez * 86400000).toLocaleDateString('es-AR'),
+                cliente_nombre: $('clienteNombre').value.trim(),
+                cliente_contacto: $('clienteContacto').value.trim(),
+                items: items.map(({ planes, img, ...it }) => it),
+                cuotas: planesActivos().map(p => ({ cuotas: p.cuotas, interes: p.interes, ...calcPlan(p, t.totalARS) })),
+                notas: $('notas').value.trim()
+            })
+        });
+        if (!res.ok) throw new Error('No se pudo generar el Excel');
+        descargarBlob(await res.blob(), nombreArchivo('xlsx'));
+        await guardar('excel');
+    }));
+
+    // En celulares: compartir la imagen directo a WhatsApp u otra app
+    if (navigator.canShare && navigator.canShare({ files: [new File([''], 'x.png', { type: 'image/png' })] })) {
+        $('btnCompartir').style.display = '';
+        $('btnCompartir').addEventListener('click', () => validar() && conBoton($('btnCompartir'), async () => {
+            const canvas = await capturar();
+            const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+            try {
+                await navigator.share({ files: [new File([blob], nombreArchivo('png'), { type: 'image/png' })], title: 'Cotización' });
+            } catch (e) {
+                if (e.name === 'AbortError') return; // canceló el share: no se registra
+                throw e;
+            }
+            await guardar('imagen');
+        }));
+    }
+
+    function textoWhatsapp() {
+        const t = calcular();
+        const modo = $('mostrarEn').value;
+        const nombre = $('clienteNombre').value.trim();
+        const validez = parseInt($('validez').value) || 0;
+        const L = [];
+        L.push(`*COTIZACIÓN iLoop* - ${new Date().toLocaleDateString('es-AR')}`);
+        if (nombre) L.push(`Hola ${nombre}! Te paso la cotización:`);
+        L.push('');
+        items.forEach(it => {
+            L.push(`• ${it.qty > 1 ? it.qty + 'x ' : ''}${it.name || 'Ítem'}${it.detalle ? ' (' + it.detalle + ')' : ''}: *${fmt(it.precio * it.qty, it.moneda)}*`);
+        });
+        L.push('');
+        if (t.desc > 0) L.push(`Descuento ${t.desc}%`);
+        if (modo === 'ARS') L.push(`*TOTAL CONTADO: ${fmtARS(t.totalARS)}*`);
+        else if (modo === 'USD') L.push(`*TOTAL CONTADO: ${fmtUSD(t.totalUSD)}*`);
+        else L.push(`*TOTAL CONTADO: ${fmtUSD(t.totalUSD)}* (${fmtARS(t.totalARS)})`);
+        const activos = planesActivos();
+        if (activos.length) {
+            L.push('');
+            L.push('💳 *En cuotas:*');
+            activos.forEach(p => {
+                const c = calcPlan(p, t.totalARS);
+                L.push(`• ${p.cuotas} cuotas de *${fmtARS(c.cuota)}*${p.interes > 0 ? ` (total ${fmtARS(c.total)})` : ' sin interés'}`);
+            });
+        }
+        const notas = $('notas').value.trim();
+        if (notas) { L.push(''); L.push(notas); }
+        if (validez) { L.push(''); L.push(`_Válida por ${validez} día${validez === 1 ? '' : 's'}. Sujeto a disponibilidad de stock._`); }
+        return L.join('\n');
+    }
+    function telefonoWhatsapp(raw) {
+        let d = (raw || '').replace(/\D/g, '');
+        if (!d) return '';
+        if (d.startsWith('0')) d = d.slice(1);
+        if (d.length === 10) d = '549' + d;          // 351 1234567 -> 5493511234567
+        else if (d.startsWith('54') && !d.startsWith('549') && d.length === 12) d = '549' + d.slice(2);
+        return d.length >= 8 ? d : '';
+    }
+    $('btnWhatsapp').addEventListener('click', () => {
+        if (!validar()) return;
+        const tel = telefonoWhatsapp($('clienteContacto').value);
+        // Abrimos la ventana antes del await para que el navegador no la bloquee
+        window.open(`https://wa.me/${tel}?text=${encodeURIComponent(textoWhatsapp())}`, '_blank');
+        guardar('whatsapp').catch(e => alert('Se abrió WhatsApp pero no se pudo guardar en el historial: ' + e.message));
+    });
+
+    $('btnNueva').addEventListener('click', () => {
+        if (items.length && !confirm('¿Limpiar la cotización actual?')) return;
+        items = [];
+        ['clienteNombre', 'clienteContacto', 'notas'].forEach(id => $(id).value = '');
+        $('descuento').value = 0;
+        $('dolar').value = DOLAR_SITIO;
+        $('mostrarEn').value = 'ambos';
+        $('validez').value = 3;
+        resetPlanes();
+        render();
+    });
+
+    // ---------- Historial ----------
+    let historial = [];
+    const CANALES = { whatsapp: '📲 WhatsApp', pdf: '📄 PDF', imagen: '🖼️ Imagen', excel: '📊 Excel' };
+    async function cargarHistorial() {
+        const q = $('histBuscar').value.trim();
+        try {
+            const res = await fetch('/admin/cotizador/historial' + (q ? '?q=' + encodeURIComponent(q) : ''));
+            historial = await res.json();
+            if (!Array.isArray(historial)) throw new Error(historial.error);
+        } catch (e) {
+            $('histBody').innerHTML = '<tr><td colspan="8" class="cz-empty">No se pudo cargar el historial.</td></tr>';
+            return;
+        }
+        if (!q) $('histCount').textContent = historial.length;
+        $('histBody').innerHTML = historial.length ? historial.map((c, idx) => {
+            const resumen = (c.items || []).map(i => `${i.qty > 1 ? i.qty + 'x ' : ''}${i.name}`).join(', ');
+            const cuotas = ((c.opciones || {}).cuotas || []).map(p => p.cuotas).join('/');
+            return `<tr>
+                <td>${c.id}</td>
+                <td style="white-space:nowrap">${new Date(c.created_at).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                <td>${esc(c.cliente_nombre || '—')}</td>
+                <td>${esc(c.cliente_contacto || '—')}</td>
+                <td><span class="badge-canal canal-${esc(c.canal)}">${CANALES[c.canal] || esc(c.canal)}</span></td>
+                <td style="max-width:260px" title="${esc(resumen)}"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(resumen)}</div>${cuotas ? `<small class="text-muted">Cuotas: ${esc(cuotas)}</small>` : ''}</td>
+                <td class="text-right" style="white-space:nowrap">${fmtUSD(parseFloat(c.total_usd))}<br><small class="text-muted">${fmtARS(parseFloat(c.total_ars))}</small></td>
+                <td style="white-space:nowrap">
+                    <button class="btn btn-sm btn-outline-primary" data-cargar="${idx}" title="Abrir para reenviar o descargar">Abrir</button>
+                    <button class="btn btn-sm btn-outline-danger" data-borrar="${c.id}" title="Eliminar del historial">✕</button>
+                </td>
+            </tr>`;
+        }).join('') : `<tr><td colspan="8" class="cz-empty">${q ? 'Sin resultados.' : 'Todavía no hay cotizaciones.'}</td></tr>`;
+    }
+    let histTimer;
+    $('histBuscar').addEventListener('input', () => { clearTimeout(histTimer); histTimer = setTimeout(cargarHistorial, 300); });
+    $('histBody').addEventListener('click', async e => {
+        const cargar = e.target.dataset.cargar, borrar = e.target.dataset.borrar;
+        if (cargar !== undefined) {
+            const c = historial[cargar];
+            const op = c.opciones || {};
+            $('clienteNombre').value = c.cliente_nombre || '';
+            $('clienteContacto').value = c.cliente_contacto || '';
+            $('notas').value = c.notas || '';
+            $('descuento').value = parseFloat(c.descuento) || 0;
+            $('dolar').value = c.cotizacion_dolar ? parseFloat(c.cotizacion_dolar) : DOLAR_SITIO;
+            if (op.mostrarEn) $('mostrarEn').value = op.mostrarEn;
+            if (op.validez !== undefined) $('validez').value = op.validez;
+            items = (c.items || []).map(it => {
+                const p = it.id ? PRODUCTS.find(x => x.id === it.id) : null;
+                return { ...it, planes: p ? p.planes : [] };
+            });
+            resetPlanes();
+            sugerirInteres();
+            (op.cuotas || []).forEach(pc => {
+                let p = planes.find(x => x.cuotas === pc.cuotas);
+                if (!p) { p = { cuotas: pc.cuotas }; planes.push(p); }
+                Object.assign(p, { interes: pc.interes, on: true, editado: true });
+            });
+            planes.sort((a, b) => a.cuotas - b.cuotas);
+            render();
+            irANueva();
+        } else if (borrar !== undefined) {
+            if (!confirm('¿Eliminar esta cotización del historial?')) return;
+            await fetch('/admin/cotizador/eliminar/' + borrar, { method: 'POST' });
+            cargarHistorial();
+        }
+    });
+
+    resetPlanes();
+    render();
+    cargarHistorial();
+    </script>
+</body>
+</html>
