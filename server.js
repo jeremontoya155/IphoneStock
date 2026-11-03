@@ -13,8 +13,46 @@ const compression = require('compression');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-app.set('trust proxy', true);
+// Confiar solo en 1 proxy (Render/Heroku/etc.). Con `true` cualquiera podía falsear su IP con X-Forwarded-For
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
 app.use(compression())
+
+// Content-Security-Policy: solo se permiten los orígenes que las vistas realmente usan.
+// 'unsafe-inline' sigue en script/style porque las vistas tienen <script> y onclick="" inline;
+// quitarlo requiere mover ese JS a archivos .js (pendiente). Aun así bloquea scripts de
+// dominios no listados, plugins (object-src), <base> inyectado, formularios a otros sitios y clickjacking.
+// Si algo se rompe en producción: CSP_REPORT_ONLY=1 en las variables de entorno la pasa a modo "solo avisar".
+const CSP_REPORT_ONLY = process.env.CSP_REPORT_ONLY === '1';
+const CSP = [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com https://stackpath.bootstrapcdn.com https://maxcdn.bootstrapcdn.com https://kit.fontawesome.com https://www.googletagmanager.com https://connect.facebook.net https://www.google-analytics.com",
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://maxcdn.bootstrapcdn.com https://kit.fontawesome.com https://ka-f.fontawesome.com https://fonts.googleapis.com",
+    "font-src 'self' data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://stackpath.bootstrapcdn.com https://maxcdn.bootstrapcdn.com https://ka-f.fontawesome.com https://fonts.gstatic.com",
+    "img-src 'self' data: blob: https:",
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://kit.fontawesome.com https://ka-f.fontawesome.com https://cdn.jsdelivr.net https://res.cloudinary.com",
+    "frame-src https://www.google.com https://www.googletagmanager.com https://www.facebook.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self' https://wa.me https://api.whatsapp.com",
+    "frame-ancestors 'self'"
+].join('; ');
+
+// Cabeceras de seguridad básicas
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
+    if (req.secure) res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+    res.setHeader(CSP_REPORT_ONLY ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy', CSP);
+    next();
+});
+
+// Escapa texto para insertarlo de forma segura en HTML
+function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 // Middleware para bloquear rutas específicas
 app.use((req, res, next) => {
@@ -76,10 +114,19 @@ function optimizeCloudinaryUrl(url, width = 800) {
     );
 }
 
-const upload = multer({ storage: storage });
+// Solo imágenes, máx. 8 MB, para evitar abuso del almacenamiento
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 8 * 1024 * 1024, files: 3 },
+    fileFilter: (req, file, cb) => {
+        if (/^image\/(jpeg|png|webp|gif|avif)$/.test(file.mimetype)) cb(null, true);
+        else cb(new Error('Solo se permiten imágenes (jpg, png, webp, gif, avif)'));
+    }
+});
 
 // Middleware para manejar la carga de archivos en una ruta específica y almacenar el enlace en la base de datos
-app.post('/upload', upload.single('file'), async (req, res) => {
+// (antes era pública: cualquiera podía subir archivos a Cloudinary y escribir en la BD)
+app.post('/upload', requireAdmin, upload.single('file'), async (req, res) => {
     try {
         const imageUrl = req.file.path; // URL de la imagen en Cloudinary
         await pool.query('INSERT INTO imagenes (imagen1) VALUES ($1)', [imageUrl]); // Inserta la URL en la base de datos
@@ -123,11 +170,22 @@ app.use(cors()); // Middleware para permitir CORS
 
 // Configurar middleware para manejar sesiones
 const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret || sessionSecret.length < 16) {
+    console.error('❌ SESSION_SECRET no está definido o es muy corto (mínimo 16 caracteres). Abortando.');
+    process.exit(1);
+}
 
 app.use(session({
     secret: sessionSecret,
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    name: 'sid',
+    cookie: {
+        httpOnly: true,        // JS del navegador no puede leer la cookie (mitiga robo por XSS)
+        sameSite: 'lax',       // bloquea envíos cross-site de formularios (mitiga CSRF)
+        secure: 'auto',        // solo HTTPS cuando la conexión es HTTPS
+        maxAge: 1000 * 60 * 60 * 8
+    }
 }));
 
 // Conectar a la base de datos PostgreSQL
@@ -138,16 +196,35 @@ const pool = new Pool({
     }
 });
 
-// Middleware para verificar si el usuario es administrador
-function requireAdmin(req, res, next) {
-    // Simplificado para desarrollo - solo verifica que esté logueado
-    if (req.session.userId) {
-        console.log('Usuario logueado, acceso permitido. UserID:', req.session.userId);
-        next();
-    } else {
-        console.log('Usuario no logueado, redirigiendo al login');
-        res.redirect('/login');
+// Cualquier usuario logueado (admin o vendedor)
+function requireLogin(req, res, next) {
+    if (req.session.userId) return next();
+    res.redirect('/login');
+}
+
+// Solo administradores. Se verifica en la BD en cada request (no solo lo guardado en la sesión),
+// así un usuario dado de baja o degradado pierde el acceso de inmediato.
+async function requireAdmin(req, res, next) {
+    if (!req.session.userId) return res.redirect('/login');
+    try {
+        const r = await pool.query('SELECT isadmin FROM users WHERE id = $1', [req.session.userId]);
+        if (!r.rows.length) { // usuario borrado: cerrar sesión
+            return req.session.destroy(() => res.redirect('/login'));
+        }
+        // La columna puede venir como boolean (true) o entero (1) según cómo se creó la tabla
+        const flag = r.rows[0].isadmin;
+        if (flag === true || flag === 1 || flag === '1' || flag === 't') {
+            req.session.isAdmin = true;
+            return next();
+        }
+        req.session.isAdmin = false;
+    } catch (err) {
+        console.error('Error verificando admin:', err.message);
+        return res.status(500).send('Error interno del servidor');
     }
+    const quiereJson = req.xhr || req.path.startsWith('/api/') || (req.get('accept') || '').includes('application/json');
+    if (quiereJson) return res.status(403).json({ error: 'Acceso denegado: se requiere administrador' });
+    res.status(403).send('Acceso denegado: se requiere un usuario administrador.');
 }
 
 function getPublicBaseUrl(req) {
@@ -534,7 +611,7 @@ app.get('/new', requireAdmin, async (req, res) => {
 // ==================== RUTAS PARA SISTEMA DE CAJAS ====================
 
 // Ruta principal de CAJAS (solo admin)
-app.get('/cajas', requireAdmin, async (req, res) => {
+app.get('/cajas', requireLogin, async (req, res) => {
     try {
         const productsResult = await pool.query('SELECT * FROM products ORDER BY name');
         const logoResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
@@ -557,7 +634,7 @@ app.get('/cajas', requireAdmin, async (req, res) => {
 });
 
 // Ruta para el histórico de ventas (solo admin)
-app.get('/historico', requireAdmin, async (req, res) => {
+app.get('/historico', requireLogin, async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = 20;
@@ -596,7 +673,7 @@ app.get('/historico', requireAdmin, async (req, res) => {
 });
 
 // Ruta para ver un comprobante específico
-app.get('/factura/:id', requireAdmin, async (req, res) => {
+app.get('/factura/:id', requireLogin, async (req, res) => {
     try {
         const facturaId = req.params.id;
         const facturaResult = await pool.query(`
@@ -699,7 +776,7 @@ app.post('/product', (req, res) => {
         return res.status(400).send('ID del producto no proporcionado');
     }
 
-    res.redirect(`/product/${productId}`);
+    res.redirect(`/product/${encodeURIComponent(String(productId))}`);
 });
 
 // Ruta para procesar el formulario de nuevo producto (requiere autenticación de administrador)
@@ -725,13 +802,8 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
 // ==================== RUTAS POST PARA SISTEMA DE CAJAS ====================
 
 // Procesar nuevo comprobante
-app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
-    console.log('=== DEBUG COMPLETO ===');
-    console.log('Content-Type:', req.get('Content-Type'));
-    console.log('Body RAW:', req.body);
-    console.log('Body stringify:', JSON.stringify(req.body, null, 2));
-    console.log('Body keys:', Object.keys(req.body || {}));
-    
+app.post('/cajas/procesar-venta', requireLogin, async (req, res) => {
+    // (se eliminaron los logs del body completo: contenían teléfonos/emails de clientes)
     const client = await pool.connect();
     
     try {
@@ -844,7 +916,10 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
         if (afectar_stock) {
             console.log('=== ACTUALIZANDO STOCK (afectar_stock = true) ===');
             for (let item of items) {
-                console.log('Actualizando stock - Producto ID:', item.product_id, 'Cantidad:', item.cantidad);
+                // cantidad negativa o no numérica permitía inflar el stock
+                if (!Number.isInteger(Number(item.cantidad)) || Number(item.cantidad) < 1 || !Number.isInteger(Number(item.product_id))) {
+                    throw new Error('Cantidad o producto inválido');
+                }
                 await client.query(
                     'UPDATE products SET stock = stock - $1 WHERE id = $2',
                     [item.cantidad, item.product_id]
@@ -872,7 +947,7 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
         console.error('Stack completo:', err.stack);
         res.status(500).json({ 
             success: false, 
-            message: 'Error al procesar la venta: ' + err.message 
+            message: 'Error al procesar la venta'
         });
     } finally {
         client.release();
@@ -880,7 +955,7 @@ app.post('/cajas/procesar-venta', requireAdmin, async (req, res) => {
 });
 
 // Generar página para imprimir (sin PDF)
-app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
+app.get('/factura/:id/pdf', requireLogin, async (req, res) => {
     try {
         const facturaId = req.params.id;
         
@@ -919,7 +994,7 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante ${factura.numero_factura}</title>
+    <title>Comprobante ${esc(factura.numero_factura)}</title>
     <style>
         @media print {
             body { margin: 0; }
@@ -944,16 +1019,16 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
     
     <div class="header">
         <h1>COMPROBANTE</h1>
-        <p><strong>N°:</strong> ${factura.numero_factura}</p>
+        <p><strong>N°:</strong> ${esc(factura.numero_factura)}</p>
         <p><strong>Fecha:</strong> ${fecha}</p>
     </div>
     
     <div class="info">
         <h3>CLIENTE:</h3>
-        <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
-        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
-        ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
-        <p><strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+        <p><strong>Nombre:</strong> ${esc(factura.cliente_nombre)}</p>
+        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${esc(factura.cliente_telefono)}</p>` : ''}
+        ${factura.cliente_email ? `<p><strong>Email:</strong> ${esc(factura.cliente_email)}</p>` : ''}
+        <p><strong>Pago:</strong> ${esc(factura.metodo_pago || 'Efectivo')}</p>
     </div>
     
     <table>
@@ -965,10 +1040,10 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
         </tr>
         ${items.map(item => `
         <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${(item.price || 0).toLocaleString()}</td>
-            <td>$${((item.price || 0) * (item.cantidad || 1)).toLocaleString()}</td>
+            <td>${esc(item.name || 'Producto')}</td>
+            <td>${Number(item.cantidad) || 1}</td>
+            <td>$${(Number(item.price) || 0).toLocaleString()}</td>
+            <td>$${((Number(item.price) || 0) * (Number(item.cantidad) || 1)).toLocaleString()}</td>
         </tr>
         `).join('')}
     </table>
@@ -979,11 +1054,11 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
         <p class="total">TOTAL: $${parseFloat(factura.total || 0).toLocaleString()}</p>
     </div>
     
-    ${factura.notas ? `<div class="info"><h3>NOTAS:</h3><p>${factura.notas}</p></div>` : ''}
+    ${factura.notas ? `<div class="info"><h3>NOTAS:</h3><p>${esc(factura.notas)}</p></div>` : ''}
     
     <div style="text-align: center; margin-top: 30px;">
         <p><strong>¡Gracias por su compra!</strong></p>
-        <p>iPhone Stock - Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+        <p>iPhone Stock - Vendedor: ${esc(factura.vendedor_nombre || 'Sistema')}</p>
     </div>
 </body>
 </html>`;
@@ -993,12 +1068,12 @@ app.get('/factura/:id/pdf', requireAdmin, async (req, res) => {
 
     } catch (err) {
         console.error('Error:', err);
-        res.status(500).send('Error: ' + err.message);
+        res.status(500).send('Error interno del servidor');
     }
 });
 
 // Búsqueda de comprobantes
-app.get('/api/facturas/search', requireAdmin, async (req, res) => {
+app.get('/api/facturas/search', requireLogin, async (req, res) => {
     try {
         const { q, fecha_desde, fecha_hasta } = req.query;
         let query = `
@@ -1040,6 +1115,7 @@ app.get('/api/facturas/search', requireAdmin, async (req, res) => {
 });
 
 // Ruta para procesar el formulario de inicio de sesión
+const DUMMY_HASH = bcrypt.hashSync('dummy-password', 12);
 const LOGIN_MAX_FALLOS = 5;
 const LOGIN_VENTANA_MIN = 15;
 
@@ -1083,6 +1159,8 @@ app.post('/login', async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
         const user = result.rows[0];
         let ok = false;
+        // Comparación "dummy" cuando el usuario no existe: evita revelar por tiempo de respuesta qué usuarios existen
+        if (!user) await bcrypt.compare(password, DUMMY_HASH);
         if (user) {
             const stored = user.password || '';
             if (/^\$2[aby]\$/.test(stored)) {
@@ -1096,9 +1174,16 @@ app.post('/login', async (req, res) => {
         }
         await registrar(ok);
         if (ok) {
-            req.session.userId = user.id;
-            req.session.isAdmin = user.isadmin;
-            res.redirect('/');
+            // Nueva sesión al loguear: evita session fixation
+            req.session.regenerate((regErr) => {
+                if (regErr) {
+                    console.error('Error regenerando sesión:', regErr);
+                    return res.status(500).send('Error interno del servidor');
+                }
+                req.session.userId = user.id;
+                req.session.isAdmin = user.isadmin;
+                req.session.save(() => res.redirect('/'));
+            });
         } else {
             req.session.error = 'Credenciales incorrectas';
             res.redirect('/login');
@@ -1163,6 +1248,9 @@ app.post('/buy/:id', (req, res) => {
             return;
         }
         const product = result.rows[0];
+        if (!product) {
+            return res.redirect('/cart'); // antes: TypeError no capturado que tumbaba el servidor
+        }
         if (product.stock > 0) {
             // Generar el mensaje con solo el nombre del modelo, precio y porcentaje de batería
             const message = `Solicitud de compra:\n\nModelo: ${product.name}\nPrecio: $${product.price}\nBatería: ${product.bateria}%`;
@@ -1473,12 +1561,12 @@ function generateSimplePDF(factura, logoUrl) {
 </head>
 <body>
     <div class="header">
-        <h1 class="title">COMPROBANTE ${factura.numero_factura}</h1>
+        <h1 class="title">COMPROBANTE ${esc(factura.numero_factura)}</h1>
         <div class="info">
             <strong>Fecha:</strong> ${fecha}<br>
-            <strong>Cliente:</strong> ${factura.cliente_nombre}<br>
-            ${factura.cliente_telefono ? `<strong>Teléfono:</strong> ${factura.cliente_telefono}<br>` : ''}
-            <strong>Pago:</strong> ${factura.metodo_pago || 'Efectivo'}
+            <strong>Cliente:</strong> ${esc(factura.cliente_nombre)}<br>
+            ${factura.cliente_telefono ? `<strong>Teléfono:</strong> ${esc(factura.cliente_telefono)}<br>` : ''}
+            <strong>Pago:</strong> ${esc(factura.metodo_pago || 'Efectivo')}
         </div>
     </div>
     
@@ -1491,10 +1579,10 @@ function generateSimplePDF(factura, logoUrl) {
         </tr>
         ${items.map(item => `
         <tr>
-            <td>${item.name || 'Producto'}</td>
-            <td>${item.cantidad || 1}</td>
-            <td>$${parseFloat(item.price || 0).toLocaleString('es-ES')}</td>
-            <td>$${(parseFloat(item.price || 0) * (item.cantidad || 1)).toLocaleString('es-ES')}</td>
+            <td>${esc(item.name || 'Producto')}</td>
+            <td>${Number(item.cantidad) || 1}</td>
+            <td>$${parseFloat(Number(item.price) || 0).toLocaleString('es-ES')}</td>
+            <td>$${(parseFloat(Number(item.price) || 0) * (Number(item.cantidad) || 1)).toLocaleString('es-ES')}</td>
         </tr>
         `).join('')}
     </table>
@@ -1505,7 +1593,7 @@ function generateSimplePDF(factura, logoUrl) {
     
     <div class="footer">
         <p>iPhone Stock - Gracias por su compra</p>
-        <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+        <p>Vendedor: ${esc(factura.vendedor_nombre || 'Sistema')}</p>
     </div>
 </body>
 </html>`;
@@ -1535,12 +1623,12 @@ function generateInvoiceHTML(factura, logoUrl) {
     
     const fecha = new Date(factura.fecha).toLocaleDateString('es-ES');
     const itemsRows = items.map(item => {
-        const precio = parseFloat(item.price || 0);
-        const cantidad = parseInt(item.cantidad || 1);
+        const precio = parseFloat(Number(item.price) || 0);
+        const cantidad = parseInt(Number(item.cantidad) || 1);
         const subtotal = precio * cantidad;
         return `
             <tr>
-                <td style="padding: 8px; border: 1px solid #ddd;">${item.name || 'Producto'}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${esc(item.name || 'Producto')}</td>
                 <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${cantidad}</td>
                 <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${precio.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
                 <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">$${subtotal.toLocaleString('es-ES', {minimumFractionDigits: 2})}</td>
@@ -1551,7 +1639,7 @@ function generateInvoiceHTML(factura, logoUrl) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante ${factura.numero_factura}</title>
+    <title>Comprobante ${esc(factura.numero_factura)}</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
         .header { display: flex; justify-content: space-between; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #007bff; }
@@ -1573,20 +1661,20 @@ function generateInvoiceHTML(factura, logoUrl) {
 </head>
 <body>
     <div class="header">
-        <div>${logoUrl ? `<img src="${logoUrl}" alt="iPhone Stock" class="logo">` : '<div style="font-size: 18px; font-weight: bold; color: #007bff;">iPhone Stock</div>'}</div>
+        <div>${logoUrl ? `<img src="${esc(logoUrl)}" alt="iPhone Stock" class="logo">` : '<div style="font-size: 18px; font-weight: bold; color: #007bff;">iPhone Stock</div>'}</div>
         <div class="invoice-info">
             <h1>COMPROBANTE</h1>
-            <p><strong>N°:</strong> ${factura.numero_factura}</p>
+            <p><strong>N°:</strong> ${esc(factura.numero_factura)}</p>
             <p><strong>Fecha:</strong> ${fecha}</p>
         </div>
     </div>
     
     <div class="customer-section">
         <h3>Información del Cliente</h3>
-        <p><strong>Nombre:</strong> ${factura.cliente_nombre}</p>
-        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${factura.cliente_telefono}</p>` : ''}
-        ${factura.cliente_email ? `<p><strong>Email:</strong> ${factura.cliente_email}</p>` : ''}
-        <p><strong>Método de Pago:</strong> ${factura.metodo_pago || 'Efectivo'}</p>
+        <p><strong>Nombre:</strong> ${esc(factura.cliente_nombre)}</p>
+        ${factura.cliente_telefono ? `<p><strong>Teléfono:</strong> ${esc(factura.cliente_telefono)}</p>` : ''}
+        ${factura.cliente_email ? `<p><strong>Email:</strong> ${esc(factura.cliente_email)}</p>` : ''}
+        <p><strong>Método de Pago:</strong> ${esc(factura.metodo_pago || 'Efectivo')}</p>
     </div>
     
     <h3 style="color: #007bff;">Productos</h3>
@@ -1619,11 +1707,11 @@ function generateInvoiceHTML(factura, logoUrl) {
         </table>
     </div>
     
-    ${factura.notas ? `<div class="notes"><h4>Notas:</h4><p>${factura.notas}</p></div>` : ''}
+    ${factura.notas ? `<div class="notes"><h4>Notas:</h4><p>${esc(factura.notas)}</p></div>` : ''}
     
     <div class="footer">
         <p><strong>¡Gracias por su compra!</strong></p>
-        <p>Vendedor: ${factura.vendedor_nombre || 'Sistema'}</p>
+        <p>Vendedor: ${esc(factura.vendedor_nombre || 'Sistema')}</p>
         <p>iPhone Stock - Sistema de Comprobantes</p>
     </div>
 </body>
@@ -2117,7 +2205,7 @@ pool.query(`
 `).then(() => pool.query('ALTER TABLE cotizaciones ADD COLUMN IF NOT EXISTS opciones JSONB, ADD COLUMN IF NOT EXISTS vendedor VARCHAR(80)'))
   .catch(err => console.error('Error creando tabla cotizaciones:', err.message));
 
-app.get('/admin/cotizador', requireAdmin, async (req, res) => {
+app.get('/admin/cotizador', requireLogin, async (req, res) => {
     try {
         let cotizacionDolar = 1200;
         let cuotasGuardadas = { planes: [] };
@@ -2204,7 +2292,7 @@ app.post('/admin/cotizador/cuotas', requireAdmin, async (req, res) => {
     }
 });
 
-app.get('/admin/cotizador/historial', requireAdmin, async (req, res) => {
+app.get('/admin/cotizador/historial', requireLogin, async (req, res) => {
     try {
         const q = (req.query.q || '').trim();
         const vendedor = (req.query.vendedor || '').trim();
@@ -2227,7 +2315,7 @@ app.get('/admin/cotizador/historial', requireAdmin, async (req, res) => {
     }
 });
 
-app.post('/admin/cotizador/guardar', requireAdmin, async (req, res) => {
+app.post('/admin/cotizador/guardar', requireLogin, async (req, res) => {
     try {
         const { cliente_nombre, cliente_contacto, canal, items, descuento, total_usd, total_ars, cotizacion_dolar, notas, opciones, vendedor } = req.body;
         if (!['whatsapp', 'pdf', 'imagen', 'excel'].includes(canal)) return res.status(400).json({ error: 'Canal inválido' });
@@ -2247,7 +2335,7 @@ app.post('/admin/cotizador/guardar', requireAdmin, async (req, res) => {
 });
 
 // Planilla Excel de la cotización: se arma en el momento y no se guarda en el servidor
-app.post('/admin/cotizador/excel', requireAdmin, async (req, res) => {
+app.post('/admin/cotizador/excel', requireLogin, async (req, res) => {
     try {
         const ExcelJS = require('exceljs');
         const d = req.body || {};
@@ -2387,6 +2475,15 @@ Sitemap: ${baseUrl}/sitemap.xml
 // Manejador de errores para páginas no encontradas (404)
 app.use((req, res, next) => {
     res.status(404).send("Página no encontrada");
+});
+
+// Manejador de errores global: no filtra trazas ni detalles internos al cliente
+app.use((err, req, res, next) => {
+    console.error('Error no manejado:', err.message);
+    if (err.name === 'MulterError' || /imágenes/.test(err.message)) {
+        return res.status(400).send(err.message);
+    }
+    res.status(500).send('Error interno del servidor');
 });
 
 // Iniciar servidor

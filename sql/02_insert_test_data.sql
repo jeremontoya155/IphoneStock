@@ -2,8 +2,11 @@
 -- Solo usuario administrador básico
 
 -- ========== USUARIO ADMINISTRADOR ==========
-INSERT INTO users (username, password, isadmin) VALUES 
-('admin', 'admin123', 1);
+-- La contraseña está guardada como hash bcrypt (nunca en texto plano).
+-- Cambiala apenas instales: generá un hash nuevo con
+--   node -e "console.log(require('bcryptjs').hashSync('TU_CLAVE_NUEVA', 12))"
+INSERT INTO users (username, password, isadmin) VALUES
+('admin', '$2a$12$sVZJvESewennRsJwqP83Gu3U8FMkRkCg.vuxJjqUGXpiyLsPcrNIq', 1);
 
 -- ========== PRODUCTOS DE PRUEBA (IPHONES Y TECNOLOGÍA) ==========
 INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado) VALUES 
