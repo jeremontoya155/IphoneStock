@@ -2,6 +2,7 @@ require('dotenv').config();  // Cargar variables de entorno desde .env
 const express = require('express');
 const session = require('express-session');
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 const multer = require('multer'); // Middleware para manejo de carga de archivos
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -1039,24 +1040,73 @@ app.get('/api/facturas/search', requireAdmin, async (req, res) => {
 });
 
 // Ruta para procesar el formulario de inicio de sesión
-app.post('/login', (req, res) => {
+const LOGIN_MAX_FALLOS = 5;
+const LOGIN_VENTANA_MIN = 15;
+
+pool.query(`CREATE TABLE IF NOT EXISTS login_attempts (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100),
+    success BOOLEAN NOT NULL,
+    ip VARCHAR(64),
+    user_agent TEXT,
+    lat DOUBLE PRECISION,
+    lng DOUBLE PRECISION,
+    accuracy DOUBLE PRECISION,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)`).catch(e => console.error('Error creando login_attempts:', e));
+
+app.post('/login', async (req, res) => {
     const { username, password } = req.body;
-    pool.query('SELECT * FROM users WHERE username = $1 AND password = $2', [username, password], (err, result) => {
-        if (err) {
-            console.error('Error al buscar usuario:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
+    const num = v => (v !== undefined && v !== '' && isFinite(Number(v)) ? Number(v) : null);
+    const lat = num(req.body.lat), lng = num(req.body.lng), accuracy = num(req.body.accuracy);
+    const ip = req.ip;
+    const registrar = (success) => pool.query(
+        'INSERT INTO login_attempts (username, success, ip, user_agent, lat, lng, accuracy) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [String(username || '').slice(0, 100), success, ip, req.get('user-agent') || null, lat, lng, accuracy]
+    ).catch(e => console.error('Error registrando intento:', e));
+    try {
+        if (typeof username !== 'string' || typeof password !== 'string') {
+            req.session.error = 'Credenciales incorrectas';
+            return res.redirect('/login');
         }
-        if (result.rows.length > 0) {
-            const user = result.rows[0];
+        // Límite: demasiados fallos recientes desde esta IP o para este usuario
+        const fallos = await pool.query(
+            `SELECT COUNT(*)::int AS n FROM login_attempts
+             WHERE success = FALSE AND created_at > NOW() - ($3 || ' minutes')::interval
+               AND (ip = $1 OR username = $2)`,
+            [ip, username.slice(0, 100), String(LOGIN_VENTANA_MIN)]
+        );
+        if (fallos.rows[0].n >= LOGIN_MAX_FALLOS) {
+            req.session.error = `Demasiados intentos fallidos. Probá de nuevo en ${LOGIN_VENTANA_MIN} minutos.`;
+            return res.redirect('/login');
+        }
+        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        const user = result.rows[0];
+        let ok = false;
+        if (user) {
+            const stored = user.password || '';
+            if (/^\$2[aby]\$/.test(stored)) {
+                ok = await bcrypt.compare(password, stored);
+            } else if (stored === password) {
+                // Contraseña vieja en texto plano: validar y migrar a hash en este login
+                ok = true;
+                const hash = await bcrypt.hash(password, 12);
+                await pool.query('UPDATE users SET password = $1 WHERE id = $2', [hash, user.id]);
+            }
+        }
+        await registrar(ok);
+        if (ok) {
             req.session.userId = user.id;
             req.session.isAdmin = user.isadmin;
             res.redirect('/');
         } else {
-            req.session.error = 'Credenciales incorrectas'; // Guardar el mensaje de error en la sesión
-            res.redirect('/login'); // Redirigir al usuario a la página de inicio de sesión
+            req.session.error = 'Credenciales incorrectas';
+            res.redirect('/login');
         }
-    });
+    } catch (err) {
+        console.error('Error al buscar usuario:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 // Procesar el edit-about

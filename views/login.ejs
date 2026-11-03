@@ -27,6 +27,10 @@
                 <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
             </div>
             
+            <input type="hidden" id="lat" name="lat">
+            <input type="hidden" id="lng" name="lng">
+            <input type="hidden" id="accuracy" name="accuracy">
+
             <button type="submit" class="btn-login">Ingresar</button>
 
             <div class="signup-link">
@@ -48,6 +52,34 @@
             %>
         </script>
     <% } %>
+
+    <script>
+        // Pedir ubicación al cargar; si el usuario la niega, el login sigue funcionando.
+        (function () {
+            var form = document.querySelector('.login-form');
+            var pending = false, submitted = false;
+            if (navigator.geolocation) {
+                pending = true;
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    document.getElementById('lat').value = pos.coords.latitude;
+                    document.getElementById('lng').value = pos.coords.longitude;
+                    document.getElementById('accuracy').value = pos.coords.accuracy;
+                    pending = false;
+                    if (submitted) form.submit();
+                }, function () {
+                    pending = false;
+                    if (submitted) form.submit();
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+            }
+            form.addEventListener('submit', function (e) {
+                if (pending && !submitted) {
+                    e.preventDefault();
+                    submitted = true;
+                    setTimeout(function () { pending = false; form.submit(); }, 8500);
+                }
+            });
+        })();
+    </script>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
