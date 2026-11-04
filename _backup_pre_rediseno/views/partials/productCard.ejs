@@ -1,0 +1,137 @@
+<div class="product-card fade-in-section" 
+     data-stock="<%= product.stock %>" 
+     data-estado="<%= product.estado || '' %>" 
+     data-storage="<%= product.almacenamiento || 0 %>" 
+     data-battery="<%= product.bateria || 0 %>" 
+     data-model="<%= product.name %>" 
+     data-price="<%= product.price %>"
+     data-category="<%= product.categoria_id || '' %>"
+     data-toggle="modal" 
+     data-target="#productModal<%= product.id %>">
+
+  <% 
+    // Verificar si el producto tiene oferta activa
+    const tieneOferta = product.tiene_oferta_vigente;
+    const precioOriginal = product.price;
+    const precioFinal = product.precio_final || product.price;
+    const porcentajeDescuento = tieneOferta && product.tipo_descuento === 'porcentaje' ? product.valor_descuento : null;
+    const esOfertaGeneral = product.es_oferta_general || false;
+    const nombreOfertaGeneral = product.nombre_oferta_general || '';
+    
+    // Cotización y moneda
+    const cotiz = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
+    const monedaProd = product.moneda || 'USD';
+    const esUSD = monedaProd === 'USD';
+    const simbolo = esUSD ? 'USD' : 'ARS $';
+  %>
+
+  <% if (tieneOferta) { %>
+  <div class="oferta-badge">
+    <% if (porcentajeDescuento) { %>
+      -<%= porcentajeDescuento %>%
+    <% } else { %>
+      OFERTA
+    <% } %>
+  </div>
+  <% } %>
+
+  <div class="product-image-container">
+    <img src="<%= product.img %>" alt="<%= product.name %>" class="product-image" loading="lazy" decoding="async" width="400" height="400">
+  </div>
+
+  <div class="product-details">
+    <% 
+    // Verificar si el nombre tiene "/" 
+    const hasSlash = product.name.includes('/');
+    if (hasSlash) {
+      // Dividir el nombre por "/" y mostrar cada parte en una línea
+      const nameParts = product.name.split('/').map(part => part.trim());
+    %>
+      <div class="product-name-parts" style="margin-bottom: 12px;">
+        <% nameParts.forEach(part => { %>
+          <h3 class="product-name-line" style="font-size: 0.95rem; color: #1d1d1f; font-weight: 600; margin: 2px 0; text-align: left; letter-spacing: -0.01em; line-height: 1.3;">
+            <%= part %>
+          </h3>
+        <% }); %>
+      </div>
+    <% } else { %>
+      <h3 class="product-name" style="font-size: 1.1rem; color: #1d1d1f; font-weight: 600; margin-top: 12px; margin-bottom: 8px; text-align: left; letter-spacing: -0.01em; line-height: 1.3;">
+        <%= product.name %>
+      </h3>
+    <% } %>
+
+    <% if (tieneOferta) { %>
+    <div class="precio-container precio-container--oferta">
+      <div class="oferta-precios">
+        <span class="precio-original"><%= simbolo %> <%= precioOriginal %></span>
+        <span class="precio-oferta"><%= simbolo %> <%= precioFinal %></span>
+      </div>
+      <div class="oferta-meta">
+        <span class="ahorro-text">Ahorrás <%= simbolo %> <%= (precioOriginal - precioFinal).toFixed(2) %></span>
+        <% if (esOfertaGeneral && nombreOfertaGeneral) { %>
+        <span class="oferta-chip"><%= nombreOfertaGeneral %></span>
+        <% } else if (!esOfertaGeneral && porcentajeDescuento) { %>
+        <span class="oferta-chip">Desc. <%= porcentajeDescuento %>%</span>
+        <% } %>
+      </div>
+    </div>
+    <% } else { %>
+    <p class="product-price precio" style="font-size: 1.1rem; color: #1d1d1f; margin-bottom: 8px; margin-top: 8px; text-align: left; font-weight: 600;">
+      <%= simbolo %> <%= product.price %>
+    </p>
+    <% } %>
+
+    <% 
+      // Parsear planes de cuotas
+      let planesCard = [];
+      try { planesCard = JSON.parse(product.cuotas_planes || '[]'); } catch(e) { planesCard = []; }
+      if (planesCard.length === 0 && product.cuotas_max && product.cuotas_max > 0) {
+        planesCard = [{cuotas: product.cuotas_max, interes: product.interes_cuotas || 0}];
+      }
+    %>
+    <% if (planesCard.length > 0) { %>
+    <% 
+      const mejorPlan = planesCard[planesCard.length - 1];
+      const precioBaseCuota = tieneOferta ? precioFinal : product.price;
+      // Cuotas siempre en pesos argentinos (ARS) — convertir si es USD
+      const precioBasePesos = esUSD ? (precioBaseCuota * cotiz) : precioBaseCuota;
+      const totalCuota = mejorPlan.interes > 0 ? (precioBasePesos * (1 + mejorPlan.interes / 100)) : precioBasePesos;
+      const valorCuotaNum = Math.round(totalCuota / mejorPlan.cuotas);
+      const valorCuotaCard = valorCuotaNum.toLocaleString('es-AR');
+      const sinInteres = !mejorPlan.interes || mejorPlan.interes === 0;
+    %>
+    <div class="cuotas-badge">
+      <span class="cuotas-badge__icon">💳</span>
+      <span class="cuotas-badge__text">
+        <% if (planesCard.length > 1) { %>
+          Hasta <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>ARS $<%= valorCuotaCard %></strong>
+        <% } else { %>
+          <strong><%= mejorPlan.cuotas %> cuotas</strong> de <strong>ARS $<%= valorCuotaCard %></strong>
+        <% } %>
+        <% if (sinInteres) { %>
+        <span class="cuotas-sin-interes">sin interés</span>
+        <% } %>
+      </span>
+    </div>
+    <% } %>
+
+    <div class="product-footer">
+      <div class="battery-status">
+        <img src="/imgs/bateria.png" alt="Battery Icon" class="battery-icon">
+        <p class="bateria">
+          <span class="bateria-num">
+            <%= product.bateria %>
+          </span>% 
+        </p>
+      </div>
+      
+      <!-- Botón para redirigir a la hoja de producto -->
+      <form action="/product" method="POST" class="d-inline" onclick="event.stopPropagation()">
+        <input type="hidden" name="productId" value="<%= product.id %>">
+        <button type="submit" class="btn-ver-mas-small">Ver más</button>
+      </form>
+      
+      
+    </div>
+  </div>
+</div>

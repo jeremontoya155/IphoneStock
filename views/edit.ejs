@@ -11,6 +11,7 @@
 </head>
 <body>
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
+    <%- include('partials/adminHeader') %>
 
     <div class="container">
         <h1 class="text-center catalogo-title">Editar Producto</h1>
@@ -85,7 +86,7 @@
                 <input type="number" class="form-control" id="almacenamiento" name="almacenamiento" value="<%= product.almacenamiento %>" required>
             </div>
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
-            <a href="/" class="btn btn-secondary">Cancelar</a>
+            <a href="/admin/productos" class="btn btn-secondary">Cancelar</a>
         </form>
 
         <!-- Formulario para eliminar el producto -->

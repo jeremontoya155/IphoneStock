@@ -1,5 +1,6 @@
-<div class="about-container">
+<div class="about-container <%= about.imagen ? '' : 'about-container--solo' %>">
     <div class="about-content">
+        <span class="about-eyebrow">Sobre iLoop</span>
         <h2 class="about-title">
             <%= about.titulo %>
         </h2>
@@ -7,15 +8,19 @@
             <%= about.texto %>
         </p>
         <div class="about-button-container">
-            <a href="https://wa.link/hnm4mr" class="about-button">Contactate con nosotros</a>
+            <a href="https://wa.link/hnm4mr" class="about-button">Escribinos por WhatsApp</a>
+            <a href="/cart" class="about-link">Ver catálogo &rarr;</a>
         </div>
     </div>
+    <% if (about.imagen) { %>
     <div class="about-image-container">
-        <img src="<%= about.imagen %>" class="about-image" alt="Imagen sobre nosotros">
+        <img src="<%= about.imagen %>" class="about-image" alt="Imagen sobre nosotros" loading="lazy">
     </div>
+    <% } %>
     <% if (isAdmin) { %>
-        <a href="/edit-images" class="btn-generico">Cambiar Logo</a>
-        <a href="/edit-about" class="btn-generico">Editar About</a>
-        <% }; %>
-</div>
+        <div class="about-admin">
+            <a href="/edit-images" class="btn-generico">Cambiar Logo</a>
+            <a href="/edit-about" class="btn-generico">Editar About</a>
+        </div>
+    <% }; %>
 </div>

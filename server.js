@@ -30,7 +30,7 @@ const CSP = [
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://stackpath.bootstrapcdn.com https://maxcdn.bootstrapcdn.com https://kit.fontawesome.com https://ka-f.fontawesome.com https://fonts.googleapis.com",
     "font-src 'self' data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://stackpath.bootstrapcdn.com https://maxcdn.bootstrapcdn.com https://ka-f.fontawesome.com https://fonts.gstatic.com",
     "img-src 'self' data: blob: https:",
-    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.facebook.com https://connect.facebook.net https://kit.fontawesome.com https://ka-f.fontawesome.com https://cdn.jsdelivr.net https://res.cloudinary.com",
+    "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://*.analytics.google.com https://www.googletagmanager.com https://stats.g.doubleclick.net https://*.g.doubleclick.net https://www.google.com https://www.googleadservices.com https://www.facebook.com https://connect.facebook.net https://kit.fontawesome.com https://ka-f.fontawesome.com https://cdn.jsdelivr.net https://res.cloudinary.com",
     "frame-src https://www.google.com https://www.googletagmanager.com https://www.facebook.com",
     "object-src 'none'",
     "base-uri 'self'",
@@ -187,6 +187,16 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 8
     }
 }));
+
+app.locals.adminMenu = require('./adminMenu');
+
+// Datos de sesión disponibles en TODAS las vistas (menú, barra de gestión, etc.)
+app.use((req, res, next) => {
+    res.locals.isLogged = !!(req.session && req.session.userId);
+    res.locals.sessionUser = (req.session && req.session.username) || '';
+    res.locals.currentPath = req.path;
+    next();
+});
 
 // Conectar a la base de datos PostgreSQL
 const pool = new Pool({
@@ -792,7 +802,7 @@ app.post('/new', requireAdmin, upload.single('image'), async (req, res) => {
         const catId = categoria_id && categoria_id !== '' ? parseInt(categoria_id) : null;
         const monedaVal = moneda === 'ARS' ? 'ARS' : 'USD';
         await pool.query('INSERT INTO products (name, description, img, price, stock, bateria, almacenamiento, estado, categoria_id, moneda) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)', [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, monedaVal]);
-        res.redirect('/');
+        res.redirect('/admin/productos');
     } catch (err) {
         console.error('Error al agregar nuevo producto:', err);
         res.status(500).send('Error interno del servidor');
@@ -1182,7 +1192,8 @@ app.post('/login', async (req, res) => {
                 }
                 req.session.userId = user.id;
                 req.session.isAdmin = user.isadmin;
-                req.session.save(() => res.redirect('/'));
+                req.session.username = user.username;
+                req.session.save(() => res.redirect('/panel'));
             });
         } else {
             req.session.error = 'Credenciales incorrectas';
@@ -1207,7 +1218,7 @@ app.post('/edit-about', requireAdmin, upload.single('imagen'), async (req, res) 
     try {
         // Actualiza los campos en la base de datos.
         await pool.query('UPDATE about SET titulo = $1, texto = $2, imagen = $3 WHERE id = $4', [titulo, texto, imagen, 1]);
-        res.redirect('/');
+        res.redirect('/panel');
     } catch (err) {
         console.error('Error al actualizar contenido de about:', err);
         res.status(500).send('Error interno del servidor');
@@ -1231,7 +1242,7 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
             'UPDATE products SET name = $1, description = $2, img = $3, price = $4, stock = $5, bateria = $6, almacenamiento = $7, estado = $8, categoria_id = $9, moneda = $10 WHERE id = $11',
             [name, description, imageUrl, price, stock, bateria, almacenamiento, estado, catId, monedaVal, id]
         );
-        res.redirect('/');
+        res.redirect('/admin/productos');
     } catch (err) {
         console.error('Error al actualizar producto:', err);
         res.status(500).send('Error interno del servidor');
@@ -1265,6 +1276,122 @@ app.post('/buy/:id', (req, res) => {
             res.redirect('/cart');
         }
     });
+});
+
+// ==================== CARRITO PÚBLICO (checkout por WhatsApp) ====================
+// El navegador solo guarda {id, qty}. Precios, ofertas y stock se resuelven acá desde la BD,
+// así nadie puede manipular un precio desde el cliente.
+
+const CARRITO_MAX_ITEMS = 30;
+const CARRITO_MAX_QTY = 10;
+const carritoHits = new Map(); // limitador simple por IP: 60 pedidos/min
+setInterval(() => carritoHits.clear(), 60 * 1000).unref();
+function carritoLimiter(req, res, next) {
+    const n = (carritoHits.get(req.ip) || 0) + 1;
+    carritoHits.set(req.ip, n);
+    if (n > 60) return res.status(429).json({ error: 'Demasiadas solicitudes, probá en un minuto.' });
+    next();
+}
+
+// Devuelve los productos pedidos con su precio final (oferta específica > oferta general > precio normal)
+async function cargarProductosPublicos(ids) {
+    ids = [...new Set(ids.map(Number).filter(n => Number.isInteger(n) && n > 0))].slice(0, CARRITO_MAX_ITEMS);
+    if (!ids.length) return [];
+    // Las 3 consultas son independientes: se lanzan en paralelo (la BD es remota y cada ida y vuelta cuesta)
+    const [prodsRes, generalRes, especificasRes] = await Promise.all([
+        pool.query('SELECT * FROM products WHERE id = ANY($1::int[])', [ids]),
+        pool.query('SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1').catch(() => null),
+        pool.query(`
+            SELECT o.product_id,
+                CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
+                ELSE GREATEST(ROUND(p.price - o.valor_descuento, 2), 0) END AS precio_final
+            FROM ofertas o JOIN products p ON o.product_id = p.id
+            WHERE o.activo = TRUE AND o.product_id = ANY($1::int[])`, [ids]).catch(() => null)
+    ]);
+    const prods = prodsRes.rows;
+
+    const ofertaGeneral = generalRes && generalRes.rows[0] ? generalRes.rows[0] : null;
+    const excluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
+        ? ofertaGeneral.categorias_excluidas.split(',').map(x => parseInt(x.trim())).filter(x => !isNaN(x)) : [];
+
+    const especificas = {};
+    if (especificasRes) especificasRes.rows.forEach(o => { especificas[o.product_id] = Number(o.precio_final); });
+
+    return prods.map(p => {
+        const precio = Number(p.price) || 0;
+        let final = precio;
+        if (especificas[p.id] !== undefined) final = especificas[p.id];
+        else if (ofertaGeneral && !excluidas.includes(p.categoria_id)) {
+            final = ofertaGeneral.tipo_descuento === 'porcentaje'
+                ? Math.round(precio * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
+                : Math.max(Math.round((precio - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+        }
+        return {
+            id: p.id, name: p.name, img: optimizeCloudinaryUrl(p.img, 300),
+            moneda: p.moneda === 'ARS' ? 'ARS' : 'USD',
+            price: precio, precio_final: final,
+            stock: Math.max(parseInt(p.stock) || 0, 0),
+            bateria: p.bateria, almacenamiento: p.almacenamiento, estado: p.estado
+        };
+    });
+}
+
+// Datos frescos de los productos del carrito (para dibujar el panel)
+app.get('/api/carrito/productos', carritoLimiter, async (req, res) => {
+    try {
+        const ids = String(req.query.ids || '').split(',').map(Number);
+        res.json(await cargarProductosPublicos(ids));
+    } catch (err) {
+        console.error('Error carrito/productos:', err.message);
+        res.status(500).json({ error: 'No se pudo cargar el carrito' });
+    }
+});
+
+// Arma el mensaje de WhatsApp con todo el carrito y devuelve la URL
+app.post('/carrito/whatsapp', carritoLimiter, async (req, res) => {
+    try {
+        const telefono = String(process.env.MY_PHONE_NUMBER || '').replace(/\D/g, '');
+        if (!telefono) return res.status(500).json({ error: 'WhatsApp no está configurado' });
+
+        const pedidos = Array.isArray(req.body && req.body.items) ? req.body.items.slice(0, CARRITO_MAX_ITEMS) : [];
+        const qtyPorId = {};
+        pedidos.forEach(i => {
+            const id = parseInt(i && i.id), q = parseInt(i && i.qty);
+            if (Number.isInteger(id) && id > 0 && Number.isInteger(q) && q > 0) qtyPorId[id] = Math.min(q, CARRITO_MAX_QTY);
+        });
+        const productos = (await cargarProductosPublicos(Object.keys(qtyPorId))).filter(p => p.stock > 0);
+        if (!productos.length) return res.status(400).json({ error: 'Tu carrito está vacío o los productos ya no tienen stock.' });
+
+        const nombre = String((req.body && req.body.nombre) || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 60);
+        const base = getPublicBaseUrl(req);
+        const fmt = (n, m) => (m === 'ARS' ? 'ARS $' : 'USD ') + Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+        const totales = {};
+        const ajustes = [];
+
+        const lineas = productos.map((p, i) => {
+            let qty = qtyPorId[p.id];
+            if (qty > p.stock) { qty = p.stock; ajustes.push(p.name); }
+            const sub = p.precio_final * qty;
+            totales[p.moneda] = (totales[p.moneda] || 0) + sub;
+            const detalle = [p.almacenamiento ? `${p.almacenamiento}GB` : '', p.bateria ? `Batería ${p.bateria}%` : '', p.estado || '']
+                .filter(Boolean).join(' · ');
+            return `${i + 1}) *${p.name}*` + (detalle ? `\n   ${detalle}` : '') +
+                `\n   ${qty} x ${fmt(p.precio_final, p.moneda)} = ${fmt(sub, p.moneda)}` +
+                `\n   ${base}/product/${p.id}`;
+        });
+
+        const totalTxt = Object.keys(totales).map(m => fmt(totales[m], m)).join(' + ');
+        const mensaje = `Hola iLoop! 👋${nombre ? ' Soy ' + nombre + '.' : ''} Quiero consultar por estos productos:\n\n` +
+            lineas.join('\n\n') + `\n\n*Total: ${totalTxt}*\n\n¿Están disponibles?`;
+
+        res.json({
+            url: `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`,
+            ajustados: ajustes
+        });
+    } catch (err) {
+        console.error('Error carrito/whatsapp:', err.message);
+        res.status(500).json({ error: 'No se pudo armar el pedido' });
+    }
 });
 
 // Ruta para eliminar un producto (requiere autenticación de administrador)
@@ -1312,7 +1439,7 @@ app.post('/delete/:id', requireAdmin, async (req, res) => {
         const deleteResult = await pool.query('DELETE FROM products WHERE id = $1', [id]);
         console.log(`Producto ${id} eliminado correctamente (${deleteResult.rowCount} filas afectadas)`);
         
-        res.redirect('/?success=producto_eliminado');
+        res.redirect('/admin/productos');
     } catch (err) {
         console.error('Error al eliminar producto:', err);
         res.status(500).send('Error al eliminar producto: ' + err.message);
@@ -1483,7 +1610,7 @@ app.post('/edit-images', requireAdmin, async (req, res) => {
     const { imagen1, imagen2 } = req.body;
     try {
         await pool.query('UPDATE imagenes SET imagen1 = $1, imagen2 = $2 WHERE id = $3', [imagen1, imagen2, 1]);
-        res.redirect('/');
+        res.redirect('/panel');
     } catch (err) {
         console.error('Error al actualizar URLs de las imágenes:', err);
         res.status(500).send('Error interno del servidor');
@@ -2470,6 +2597,72 @@ Sitemap: ${baseUrl}/sitemap.xml
 
     res.header('Content-Type', 'text/plain');
     res.send(robotsTxt);
+});
+
+// ==================== PANEL DE GESTIÓN ====================
+const esFlagAdmin = (f) => f === true || f === 1 || f === '1' || f === 't';
+
+// Inicio de la gestión: accesos agrupados por tarea y estado del negocio de un vistazo
+app.get('/panel', requireLogin, async (req, res) => {
+    try {
+        const u = await pool.query('SELECT username, isadmin FROM users WHERE id = $1', [req.session.userId]);
+        if (!u.rows.length) return req.session.destroy(() => res.redirect('/login'));
+        const esAdmin = esFlagAdmin(u.rows[0].isadmin);
+        req.session.isAdmin = esAdmin;
+        req.session.username = u.rows[0].username;
+
+        const q = (sql, params) => pool.query(sql, params).then(r => r.rows).catch(() => null);
+        const soloMias = esAdmin ? '' : ' AND vendedor_id = $1';
+        const pv = esAdmin ? [] : [req.session.userId];
+        const [stock, ofertas, general, dolar, ventasHoy, ultimas] = await Promise.all([
+            esAdmin ? q(`SELECT COUNT(*)::int AS total,
+                    COUNT(*) FILTER (WHERE stock > 0)::int AS con_stock,
+                    COUNT(*) FILTER (WHERE stock IS NULL OR stock <= 0)::int AS sin_stock,
+                    COUNT(*) FILTER (WHERE stock BETWEEN 1 AND 2)::int AS poco_stock FROM products`) : null,
+            esAdmin ? q('SELECT COUNT(*)::int AS n FROM ofertas WHERE activo = TRUE') : null,
+            esAdmin ? q('SELECT nombre, tipo_descuento, valor_descuento FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1') : null,
+            esAdmin ? q("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'") : null,
+            q(`SELECT COUNT(*)::int AS n FROM facturas WHERE fecha::date = (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date${soloMias}`, pv),
+            q(`SELECT id, numero_factura, cliente_nombre, total, fecha FROM facturas WHERE TRUE${soloMias} ORDER BY fecha DESC LIMIT 5`, pv)
+        ]);
+
+        res.render('panel', {
+            esAdmin,
+            usuario: u.rows[0].username,
+            stock: stock && stock[0],
+            ofertasActivas: ofertas && ofertas[0] ? ofertas[0].n : null,
+            ofertaGeneral: general && general[0] ? general[0] : null,
+            dolar: dolar && dolar[0] ? parseFloat(dolar[0].valor) : null,
+            ventasHoy: ventasHoy && ventasHoy[0] ? ventasHoy[0].n : null,
+            ultimas: ultimas || [],
+            isAdmin: esAdmin
+        });
+    } catch (err) {
+        console.error('Error en /panel:', err.message);
+        res.status(500).send('Error interno del servidor');
+    }
+});
+
+app.get('/admin', requireLogin, (req, res) => res.redirect('/panel'));
+
+// Gestión de productos (antes era una tabla al final de la portada pública)
+app.get('/admin/productos', requireAdmin, async (req, res) => {
+    try {
+        const [prods, cats] = await Promise.all([
+            pool.query(`SELECT p.id, p.name, p.img, p.price, p.moneda, p.stock, p.estado, p.bateria, p.almacenamiento,
+                               p.categoria_id, c.nombre AS categoria_nombre
+                        FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id ORDER BY p.id DESC`),
+            pool.query('SELECT id, nombre FROM categorias ORDER BY nombre').catch(() => ({ rows: [] }))
+        ]);
+        res.render('productos', {
+            products: prods.rows.map(p => ({ ...p, img: optimizeCloudinaryUrl(p.img, 120) })),
+            categorias: cats.rows,
+            isAdmin: true
+        });
+    } catch (err) {
+        console.error('Error en /admin/productos:', err.message);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 // Manejador de errores para páginas no encontradas (404)

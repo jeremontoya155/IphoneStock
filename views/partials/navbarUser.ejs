@@ -15,16 +15,10 @@
                     <ul>
                         <li><a href="/">Inicio</a></li>
                         <li><a href="/cart">Catálogo</a></li>
-                        <% if (isAdmin) { %>
-                            <li><a href="/cajas">CAJAS</a></li>
-                            <li><a href="/historico">Histórico</a></li>
-                            <li><a href="/categorias">Categorías</a></li>
-                            <li><a href="/admin/ofertas">Ofertas</a></li>
-                            <li><a href="/admin/cotizacion">💲 Cotización</a></li>
-                            <li><a href="/admin/cotizador">🧾 Cotizador</a></li>
-                            <li><a href="/edit-about">Editar About</a></li>
-                            <li><a href="/logout">Cerrar Sesión</a></li>
-                            <% } %>
+                        <% if (typeof isLogged !== 'undefined' && isLogged) { %>
+                            <li><a href="/panel" class="nav-panel">⚙️ Panel</a></li>
+                            <li><a href="/logout">Salir<%= (typeof sessionUser !== 'undefined' && sessionUser) ? ' (' + sessionUser + ')' : '' %></a></li>
+                        <% } %>
                     </ul>
                 </div>
 </nav>

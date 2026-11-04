@@ -11,6 +11,7 @@
 </head>
 <body>
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
+    <%- include('partials/adminHeader') %>
 
     <div class="container">
         <h1 class="text-center">Editar Imágenes</h1>
@@ -26,7 +27,7 @@
                 <img src="<%= imagenes.imagen2 %>" alt="Imagen actual" class="img-fluid mt-2">
             </div>
             <button type="submit" class="btn btn-primary">Guardar cambios</button>
-            <a href="/" class="btn btn-secondary">Cancelar</a>
+            <a href="/panel" class="btn btn-secondary">Cancelar</a>
         </form>
     </div>
 </body>

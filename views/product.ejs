@@ -1,239 +1,212 @@
+<%
+    // ---------- Datos de la ficha ----------
+    const fmt = (n) => Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+    const cotiz = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
+    const mostrarPesos = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
+    const esUSD = (product.moneda || 'USD') === 'USD';
+    const simbolo = esUSD ? 'USD' : 'ARS $';
+    const precio = Number(product.price) || 0;
+    const tieneOferta = !!product.tiene_oferta_vigente;
+    const precioFinal = tieneOferta ? Number(product.precio_final) : precio;
+    const ahorro = precio - precioFinal;
+    const enStock = Number(product.stock) > 0;
+
+    // Nombre: "IPHONE 13 / 128GB / NEGRO" -> título + subtítulo
+    const partes = String(product.name || '').split('/').map(s => s.trim()).filter(Boolean);
+    const titulo = partes[0] || product.name;
+    const subtitulo = partes.slice(1).join(' · ');
+
+    // Texto de descripción limpio (sin caracteres de codificación rotos ni acentos problemáticos)
+    function cleanText(t) {
+        return String(t || '')
+            .replace(/�/g, 'a').replace(/Â/g, 'a')
+            .replace(/â€™/g, "'").replace(/â€œ/g, '"').replace(/â€\u009d/g, '"').replace(/€™/g, "'")
+            .replace(/Resolucian/gi, 'Resolucion').replace(/Resolucin/gi, 'Resolucion')
+            .normalize('NFD').replace(/[̀-ͯ]/g, '')
+            .replace(/[�″"]/g, ' pulgadas').replace(/pulgadas pulgadas/g, ' pulgadas')
+            .replace(/\s+/g, ' ').trim();
+    }
+    const descripcion = cleanText(product.description);
+
+    // La descripción viene como un solo renglón "Etiqueta: valor Etiqueta: valor ...".
+    // Si reconocemos al menos 3 etiquetas, la mostramos como tabla de especificaciones.
+    const ETIQUETAS = ['Condicion', 'Conector de carga', 'Memoria interna', 'Memoria RAM', 'Color', 'Red Movil', 'Bateria',
+        'Resolucion de la camara trasera principal', 'Resolucion de la camara frontal principal', 'Resolucion pantalla',
+        'Pantalla', 'Marca', 'Modelo', 'Linea', 'Version', 'Sistema operativo', 'Procesador', 'Camara trasera', 'Camara frontal',
+        'Peso', 'Tamano de pantalla', 'Capacidad', 'Tipo de pantalla', 'Con NFC', 'Con huella', 'Es dual SIM', 'Garantia']
+        .sort((a, b) => b.length - a.length);
+    const reEtiqueta = new RegExp('(' + ETIQUETAS.map(l => l.replace(/ /g, '\\s+')).join('|') + ')\\s*:\\s*', 'gi');
+    const hallazgos = [];
+    let mt;
+    while ((mt = reEtiqueta.exec(descripcion)) !== null) hallazgos.push({ label: mt[1].replace(/\s+/g, ' '), ini: mt.index, fin: reEtiqueta.lastIndex });
+    const specs = hallazgos.length >= 3 ? hallazgos.map((h, i) => ({
+        label: h.label.charAt(0).toUpperCase() + h.label.slice(1).toLowerCase(),
+        valor: descripcion.slice(h.fin, i + 1 < hallazgos.length ? hallazgos[i + 1].ini : undefined).trim()
+    })).filter(s => s.valor) : [];
+
+    // Cuotas
+    let planes = [];
+    try { planes = JSON.parse(product.cuotas_planes || '[]'); } catch (e) { planes = []; }
+    if (planes.length === 0 && product.cuotas_max && product.cuotas_max > 0) {
+        planes = [{ cuotas: product.cuotas_max, interes: product.interes_cuotas || 0 }];
+    }
+    const basePesos = esUSD ? (precioFinal * cotiz) : precioFinal;
+    const filasCuotas = planes.map(p => {
+        const total = p.interes > 0 ? basePesos * (1 + p.interes / 100) : basePesos;
+        return { cuotas: p.cuotas, valor: Math.round(total / p.cuotas).toLocaleString('es-AR'), sinInteres: !p.interes };
+    });
+
+    const bateria = parseInt(product.bateria) || 0;
+    const imgOg = product.img || '';
+    const stockTexto = !enStock ? 'Sin stock' : (Number(product.stock) === 1 ? 'Última unidad' : 'Disponible');
+%>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Producto - <%= product.name %>
-    </title>
+    <title><%= product.name %> | iLoop</title>
+    <meta name="description" content="<%= product.name %> — <%= simbolo %> <%= fmt(precioFinal) %><%= product.estado ? ' · ' + product.estado : '' %><%= bateria ? ' · Batería ' + bateria + '%' : '' %>. Comprá por WhatsApp en iLoop.">
+    <meta property="og:title" content="<%= product.name %> | iLoop">
+    <meta property="og:type" content="product">
+    <% if (imgOg) { %><meta property="og:image" content="<%= imgOg %>"><% } %>
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/pages/productPage.css">
+    <link rel="stylesheet" href="/css/store.css?v=6">
 </head>
 
-<body>
+<body class="has-buybar">
 
-    <!-- Incluir Navbar -->
-    <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
-        <header>
-            <h1>Detalles del Producto</h1>
-        </header>
+    <%- include('partials/navbarUser') %>
 
-        <main class="productPage-container">
-            <div class="productPage-main">
-                <!-- Imagen del producto -->
-                <div class="productPage-image">
-                    <% if (product.img) { %>
-                        <img src="<%= product.img %>" alt="Imagen de <%= product.name %>">
-                        <% } else { %>
-                            <p>Imagen no disponible</p>
-                            <% } %>
-                </div>
+    <main class="pp">
+        <nav class="pp-crumbs" aria-label="Ruta de navegación">
+            <a href="/">Inicio</a><span>/</span><a href="/cart">Catálogo</a><span>/</span><span aria-current="page"><%= titulo %></span>
+        </nav>
 
-                <!-- Detalles del producto -->
-                <div class="productPage-details">
-                    <h1 class="productPage-title">
-                        <%= product.name %>
-                    </h1>
+        <div class="pp-grid">
+            <!-- ===== Imagen ===== -->
+            <section class="pp-media">
+                <% if (tieneOferta) { %>
+                <span class="pp-badge"><%= product.tipo_descuento === 'porcentaje' ? '-' + product.valor_descuento + '%' : 'OFERTA' %></span>
+                <% } %>
+                <% if (product.img) { %>
+                <img src="<%= product.img %>" alt="<%= product.name %>" width="640" height="640">
+                <% } else { %>
+                <p class="pp-noimg">Imagen no disponible</p>
+                <% } %>
+            </section>
 
+            <!-- ===== Información y compra ===== -->
+            <section class="pp-info">
+                <div class="pp-top">
                     <% if (product.categoria_nombre) { %>
-                    <p><strong>Categoría:</strong>
-                        <span style="background: <%= product.categoria_color || '#0052A3' %>; color: white; padding: 0.25rem 0.75rem; border-radius: 15px; display: inline-block;">
-                            <%= product.categoria_icono %> <%= product.categoria_nombre %>
-                        </span>
-                    </p>
+                    <span class="pp-chip"><%= product.categoria_icono %> <%= product.categoria_nombre %></span>
                     <% } %>
-
-                    <p><strong>Estado:</strong>
-                        <%= product.estado %>
-                    </p>
-                    <p><strong>Almacenamiento:</strong>
-                        <%= product.almacenamiento %> GB
-                    </p>
-                    <p><strong>Batería:</strong>
-                        <%= product.bateria %>% 
-                    </p>
-                    <p><strong>Descripción:</strong>
-                        <%
-                        // Función para limpiar solo caracteres problemáticos y normalizar acentos
-                        function cleanText(text) {
-                          return text
-                            // Convertir caracteres de codificación problemáticos a 'a'
-                            .replace(/�/g, 'a')
-                            .replace(/Â/g, 'a')
-                            .replace(/â€™/g, "'")
-                            .replace(/â€œ/g, '"')
-                            .replace(/â€\u009d/g, '"')
-                            .replace(/€™/g, "'")
-                            
-                            // Correcciones específicas de palabras mal formadas
-                            .replace(/Resolucian/gi, 'Resolucion')
-                            .replace(/Resolucin/gi, 'Resolucion')
-                            
-                            // Diccionario de acentos: convertir á→a, é→e, etc.
-                            .replace(/á/g, 'a')
-                            .replace(/à/g, 'a')
-                            .replace(/â/g, 'a')
-                            .replace(/ä/g, 'a')
-                            .replace(/ã/g, 'a')
-                            .replace(/Á/g, 'A')
-                            .replace(/À/g, 'A')
-                            .replace(/Â/g, 'A')
-                            .replace(/Ä/g, 'A')
-                            .replace(/Ã/g, 'A')
-                            
-                            .replace(/é/g, 'e')
-                            .replace(/è/g, 'e')
-                            .replace(/ê/g, 'e')
-                            .replace(/ë/g, 'e')
-                            .replace(/É/g, 'E')
-                            .replace(/È/g, 'E')
-                            .replace(/Ê/g, 'E')
-                            .replace(/Ë/g, 'E')
-                            
-                            .replace(/í/g, 'i')
-                            .replace(/ì/g, 'i')
-                            .replace(/î/g, 'i')
-                            .replace(/ï/g, 'i')
-                            .replace(/Í/g, 'I')
-                            .replace(/Ì/g, 'I')
-                            .replace(/Î/g, 'I')
-                            .replace(/Ï/g, 'I')
-                            
-                            .replace(/ó/g, 'o')
-                            .replace(/ò/g, 'o')
-                            .replace(/ô/g, 'o')
-                            .replace(/ö/g, 'o')
-                            .replace(/õ/g, 'o')
-                            .replace(/Ó/g, 'O')
-                            .replace(/Ò/g, 'O')
-                            .replace(/Ô/g, 'O')
-                            .replace(/Ö/g, 'O')
-                            .replace(/Õ/g, 'O')
-                            
-                            .replace(/ú/g, 'u')
-                            .replace(/ù/g, 'u')
-                            .replace(/û/g, 'u')
-                            .replace(/ü/g, 'u')
-                            .replace(/Ú/g, 'U')
-                            .replace(/Ù/g, 'U')
-                            .replace(/Û/g, 'U')
-                            .replace(/Ü/g, 'U')
-                            
-                            // Casos especiales
-                            .replace(/ñ/g, 'n')
-                            .replace(/Ñ/g, 'N')
-                            .replace(/ç/g, 'c')
-                            .replace(/Ç/g, 'C')
-                            
-                            // Limpiar símbolos de pulgadas problemáticos
-                            .replace(/[��″"]/g, ' pulgadas')
-                            .replace(/pulgadas pulgadas/g, ' pulgadas')
-                            
-                            // Limpiar espacios múltiples
-                            .replace(/\s+/g, ' ')
-                            .trim();
-                        }
-                        %>
-                        <%= cleanText(product.description) %>
-                    </p>
-                    <p><strong>Stock:</strong>
-                        <%= product.stock %>
-                    </p>
-                    <% if (product.tiene_oferta_vigente) { %>
-                    <%
-                      const cotiz = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
-                      const monedaProd = product.moneda || 'USD';
-                      const esUSD = monedaProd === 'USD';
-                      const simbolo = esUSD ? 'USD' : 'ARS $';
-                      const mostrarPesos = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
-                    %>
-                    <div style="margin-bottom: 10px;">
-                      <p style="margin-bottom: 2px;"><strong>Precio:</strong></p>
-                      <span style="font-size: 0.95rem; color: #86868b; text-decoration: line-through;"><%= simbolo %> <%= product.price %></span>
-                      <span style="font-size: 1.4rem; color: #ff3b30; font-weight: 700; margin-left: 8px;"><%= simbolo %> <%= product.precio_final %></span>
-                      <% if (esUSD && mostrarPesos) { %>
-                      <div style="font-size: 0.95rem; color: #2e7d32; font-weight: 600; margin-top: 4px;">
-                        ARS $<%= Math.round(product.precio_final * cotiz).toLocaleString('es-AR') %>
-                      </div>
-                      <% } %>
-                      <div style="margin-top: 4px;">
-                        <span style="background: rgba(52,199,89,0.12); color: #34c759; padding: 3px 10px; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
-                          Ahorrás <%= simbolo %> <%= (product.price - product.precio_final).toFixed(2) %>
-                        </span>
-                        <% if (product.es_oferta_general && product.nombre_oferta_general) { %>
-                        <span style="background: rgba(255,59,48,0.08); color: #ff3b30; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">
-                          <%= product.nombre_oferta_general %>
-                        </span>
-                        <% } else if (product.tipo_descuento === 'porcentaje') { %>
-                        <span style="background: rgba(255,59,48,0.08); color: #ff3b30; padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-left: 6px;">
-                          -<%= product.valor_descuento %>%
-                        </span>
-                        <% } %>
-                      </div>
-                    </div>
-                    <% } else { %>
-                    <%
-                      const cotiz2 = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
-                      const monedaProd2 = product.moneda || 'USD';
-                      const esUSD2 = monedaProd2 === 'USD';
-                      const simbolo2 = esUSD2 ? 'USD' : 'ARS $';
-                      const mostrarPesos2 = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
-                    %>
-                    <p><strong>Precio:</strong> <%= simbolo2 %> <%= product.price %>
-                    </p>
-                    <% if (esUSD2 && mostrarPesos2) { %>
-                    <p style="color: #2e7d32; font-weight: 600; font-size: 1rem; margin-top: -8px;">
-                      ARS $<%= Math.round(product.price * cotiz2).toLocaleString('es-AR') %>
-                    </p>
-                    <% } %>
-                    <% } %>
-
-                    <% 
-                      let planesProducto = [];
-                      try { planesProducto = JSON.parse(product.cuotas_planes || '[]'); } catch(e) { planesProducto = []; }
-                      if (planesProducto.length === 0 && product.cuotas_max && product.cuotas_max > 0) {
-                        planesProducto = [{cuotas: product.cuotas_max, interes: product.interes_cuotas || 0}];
-                      }
-                      const cotizCuotas = typeof cotizacionDolar !== 'undefined' ? cotizacionDolar : 1200;
-                      const esUSDCuotas = (product.moneda || 'USD') === 'USD';
-                      const mostrarPesosCuotas = typeof mostrarPrecioPesos !== 'undefined' ? mostrarPrecioPesos : true;
-                    %>
-                    <% if (planesProducto.length > 0 && mostrarPesosCuotas) { %>
-                    <div style="margin-top: 8px; margin-bottom: 12px; padding: 10px 14px; background: rgba(46,125,50,0.06); border-radius: 10px; border: 1px solid rgba(46,125,50,0.15);">
-                        <div style="font-size: 0.9rem; color: #2e7d32; font-weight: 700; margin-bottom: 6px;">💳 Opciones de cuotas <span style="font-size: 0.75rem; font-weight: 400; color: #666;">(en pesos argentinos)</span></div>
-                        <% const precioBase = product.tiene_oferta_vigente ? product.precio_final : product.price; %>
-                        <% const precioBasePesosProd = esUSDCuotas ? (precioBase * cotizCuotas) : precioBase; %>
-                        <% planesProducto.forEach(plan => { %>
-                        <% 
-                            const totalPlan = plan.interes > 0 
-                                ? (precioBasePesosProd * (1 + plan.interes / 100)) 
-                                : precioBasePesosProd;
-                            const valorCuotaPlan = Math.round(totalPlan / plan.cuotas).toLocaleString('es-AR');
-                        %>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(46,125,50,0.08);">
-                            <span style="font-size: 0.9rem; color: #333; font-weight: 600;"><%= plan.cuotas %> cuotas</span>
-                            <span style="font-size: 0.9rem; color: #2e7d32; font-weight: 700;">ARS $<%= valorCuotaPlan %>/mes</span>
-                        </div>
-                        <% }); %>
-                    </div>
-                    <% } %>
-
-                    <!-- Botones de acción -->
-                    <div class="productPage-actions">
-                        <% if (isAdmin) { %>
-                            <a href="/edit/<%= product.id %>" class="productPage-editButton">Editar Producto</a>
-                            <% } %>
-                            <div class="productPage-actionCentered">
-                                <form action="/buy/<%= product.id %>" method="POST" class="d-inline"
-                                    onclick="event.stopPropagation()">
-                                    <button type="submit" class="btn-ver-mas-small productPage-consultar">Consultar</button>
-                                </form>
-                            </div>
-                    </div>
+                    <% if (isAdmin) { %><a class="pp-edit" href="/edit/<%= product.id %>">Editar producto</a><% } %>
                 </div>
-            </div>
-        </main>
 
+                <h1 class="pp-title"><%= titulo %></h1>
+                <% if (subtitulo) { %><p class="pp-sub"><%= subtitulo %></p><% } %>
+
+                <!-- Datos clave -->
+                <ul class="pp-facts">
+                    <% if (product.estado) { %>
+                    <li><span class="pp-facts__k">Estado</span><span class="pp-facts__v"><%= product.estado %></span></li>
+                    <% } %>
+                    <% if (product.almacenamiento) { %>
+                    <li><span class="pp-facts__k">Almacenamiento</span><span class="pp-facts__v"><%= product.almacenamiento %> GB</span></li>
+                    <% } %>
+                    <% if (bateria) { %>
+                    <li>
+                        <span class="pp-facts__k">Salud de batería</span>
+                        <span class="pp-facts__v"><%= bateria %>%</span>
+                        <span class="pp-meter" aria-hidden="true"><i style="width: <%= Math.min(bateria, 100) %>%"></i></span>
+                    </li>
+                    <% } %>
+                    <li class="<%= enStock ? '' : 'is-out' %>"><span class="pp-facts__k">Disponibilidad</span><span class="pp-facts__v"><%= stockTexto %></span></li>
+                </ul>
+
+                <!-- Precio -->
+                <div class="pp-price">
+                    <div class="pp-price__row">
+                        <span class="pp-price__now"><%= simbolo %> <%= fmt(precioFinal) %></span>
+                        <% if (tieneOferta) { %><span class="pp-price__old"><%= simbolo %> <%= fmt(precio) %></span><% } %>
+                    </div>
+                    <% if (tieneOferta && ahorro > 0) { %>
+                    <div class="pp-price__save">
+                        Ahorrás <%= simbolo %> <%= fmt(ahorro) %>
+                        <% if (product.es_oferta_general && product.nombre_oferta_general) { %> · <%= product.nombre_oferta_general %><% } %>
+                    </div>
+                    <% } %>
+                    <% if (esUSD && mostrarPesos) { %>
+                    <div class="pp-price__ars">≈ ARS $<%= Math.round(precioFinal * cotiz).toLocaleString('es-AR') %> <small>al dólar de hoy</small></div>
+                    <% } %>
+                </div>
+
+                <!-- Cuotas -->
+                <% if (filasCuotas.length > 0 && mostrarPesos) { %>
+                <details class="pp-cuotas" open>
+                    <summary>Pagá en cuotas <small>(en pesos argentinos)</small></summary>
+                    <ul>
+                        <% filasCuotas.forEach(f => { %>
+                        <li>
+                            <span><%= f.cuotas %> cuotas <% if (f.sinInteres) { %><em>sin interés</em><% } %></span>
+                            <strong>ARS $<%= f.valor %> <small>/mes</small></strong>
+                        </li>
+                        <% }); %>
+                    </ul>
+                </details>
+                <% } %>
+
+                <!-- Compra -->
+                <div class="pp-actions">
+                    <button type="button" class="btn-add-cart btn-add-cart--lg" data-add-to-cart data-id="<%= product.id %>" data-name="<%= product.name %>" <%= enStock ? '' : 'disabled' %>>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+                        <%= enStock ? 'Agregar al carrito' : 'Sin stock' %>
+                    </button>
+                    <form action="/buy/<%= product.id %>" method="POST">
+                        <button type="submit" class="btn-ghost btn-ghost--lg" <%= enStock ? '' : 'disabled' %>>Consultar solo este</button>
+                    </form>
+                </div>
+
+                <ul class="pp-trust">
+                    <li>Estado y batería informados en cada equipo</li>
+                    <li>Atención directa por WhatsApp</li>
+                    <% if (filasCuotas.length > 0) { %><li>Opciones de pago en cuotas</li><% } %>
+                </ul>
+            </section>
+        </div>
+
+        <!-- ===== Especificaciones ===== -->
+        <% if (specs.length > 0 || descripcion) { %>
+        <section class="pp-specs">
+            <h2>Especificaciones</h2>
+            <% if (specs.length > 0) { %>
+            <dl class="pp-specs__grid">
+                <% specs.forEach(s => { %>
+                <div><dt><%= s.label %></dt><dd><%= s.valor %></dd></div>
+                <% }); %>
+            </dl>
+            <% } else { %>
+            <p class="pp-specs__text"><%= descripcion %></p>
+            <% } %>
+        </section>
+        <% } %>
+    </main>
+
+    <!-- Barra de compra fija (solo celular) -->
+    <div class="pp-buybar">
+        <div class="pp-buybar__price">
+            <strong><%= simbolo %> <%= fmt(precioFinal) %></strong>
+            <% if (tieneOferta) { %><s><%= simbolo %> <%= fmt(precio) %></s><% } %>
+        </div>
+        <button type="button" class="btn-add-cart" data-add-to-cart data-id="<%= product.id %>" data-name="<%= product.name %>" <%= enStock ? '' : 'disabled' %>>
+            <%= enStock ? 'Agregar' : 'Sin stock' %>
+        </button>
+    </div>
+
+    <%- include('partials/storeCart') %>
 </body>
 
 </html>

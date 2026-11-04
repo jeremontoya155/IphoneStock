@@ -1,0 +1,187 @@
+.body {
+    padding-top: 56px;
+    padding-bottom: 20px;
+    background: linear-gradient(to bottom right, #f0f0f0, #ffffff);
+    /* Definición del degradado */
+    /* Agregar efecto de difuminado */
+}
+
+.table-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    align-items: center;
+    text-align: center;
+}
+
+.table img {
+    width: 100%;
+    height: auto;
+    max-width: 100px;
+}
+
+.navbar-brand i {
+    color: #007bff;
+}
+@media (max-width: 767px) {
+    .table-responsive {
+        border: 0;
+        overflow-x: auto;
+    }
+
+    .table {
+        width: 100%;
+        margin: 0 auto; /* Centrar horizontalmente en dispositivos móviles */
+        display: table;
+    }
+
+    .table thead {
+        display: none;
+    }
+
+    .table tbody,
+    .table tr {
+        display: table-row;
+        width: 100%;
+    }
+
+    .table td,
+    .table th {
+        text-align: center; /* Alinear el contenido al centro */
+        vertical-align: middle; /* Centrar verticalmente el contenido */
+        padding: 12px; /* Espaciado interior para las celdas */
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .table td::before,
+    .table th::before {
+        content: attr(data-label);
+        float: left;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    .table td:last-child,
+    .table th:last-child {
+        border-bottom: 0;
+    }
+
+    .table img {
+        max-width: 80px; /* Ajuste el tamaño de la imagen para dispositivos móviles */
+    }
+}
+
+.iloop-carousel {
+    position: relative;
+}
+
+.iloop-carousel-inner {
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 2px 5px 12px rgb(0 0 0 / 35%);
+}
+
+.iloop-carousel-item {
+    display: none;
+    width: 100%;
+}
+
+.iloop-carousel-item.active {
+    display: block;
+    animation: iloopCarouselFade 0.6s ease-in-out;
+}
+
+.iloop-carousel-img-desktop {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.iloop-carousel-img-mobile {
+    display: none;
+}
+
+.iloop-carousel-dots {
+    position: absolute;
+    right: 0;
+    bottom: 10px;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+}
+
+.iloop-carousel-dot {
+    width: 28px;
+    height: 3px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+}
+
+.iloop-carousel-dot.active {
+    background: #fff;
+}
+
+@keyframes iloopCarouselFade {
+    from { opacity: 0.25; }
+    to { opacity: 1; }
+}
+
+.editar-carousel {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+
+@media (max-width: 768px) {
+    .iloop-carousel {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    .iloop-carousel-inner {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .iloop-carousel-img-desktop {
+        display: none;
+    }
+
+    .iloop-carousel-img-mobile {
+        display: block;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+        max-width: 100%;
+    }
+
+    .iloop-carousel-dots {
+        bottom: 6px;
+    }
+
+    .iloop-carousel-dot {
+        width: 24px;
+        height: 2px;
+    }
+
+    /* Eliminar márgenes del contenedor del carousel */
+    .carousel-section {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+    
+}

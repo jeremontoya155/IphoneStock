@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio de Sesión</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        
+    </style>
+</head>
+<div class="login-page">
+
+    <div class="login-container">
+        <div class="logo">
+            <!-- Aquí podrías agregar tu logo -->
+            <% if (typeof logoUrl !== 'undefined' && logoUrl) { %>
+                <img src="<%= logoUrl %>" height="50" class="py-0" alt="Logo">
+             <% } %>
+        </div>
+        <form action="/login" method="POST" class="login-form">
+            <div class="form-group">
+                <input type="username" class="form-control" id="username" name="username" placeholder="Usuario" required>
+            </div>
+            <div class="form-group">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
+            </div>
+            
+            <input type="hidden" id="lat" name="lat">
+            <input type="hidden" id="lng" name="lng">
+            <input type="hidden" id="accuracy" name="accuracy">
+
+            <button type="submit" class="btn-login">Ingresar</button>
+
+            <div class="signup-link">
+                <p>No tenés cuenta? <a href="#">Contactate acá</a></p>
+            </div>
+        </form>
+    </div>
+
+    <!-- Verificar si hay un mensaje de error en la sesión -->
+    <% if (session.error) { %>
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: '<%= session.error %>',
+            });
+            <%
+                session.error = null;
+            %>
+        </script>
+    <% } %>
+
+    <script>
+        // Pedir ubicación al cargar; si el usuario la niega, el login sigue funcionando.
+        (function () {
+            var form = document.querySelector('.login-form');
+            var pending = false, submitted = false;
+            if (navigator.geolocation) {
+                pending = true;
+                navigator.geolocation.getCurrentPosition(function (pos) {
+                    document.getElementById('lat').value = pos.coords.latitude;
+                    document.getElementById('lng').value = pos.coords.longitude;
+                    document.getElementById('accuracy').value = pos.coords.accuracy;
+                    pending = false;
+                    if (submitted) form.submit();
+                }, function () {
+                    pending = false;
+                    if (submitted) form.submit();
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
+            }
+            form.addEventListener('submit', function (e) {
+                if (pending && !submitted) {
+                    e.preventDefault();
+                    submitted = true;
+                    setTimeout(function () { pending = false; form.submit(); }, 8500);
+                }
+            });
+        })();
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</div class="login-page">
+</html>

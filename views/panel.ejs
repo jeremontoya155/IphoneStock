@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Panel | iLoop</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css?v=3">
+</head>
+<body class="adm-page">
+    <%- include('partials/navbarUser') %>
+
+    <main class="adm-wrap" style="padding-top: 78px;">
+        <%
+            const hora = new Date().toLocaleString('es-AR', { hour: 'numeric', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
+            const saludo = parseInt(hora) < 12 ? 'Buen día' : (parseInt(hora) < 20 ? 'Buenas tardes' : 'Buenas noches');
+            const fmt = (n) => Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+        %>
+        <header class="adm-head">
+            <div>
+                <h1><%= saludo %>, <%= usuario %><span class="adm-role"><%= esAdmin ? 'Administrador' : 'Vendedor' %></span></h1>
+                <p>¿Qué querés hacer hoy?</p>
+            </div>
+            <div class="adm-actions">
+                <a class="adm-btn adm-btn--primary" href="/cajas">🧾 Nueva venta</a>
+                <% if (esAdmin) { %><a class="adm-btn adm-btn--ghost" href="/new">＋ Nuevo producto</a><% } %>
+                <a class="adm-btn adm-btn--ghost" href="/" target="_blank" rel="noopener">Ver la tienda ↗</a>
+            </div>
+        </header>
+
+        <!-- Estado del negocio -->
+        <section class="adm-stats" aria-label="Estado del negocio">
+            <% if (ventasHoy !== null) { %>
+            <a class="adm-stat" href="/historico">
+                <span class="adm-stat__k"><%= esAdmin ? 'Ventas de hoy' : 'Tus ventas de hoy' %></span>
+                <span class="adm-stat__v"><%= ventasHoy %></span>
+                <span class="adm-stat__n">comprobantes emitidos</span>
+            </a>
+            <% } %>
+            <% if (esAdmin && stock) { %>
+            <a class="adm-stat is-ok" href="/admin/productos?stock=con">
+                <span class="adm-stat__k">En stock</span>
+                <span class="adm-stat__v"><%= stock.con_stock %> <small>de <%= stock.total %></small></span>
+                <span class="adm-stat__n">productos disponibles</span>
+            </a>
+            <a class="adm-stat <%= stock.sin_stock > 0 ? 'is-warn' : '' %>" href="/admin/productos?stock=sin">
+                <span class="adm-stat__k">Sin stock</span>
+                <span class="adm-stat__v"><%= stock.sin_stock %></span>
+                <span class="adm-stat__n"><%= stock.poco_stock > 0 ? 'y ' + stock.poco_stock + ' con 1–2 unidades' : 'productos agotados' %></span>
+            </a>
+            <% } %>
+            <% if (esAdmin && ofertasActivas !== null) { %>
+            <a class="adm-stat" href="/admin/ofertas">
+                <span class="adm-stat__k">Ofertas activas</span>
+                <span class="adm-stat__v"><%= ofertasActivas %></span>
+                <span class="adm-stat__n"><%= ofertaGeneral ? 'Más oferta general: ' + ofertaGeneral.nombre : 'sin oferta general' %></span>
+            </a>
+            <% } %>
+            <% if (esAdmin && dolar) { %>
+            <a class="adm-stat" href="/admin/cotizacion">
+                <span class="adm-stat__k">Dólar hoy</span>
+                <span class="adm-stat__v">$<%= fmt(dolar) %></span>
+                <span class="adm-stat__n">precio en pesos de la tienda</span>
+            </a>
+            <% } %>
+        </section>
+
+        <!-- Accesos agrupados por tarea -->
+        <% adminMenu.filter(g => esAdmin || !g.admin).forEach(g => { %>
+        <section class="adm-group">
+            <div class="adm-group__head"><h2><%= g.title %></h2><span><%= g.desc %></span></div>
+            <div class="adm-cards">
+                <% g.items.forEach(it => { %>
+                <a class="adm-card" href="<%= it.href %>">
+                    <span class="adm-card__icon" aria-hidden="true"><%= it.icon %></span>
+                    <span><h3><%= it.label %></h3><p><%= it.desc %></p></span>
+                </a>
+                <% }); %>
+            </div>
+        </section>
+        <% }); %>
+
+        <!-- Últimos comprobantes -->
+        <section class="adm-group">
+            <div class="adm-panel">
+                <div class="adm-panel__head">
+                    <h2><%= esAdmin ? 'Últimos comprobantes' : 'Tus últimos comprobantes' %></h2>
+                    <a class="adm-btn adm-btn--ghost adm-btn--sm" href="/historico">Ver todos</a>
+                </div>
+                <% if (ultimas.length) { %>
+                <ul class="adm-list">
+                    <% ultimas.forEach(f => { %>
+                    <li>
+                        <a href="/factura/<%= f.id %>">
+                            <span class="adm-list__t"><%= f.cliente_nombre %></span>
+                            <span class="adm-list__s"><%= f.numero_factura %> · <%= new Date(f.fecha).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' }) %></span>
+                            <span class="adm-list__r">$<%= fmt(f.total) %></span>
+                        </a>
+                    </li>
+                    <% }); %>
+                </ul>
+                <% } else { %>
+                <div class="adm-empty">Todavía no hay comprobantes. Cuando hagas tu primera venta aparece acá.</div>
+                <% } %>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

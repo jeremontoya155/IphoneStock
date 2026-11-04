@@ -1,0 +1,35 @@
+<%
+    // Barra de gestión: dónde estoy + las pantallas hermanas del mismo grupo.
+    // Solo se muestra para usuarios logueados.
+    const _logged = typeof isLogged !== 'undefined' && isLogged;
+    const _admin = typeof isAdmin !== 'undefined' && isAdmin;
+    const _path = typeof currentPath !== 'undefined' ? currentPath : '';
+    let _grupo = null, _item = null;
+    if (_logged && typeof adminMenu !== 'undefined') {
+        adminMenu.forEach(g => g.items.forEach(it => {
+            if (it.match.some(m => _path === m || _path.startsWith(m.endsWith('/') ? m : m + '/') || _path.startsWith(m)) && (!_item || it.href.length >= _item.href.length)) {
+                _grupo = g; _item = it;
+            }
+        }));
+    }
+    const _tabs = _grupo ? _grupo.items : [];
+%>
+<% if (_logged && _grupo) { %>
+<link rel="stylesheet" href="/css/admin.css?v=3">
+<div class="adm-bar">
+    <div class="adm-bar__in">
+        <div class="adm-crumbs">
+            <a href="/panel" class="adm-back">← Panel</a>
+            <span>/</span><span><%= _grupo.title %></span>
+            <span>/</span><strong><%= _item.label %></strong>
+        </div>
+        <% if (_tabs.length > 1) { %>
+        <nav class="adm-tabs" aria-label="<%= _grupo.title %>">
+            <% _tabs.forEach(t => { %>
+            <a href="<%= t.href %>" class="<%= _item && t.href === _item.href ? 'is-active' : '' %>"><span aria-hidden="true"><%= t.icon %></span> <%= t.label %></a>
+            <% }); %>
+        </nav>
+        <% } %>
+    </div>
+</div>
+<% } %>

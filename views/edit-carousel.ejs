@@ -11,6 +11,7 @@
 <body>
 
     <%- include('partials/navbarUser') %> <!-- Asegúrate de que la ruta 'partials/navbarUser' sea correcta -->
+    <%- include('partials/adminHeader') %>
 
     <div class="container my-4">
         <h1 class="text-center">Editar Carrusel</h1>
@@ -70,7 +71,7 @@
             <p>No hay elementos en el carrusel.</p>
         <% } %>
         
-        <a href="/" class="btn btn-secondary">Volver</a>
+        <a href="/panel" class="btn btn-secondary">Volver al panel</a>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>

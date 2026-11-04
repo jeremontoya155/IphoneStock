@@ -1,21 +1,23 @@
-    <footer class="footer bg-dark text-white text-center py-3">
-        <div class="container">
-            <div class="row">
-                <div class="col">
-                    <a href="https://www.instagram.com/iloop.cba/" class="text-white mx-3"><i class="fab fa-instagram fa-lg"></i></a>
-                    <a href="https://wa.link/hnm4mr" class="text-white mx-3"><i class="fab fa-whatsapp fa-lg"></i></a>
-                    <a href="https://www.google.com.ar/maps/place/i+loop/@-31.3729555,-64.2341861,17z/data=!3m1!4b1!4m6!3m5!1s0x9432999729f8219b:0x52c9a2f615fdb8d8!8m2!3d-31.3729601!4d-64.2316112!16s%2Fg%2F11l6qn2p94?entry=ttu" class="text-white mx-3"><i class="fas fa-map-marker-alt fa-lg"></i></a>
-                </div>
-            </div>
+<footer class="site-footer">
+    <div class="site-footer__inner">
+        <div class="site-footer__brand">
+            <img src="/imgs/logoNegro.png" alt="iLoop" height="34">
+            <p>Tu mundo Apple, en un solo lugar.</p>
         </div>
-    </footer>
-<!-- Filtro de orden de precio -->
 
-            <!-- <label for="order-price-filter">Ordenar por precio</label>
-            <select id="order-price-filter" class="form-control mb-2">
-                <option value="">Por defecto</option>
-                <option value="asc">Menor a mayor</option>
-                <option value="desc">Mayor a menor</option>
-            </select> -->
+        <nav class="site-footer__nav" aria-label="Enlaces del sitio">
+            <a href="/">Inicio</a>
+            <a href="/cart">Catálogo</a>
+            <a href="https://wa.link/hnm4mr">Contacto</a>
+        </nav>
 
-            <!-- Botón de buscar -->
+        <div class="site-footer__social">
+            <a href="https://wa.link/hnm4mr" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://www.instagram.com/iloop.cba/" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="https://www.google.com.ar/maps/place/i+loop/@-31.3729555,-64.2341861,17z/data=!3m1!4b1!4m6!3m5!1s0x9432999729f8219b:0x52c9a2f615fdb8d8!8m2!3d-31.3729601!4d-64.2316112!16s%2Fg%2F11l6qn2p94?entry=ttu" aria-label="Cómo llegar"><i class="fas fa-map-marker-alt"></i></a>
+        </div>
+    </div>
+    <div class="site-footer__legal">© <%= new Date().getFullYear() %> iLoop · Córdoba, Argentina
+        <a class="site-footer__staff" href="<%= (typeof isLogged !== 'undefined' && isLogged) ? '/panel' : '/login' %>"><%= (typeof isLogged !== 'undefined' && isLogged) ? 'Ir al panel' : 'Acceso del equipo' %></a>
+    </div>
+</footer>
