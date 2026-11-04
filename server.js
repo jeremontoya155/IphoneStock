@@ -769,7 +769,23 @@ app.get('/product/:id', async (req, res) => {
             }
         }
 
-        res.render('product', { product: {...product, img: optimizeCloudinaryUrl(product.img, 1000)}, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        // Link directo a WhatsApp con el producto (precio final con oferta + link a esta ficha)
+        const telWa = String(process.env.MY_PHONE_NUMBER || '').replace(/\D/g, '');
+        const precioWa = Number(product.precio_final ?? product.price);
+        const simboloWa = (product.moneda || 'USD') === 'USD' ? 'USD' : 'ARS $';
+        const mensajeWa = [
+            'Hola iLoop! Quiero consultar por este equipo:',
+            '',
+            product.name,
+            `Precio: ${simboloWa} ${precioWa.toLocaleString('es-AR', { maximumFractionDigits: 2 })}`,
+            product.bateria ? `Batería: ${product.bateria}%` : null,
+            product.estado ? `Estado: ${product.estado}` : null,
+            '',
+            `${req.protocol}://${req.get('host')}/product/${product.id}`
+        ].filter(v => v !== null).join('\n');
+        const whatsappUrl = telWa ? `https://wa.me/${telWa}?text=${encodeURIComponent(mensajeWa)}` : null;
+
+        res.render('product', { product: {...product, img: optimizeCloudinaryUrl(product.img, 1000)}, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos, whatsappUrl });
     } catch (err) {
         console.error('Error al obtener el producto:', err);
         res.status(500).send('Error interno del servidor');
