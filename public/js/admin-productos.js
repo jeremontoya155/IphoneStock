@@ -9,7 +9,14 @@
     var total = rows.length;
 
     function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-    rows.forEach(function (r) { r._n = norm(r.getAttribute('data-name')); });
+    rows.forEach(function (r) {
+        r._n = norm([r.getAttribute('data-name'), r.getAttribute('data-x-cat'), r.getAttribute('data-estado'), r.getAttribute('data-x-alm'),
+            r.getAttribute('data-x-bateria'), r.getAttribute('data-x-precio')].join(' '));
+        r._c = r._n.replace(/\s+/g, '');
+    });
+    function matches(r, text) {
+        return text.split(/\s+/).every(function (t) { return r._n.indexOf(t) !== -1 || r._c.indexOf(t) !== -1; });
+    }
 
     function showToast(msg) {
         toast.textContent = msg; toast.classList.add('is-on');
@@ -23,7 +30,7 @@
         var text = norm(q.value.trim()), est = fEstado.value, cat = fCat.value, st = fStock.value;
         rows.forEach(function (r) {
             var stock = parseInt(r.getAttribute('data-stock')) || 0;
-            var ok = (!text || r._n.indexOf(text) !== -1) &&
+            var ok = (!text || matches(r, text)) &&
                 (!est || r.getAttribute('data-estado') === est) &&
                 (!cat || r.getAttribute('data-cat') === cat) &&
                 (!st || (st === 'con' && stock > 0) || (st === 'sin' && stock <= 0) || (st === 'poco' && stock >= 1 && stock <= 2));
