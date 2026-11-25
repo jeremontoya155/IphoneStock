@@ -23,7 +23,7 @@
         else estado = ['EN VIVO en la tienda', 'verde'];
     }
 %>
-<link rel="stylesheet" href="/css/campania-admin.css?v=1">
+<link rel="stylesheet" href="/css/campania-admin.css?v=2">
 <div class="ofertas-container bf" id="campania-box">
     <div class="bf-top">
         <h2>🖤 Black Friday</h2>
@@ -41,7 +41,8 @@
         <li>1. Equipos</li><li>2. Descuento</li><li>3. Fechas</li><li>4. Aviso</li><li>5. Confirmar</li>
     </ol>
 
-    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate>
+    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate data-reglas="<%= JSON.stringify({ agrupar: c.agrupar, porGrupo: c.porGrupo }) %>">
+        <input type="hidden" name="por_grupo" id="bf-porgrupo">
         <input type="hidden" name="nombre" value="<%= o ? o.nombre : 'Black Friday' %>">
         <input type="hidden" name="tipo_descuento" value="porcentaje">
         <input type="hidden" name="productos" id="bf-productos">
@@ -70,7 +71,7 @@
                 <p class="bf-ayuda"><b id="bf-cuantos">0</b> equipos elegidos. <button type="button" class="bf-link" id="bf-marcar">Elegir los que se ven</button> · <button type="button" class="bf-link" id="bf-limpiar">Quitar todos</button></p>
                 <div class="bf-grilla">
                     <% enStock.forEach(p => { const usd = (p.moneda || 'USD') === 'USD'; %>
-                    <label class="bf-prod" data-id="<%= p.id %>" data-cat="<%= p.categoria_id || '' %>" data-precio="<%= p.price %>" data-moneda="<%= usd ? 'USD' : 'ARS $' %>" data-nombre="<%= p.name %>">
+                    <label class="bf-prod" data-id="<%= p.id %>" data-cat="<%= p.categoria_id || '' %>" data-catnombre="<%= (categorias.find(x => x.id === p.categoria_id) || {}).nombre || 'Sin categoría' %>" data-precio="<%= p.price %>" data-moneda="<%= usd ? 'USD' : 'ARS $' %>" data-nombre="<%= p.name %>">
                         <input type="checkbox" class="bf-check" value="<%= p.id %>" <%= elegidos.includes(Number(p.id)) ? 'checked' : '' %>>
                         <img src="<%= String(p.img || '').replace('/upload/', '/upload/w_200,f_auto,q_auto/') %>" alt="" loading="lazy">
                         <span class="bf-prod__n"><%= p.name %></span>
@@ -88,6 +89,14 @@
                 <% [5, 10, 15, 20, 25, 30].forEach(n => { %><button type="button" class="bf-num" data-valor="<%= n %>"><%= n %>%</button><% }); %>
             </div>
             <label class="bf-otro">Otro número: <input type="number" name="valor_descuento" id="bf-valor" min="1" max="90" step="1" value="<%= valor || '' %>" inputmode="numeric"> %</label>
+            <h5>¿El mismo descuento para todo?</h5>
+            <div class="bf-opciones">
+                <label class="bf-opcion"><input type="radio" name="agrupar" value="no" <%= c.agrupar !== 'categoria' && c.agrupar !== 'modelo' ? 'checked' : '' %>><span><b>Sí, igual</b>Todo con el mismo número</span></label>
+                <label class="bf-opcion"><input type="radio" name="agrupar" value="categoria" <%= c.agrupar === 'categoria' ? 'checked' : '' %>><span><b>Por categoría</b>Equipos uno, Accesorios otro...</span></label>
+                <label class="bf-opcion"><input type="radio" name="agrupar" value="modelo" <%= c.agrupar === 'modelo' ? 'checked' : '' %>><span><b>Por modelo</b>iPhone 15 uno, iPhone 16 otro...</span></label>
+            </div>
+            <div id="bf-grupos"></div>
+
             <p class="bf-ayuda">Así van a quedar los precios:</p>
             <ul class="bf-ejemplos" id="bf-ejemplos"></ul>
         </section>
@@ -145,4 +154,4 @@
         </div>
     </form>
 </div>
-<script src="/js/campania-admin.js?v=1"></script>
+<script src="/js/campania-admin.js?v=2"></script>

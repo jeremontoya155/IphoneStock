@@ -8,18 +8,38 @@ const SQL_GENERAL_VIGENTE = `SELECT g.*, (SELECT valor FROM configuracion WHERE 
     WHERE activo = TRUE AND ${AHORA_AR} BETWEEN fecha_inicio AND fecha_fin
     ORDER BY created_at DESC LIMIT 1`;
 
-// Si la campaña es de equipos elegidos a mano, la oferta corre solo para esos.
-function incluye(oferta, productId) {
+// El modelo es lo que va antes de la primera barra: "IPHONE 15 PRO / 256GB / NEGRO"
+const modelo = nombre => String(nombre || '').split('/')[0].trim().toUpperCase();
+
+// Reglas de la campaña, solo si pertenecen a esta oferta
+function reglas(oferta) {
     let cfg = {};
     try { cfg = JSON.parse(oferta.campania_cfg || '{}'); } catch (e) { }
-    if (String(cfg.oferta_id) !== String(oferta.id) || !cfg.productos || !cfg.productos.length) return true;
-    return cfg.productos.includes(Number(productId));
+    return String(cfg.oferta_id) === String(oferta.id) ? cfg : {};
+}
+
+// Porcentaje que le toca a un producto: el de su grupo, o el general.
+function descuento(oferta, product) {
+    const cfg = reglas(oferta);
+    const clave = cfg.agrupar === 'categoria' ? String(product.categoria_id || 0)
+        : cfg.agrupar === 'modelo' ? modelo(product.name) : null;
+    if (clave !== null && cfg.porGrupo && Object.prototype.hasOwnProperty.call(cfg.porGrupo, clave)) return cfg.porGrupo[clave];
+    return oferta.valor_descuento;
+}
+
+// ¿El producto entra en la oferta? (elegido a mano, si corresponde, y su grupo no quedó sin descuento)
+function incluye(oferta, product) {
+    const cfg = reglas(oferta);
+    if (cfg.productos && cfg.productos.length && !cfg.productos.includes(Number(product.id))) return false;
+    return Number(descuento(oferta, product)) > 0;
 }
 
 const VISTAS = ['primero', 'solo', 'normal'];
 const DEFAULTS = {
     oferta_id: null,
     productos: [],      // vacío = todos
+    agrupar: 'no',      // 'no' | 'categoria' | 'modelo'
+    porGrupo: {},       // { grupo: porcentaje }, 0 = sin descuento
     vista: 'primero',
     inicio: true,
     aviso: true,
@@ -58,4 +78,4 @@ function ordenar(products, campania, verTodo) {
     return con.concat(products.filter(p => !p.tiene_oferta_vigente));
 }
 
-module.exports = { SQL_GENERAL_VIGENTE, incluye, VISTAS, DEFAULTS, leer, guardar, vigente, ordenar };
+module.exports = { SQL_GENERAL_VIGENTE, incluye, descuento, VISTAS, DEFAULTS, leer, guardar, vigente, ordenar };

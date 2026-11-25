@@ -401,12 +401,12 @@ app.get('/', async (req, res) => {
         // Combinar productos con ofertas
         const products = productsResult.rows.map(product => {
             if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
-            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product)) {
                 const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
-                    ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
-                    : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                    ? Math.round(product.price * (1 - campaniaLib.descuento(ofertaGeneral, product) / 100) * 100) / 100
+                    : Math.max(Math.round((product.price - campaniaLib.descuento(ofertaGeneral, product)) * 100) / 100, 0);
                 return { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
-                    valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                    valor_descuento: campaniaLib.descuento(ofertaGeneral, product), precio_final: precioConDescuento,
                     tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
             }
             return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
@@ -494,12 +494,12 @@ app.get('/cart', async (req, res) => {
         // Combinar productos con ofertas
         const products = productsResult.rows.map(product => {
             if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
-            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product)) {
                 const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
-                    ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
-                    : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                    ? Math.round(product.price * (1 - campaniaLib.descuento(ofertaGeneral, product) / 100) * 100) / 100
+                    : Math.max(Math.round((product.price - campaniaLib.descuento(ofertaGeneral, product)) * 100) / 100, 0);
                 return { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
-                    valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                    valor_descuento: campaniaLib.descuento(ofertaGeneral, product), precio_final: precioConDescuento,
                     tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
             }
             return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
@@ -766,12 +766,12 @@ app.get('/product/:id', async (req, res) => {
                 const ofertaGeneral = ofertaGeneralResult.rows[0];
                 const categoriasExcluidas = ofertaGeneral.categorias_excluidas
                     ? ofertaGeneral.categorias_excluidas.split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c)) : [];
-                if (!categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
+                if (!categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product)) {
                     const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
-                        ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
-                        : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                        ? Math.round(product.price * (1 - campaniaLib.descuento(ofertaGeneral, product) / 100) * 100) / 100
+                        : Math.max(Math.round((product.price - campaniaLib.descuento(ofertaGeneral, product)) * 100) / 100, 0);
                     product = { ...product, oferta_id: `general_${ofertaGeneral.id}`, tipo_descuento: ofertaGeneral.tipo_descuento,
-                        valor_descuento: ofertaGeneral.valor_descuento, precio_final: precioConDescuento,
+                        valor_descuento: campaniaLib.descuento(ofertaGeneral, product), precio_final: precioConDescuento,
                         tiene_oferta_vigente: true, es_oferta_general: true, nombre_oferta_general: ofertaGeneral.nombre };
                 } else {
                     product = { ...product, tiene_oferta_vigente: false, precio_final: product.price };
@@ -1349,10 +1349,10 @@ async function cargarProductosPublicos(ids) {
         const precio = Number(p.price) || 0;
         let final = precio;
         if (especificas[p.id] !== undefined) final = especificas[p.id];
-        else if (ofertaGeneral && !excluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p.id)) {
+        else if (ofertaGeneral && !excluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p)) {
             final = ofertaGeneral.tipo_descuento === 'porcentaje'
-                ? Math.round(precio * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
-                : Math.max(Math.round((precio - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                ? Math.round(precio * (1 - campaniaLib.descuento(ofertaGeneral, p) / 100) * 100) / 100
+                : Math.max(Math.round((precio - campaniaLib.descuento(ofertaGeneral, p)) * 100) / 100, 0);
         }
         return {
             id: p.id, name: p.name, img: optimizeCloudinaryUrl(p.img, 300),
@@ -2223,6 +2223,17 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         if (elegidos && !productos.length) return res.status(400).send('Elegí al menos un equipo');
         const excluidas = elegidos ? '' : [].concat(b.categorias_excluidas || []).join(',');
 
+        const agrupar = ['categoria', 'modelo'].includes(b.agrupar) ? b.agrupar : 'no';
+        const porGrupo = {};
+        if (agrupar !== 'no') {
+            let crudo = {};
+            try { crudo = JSON.parse(b.por_grupo || '{}'); } catch (e) { }
+            Object.entries(crudo || {}).slice(0, 300).forEach(([k, v]) => {
+                const n = Number(v);
+                if (k !== '__proto__' && k.length <= 80 && Number.isInteger(n) && n >= 0 && n <= 90) porGrupo[k] = n;
+            });
+        }
+
         const cfg = await campaniaLib.leer(pool);
         // Solo puede haber una oferta general encendida
         await pool.query('UPDATE ofertas_generales SET activo = FALSE WHERE activo = TRUE');
@@ -2242,6 +2253,8 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         await campaniaLib.guardar(pool, {
             oferta_id: id,
             productos,
+            agrupar,
+            porGrupo,
             vista: campaniaLib.VISTAS.includes(b.vista) ? b.vista : 'primero',
             inicio: b.inicio === 'on',
             aviso: b.aviso === 'on',
@@ -2463,10 +2476,10 @@ app.get('/admin/cotizador', requireLogin, async (req, res) => {
         const products = productsResult.rows.map(p => {
             let precioFinal = parseFloat(p.price);
             if (ofertasMap[p.id] !== undefined) precioFinal = ofertasMap[p.id];
-            else if (ofertaGeneral && !categoriasExcluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p.id)) {
+            else if (ofertaGeneral && !categoriasExcluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p)) {
                 precioFinal = ofertaGeneral.tipo_descuento === 'porcentaje'
-                    ? Math.round(p.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
-                    : Math.max(Math.round((p.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
+                    ? Math.round(p.price * (1 - campaniaLib.descuento(ofertaGeneral, p) / 100) * 100) / 100
+                    : Math.max(Math.round((p.price - campaniaLib.descuento(ofertaGeneral, p)) * 100) / 100, 0);
             }
             let planes = [];
             try { planes = JSON.parse(p.cuotas_planes || '[]'); } catch (e) { planes = []; }

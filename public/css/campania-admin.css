@@ -67,3 +67,10 @@
     .bf-pasos li.is-on { font-size: .8rem; flex: 3; }
     .bf-btn { padding: 13px 18px; font-size: 1rem; }
 }
+
+/* Descuento por grupo */
+.bf-grupo { display: flex; align-items: center; gap: 12px; margin: 0; padding: 10px 0; border-bottom: 1px solid #eee; }
+.bf-grupo span { flex: 1 1 auto; min-width: 0; font-weight: 700; }
+.bf-grupo small { color: #8a8a8e; white-space: nowrap; }
+.bf-grupo select { flex: 0 0 170px; padding: 9px 10px; border: 2px solid #d2d2d7; border-radius: 10px; background: #fff; font-weight: 600; }
+@media (max-width: 600px) { .bf-grupo { flex-wrap: wrap; } .bf-grupo select { flex: 1 1 100%; } }

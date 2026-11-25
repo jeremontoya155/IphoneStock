@@ -13,7 +13,73 @@
     function valor() { return Number($('bf-valor').value) || 0; }
     function marcado(p) { return p.querySelector('.bf-check').checked; }
 
-    function enOferta() {
+    // ---- Descuento por grupos ----
+    var reglas = {};
+    try { reglas = JSON.parse(f.getAttribute('data-reglas')) || {}; } catch (e) { }
+    var porGrupo = { categoria: {}, modelo: {} };
+    if (porGrupo[reglas.agrupar]) porGrupo[reglas.agrupar] = reglas.porGrupo || {};
+
+    function agrupar() { return f.querySelector('[name=agrupar]:checked').value; }
+    function clave(p) {
+        return agrupar() === 'categoria' ? (p.getAttribute('data-cat') || '0')
+            : p.getAttribute('data-nombre').split('/')[0].trim().toUpperCase();
+    }
+    function nombreGrupo(p) { return agrupar() === 'categoria' ? p.getAttribute('data-catnombre') : clave(p); }
+    function descuento(p) {
+        if (agrupar() === 'no') return valor();
+        var propio = porGrupo[agrupar()][clave(p)];
+        return propio === undefined ? valor() : propio;
+    }
+
+    // Los grupos presentes entre los equipos elegidos
+    function grupos() {
+        var mapa = {}, orden = [];
+        elegidos().forEach(function (p) {
+            var k = clave(p);
+            if (!mapa[k]) { mapa[k] = { clave: k, nombre: nombreGrupo(p), items: [] }; orden.push(mapa[k]); }
+            mapa[k].items.push(p);
+        });
+        return orden.sort(function (x, y) { return x.nombre.localeCompare(y.nombre, 'es', { numeric: true }); });
+    }
+
+    var firmaGrupos = '';
+    function pintarGrupos() {
+        var caja = $('bf-grupos');
+        if (agrupar() === 'no') { caja.textContent = ''; firmaGrupos = ''; return; }
+        var lista = grupos();
+        // Solo se redibuja si cambió algo, para no cerrar el desplegable que se está usando
+        var firma = agrupar() + '|' + valor() + '|' + lista.map(function (g) { return g.clave + ':' + g.items.length; }).join(',');
+        if (firma === firmaGrupos) return;
+        firmaGrupos = firma;
+        caja.textContent = '';
+        lista.forEach(function (g) {
+            var fila = document.createElement('label'); fila.className = 'bf-grupo';
+            var nombre = document.createElement('span'); nombre.textContent = g.nombre;
+            var cuantos = document.createElement('small'); cuantos.textContent = g.items.length === 1 ? '1 equipo' : g.items.length + ' equipos';
+            var sel = document.createElement('select'); sel.setAttribute('data-grupo', g.clave);
+            var actual = porGrupo[agrupar()][g.clave];
+            var opciones = [['', 'El general' + (valor() ? ' (' + valor() + '%)' : '')], [0, 'Sin descuento']];
+            var numeros = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+            if (actual && numeros.indexOf(actual) === -1) numeros.push(actual);
+            numeros.sort(function (x, y) { return x - y; }).forEach(function (n) { opciones.push([n, n + '%']); });
+            opciones.forEach(function (o) {
+                var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op);
+            });
+            sel.value = actual === undefined ? '' : String(actual);
+            sel.addEventListener('change', function () {
+                if (sel.value === '') delete porGrupo[agrupar()][g.clave];
+                else porGrupo[agrupar()][g.clave] = Number(sel.value);
+                pintar();
+            });
+            fila.appendChild(nombre); fila.appendChild(cuantos); fila.appendChild(sel);
+            caja.appendChild(fila);
+        });
+    }
+
+    function enOferta() { return elegidos().filter(function (p) { return agrupar() === 'no' || descuento(p) > 0; }); }
+
+    // Equipos marcados en el paso 1
+    function elegidos() {
         if (alcance() === 'elegidos') return prods.filter(marcado);
         var fuera = todos('[name=categorias_excluidas]:checked').map(function (c) { return c.value; });
         return prods.filter(function (p) { return fuera.indexOf(p.getAttribute('data-cat')) === -1; });
@@ -31,13 +97,17 @@
         $('bf-cuantos').textContent = prods.filter(marcado).length;
         todos('.bf-num').forEach(function (b) { b.classList.toggle('is-on', Number(b.getAttribute('data-valor')) === valor()); });
 
+        pintarGrupos();
         var ul = $('bf-ejemplos'); ul.textContent = '';
-        enOferta().slice(0, 5).forEach(function (p) {
+        // Con grupos, un ejemplo de cada uno
+        var ejemplos = agrupar() === 'no' ? elegidos().slice(0, 5) : grupos().map(function (g) { return g.items[0]; }).slice(0, 8);
+        ejemplos.forEach(function (p) {
             var antes = Number(p.getAttribute('data-precio'));
             var li = document.createElement('li');
             var n = document.createElement('span'); n.textContent = p.getAttribute('data-nombre');
             var a = document.createElement('s'); a.textContent = plata(p, antes);
-            var d = document.createElement('b'); d.textContent = valor() ? plata(p, Math.round(antes * (100 - valor())) / 100) : '—';
+            var d = document.createElement('b'); var pct = descuento(p);
+            d.textContent = pct ? plata(p, Math.round(antes * (100 - pct)) / 100) + ' (-' + pct + '%)' : (valor() ? 'Sin descuento' : '—');
             li.appendChild(n); li.appendChild(a); li.appendChild(d); ul.appendChild(li);
         });
 
@@ -53,7 +123,10 @@
         var vista = { primero: 'Ofertas primero', solo: 'Solo ofertas', normal: 'Como siempre' }[f.querySelector('[name=vista]:checked').value];
         var lineas = [
             ['Equipos en oferta', lista.length + (alcance() === 'todos' ? ' (todos los que no dejaste afuera)' : ' elegidos por vos')],
-            ['Descuento', valor() + '%'],
+            ['Descuento', agrupar() === 'no' ? valor() + '%' : grupos().map(function (g) {
+                var d = descuento(g.items[0]);
+                return g.nombre + ': ' + (d ? d + '%' : 'sin descuento');
+            }).join(' · ')],
             ['Empieza', fecha(f.elements.fecha_inicio.value)],
             ['Termina', fecha(f.elements.fecha_fin.value)],
             ['Aviso al entrar', f.elements.aviso.checked ? 'Sí: "' + f.elements.titulo.value + '"' : 'No'],
@@ -73,7 +146,8 @@
     // Qué falta en cada paso, en castellano
     function falta(i) {
         if (i === 0 && !enOferta().length) return 'Elegí al menos un equipo.';
-        if (i === 1 && !(valor() >= 1 && valor() <= 90)) return 'Elegí el descuento (entre 1 y 90).';
+        if (i === 1 && !(valor() >= 1 && valor() <= 90 && Number.isInteger(valor()))) return 'Elegí el descuento (un número entero entre 1 y 90).';
+        if (i === 1 && !enOferta().length) return 'Dejaste todos los grupos sin descuento. Ponele descuento a alguno.';
         if (i === 2) {
             var a = f.elements.fecha_inicio.value, b = f.elements.fecha_fin.value;
             if (!a || !b) return 'Completá las dos fechas.';
@@ -115,6 +189,7 @@
             if (falta(i)) { e.preventDefault(); var msg = falta(i); ir(i); $('bf-error').textContent = msg; return; }
         }
         if (actual !== pasos.length - 1) { e.preventDefault(); return; }
+        $('bf-porgrupo').value = JSON.stringify(agrupar() === 'no' ? {} : porGrupo[agrupar()]);
         $('bf-productos').value = alcance() === 'elegidos' ? prods.filter(marcado).map(function (p) { return p.getAttribute('data-id'); }).join(',') : '';
         $('bf-publicar').disabled = true;
         $('bf-publicar').textContent = 'Guardando…';
