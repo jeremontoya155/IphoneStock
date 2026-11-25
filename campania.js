@@ -3,13 +3,23 @@
 
 // Una oferta general solo corre entre sus fechas, en hora argentina.
 const AHORA_AR = "(NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')";
-const SQL_GENERAL_VIGENTE = `SELECT * FROM ofertas_generales
+const SQL_GENERAL_VIGENTE = `SELECT g.*, (SELECT valor FROM configuracion WHERE clave = 'campania') AS campania_cfg
+    FROM ofertas_generales g
     WHERE activo = TRUE AND ${AHORA_AR} BETWEEN fecha_inicio AND fecha_fin
     ORDER BY created_at DESC LIMIT 1`;
+
+// Si la campaña es de equipos elegidos a mano, la oferta corre solo para esos.
+function incluye(oferta, productId) {
+    let cfg = {};
+    try { cfg = JSON.parse(oferta.campania_cfg || '{}'); } catch (e) { }
+    if (String(cfg.oferta_id) !== String(oferta.id) || !cfg.productos || !cfg.productos.length) return true;
+    return cfg.productos.includes(Number(productId));
+}
 
 const VISTAS = ['primero', 'solo', 'normal'];
 const DEFAULTS = {
     oferta_id: null,
+    productos: [],      // vacío = todos
     vista: 'primero',
     inicio: true,
     aviso: true,
@@ -48,4 +58,4 @@ function ordenar(products, campania, verTodo) {
     return con.concat(products.filter(p => !p.tiene_oferta_vigente));
 }
 
-module.exports = { SQL_GENERAL_VIGENTE, VISTAS, DEFAULTS, leer, guardar, vigente, ordenar };
+module.exports = { SQL_GENERAL_VIGENTE, incluye, VISTAS, DEFAULTS, leer, guardar, vigente, ordenar };

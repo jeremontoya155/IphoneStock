@@ -401,7 +401,7 @@ app.get('/', async (req, res) => {
         // Combinar productos con ofertas
         const products = productsResult.rows.map(product => {
             if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
-            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id)) {
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
                 const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
                     ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
                     : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
@@ -494,7 +494,7 @@ app.get('/cart', async (req, res) => {
         // Combinar productos con ofertas
         const products = productsResult.rows.map(product => {
             if (ofertasMap[product.id]) return { ...product, ...ofertasMap[product.id] };
-            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id)) {
+            if (ofertaGeneral && !categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
                 const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
                     ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
                     : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
@@ -766,7 +766,7 @@ app.get('/product/:id', async (req, res) => {
                 const ofertaGeneral = ofertaGeneralResult.rows[0];
                 const categoriasExcluidas = ofertaGeneral.categorias_excluidas
                     ? ofertaGeneral.categorias_excluidas.split(',').map(c => parseInt(c.trim())).filter(c => !isNaN(c)) : [];
-                if (!categoriasExcluidas.includes(product.categoria_id)) {
+                if (!categoriasExcluidas.includes(product.categoria_id) && campaniaLib.incluye(ofertaGeneral, product.id)) {
                     const precioConDescuento = ofertaGeneral.tipo_descuento === 'porcentaje'
                         ? Math.round(product.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
                         : Math.max(Math.round((product.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);
@@ -1349,7 +1349,7 @@ async function cargarProductosPublicos(ids) {
         const precio = Number(p.price) || 0;
         let final = precio;
         if (especificas[p.id] !== undefined) final = especificas[p.id];
-        else if (ofertaGeneral && !excluidas.includes(p.categoria_id)) {
+        else if (ofertaGeneral && !excluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p.id)) {
             final = ofertaGeneral.tipo_descuento === 'porcentaje'
                 ? Math.round(precio * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
                 : Math.max(Math.round((precio - ofertaGeneral.valor_descuento) * 100) / 100, 0);
@@ -2218,7 +2218,10 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         if (!nombre || !ini || !fin || !(valor > 0)) return res.status(400).send('Completá nombre, descuento y fechas');
         if (tipo === 'porcentaje' && valor >= 100) return res.status(400).send('El porcentaje debe ser menor a 100');
         if (fin <= ini) return res.status(400).send('La fecha de fin debe ser posterior a la de inicio');
-        const excluidas = [].concat(b.categorias_excluidas || []).join(',');
+        const elegidos = b.alcance === 'elegidos';
+        const productos = elegidos ? String(b.productos || '').split(',').map(Number).filter(n => Number.isInteger(n) && n > 0) : [];
+        if (elegidos && !productos.length) return res.status(400).send('Elegí al menos un equipo');
+        const excluidas = elegidos ? '' : [].concat(b.categorias_excluidas || []).join(',');
 
         const cfg = await campaniaLib.leer(pool);
         // Solo puede haber una oferta general encendida
@@ -2238,6 +2241,7 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         }
         await campaniaLib.guardar(pool, {
             oferta_id: id,
+            productos,
             vista: campaniaLib.VISTAS.includes(b.vista) ? b.vista : 'primero',
             inicio: b.inicio === 'on',
             aviso: b.aviso === 'on',
@@ -2459,7 +2463,7 @@ app.get('/admin/cotizador', requireLogin, async (req, res) => {
         const products = productsResult.rows.map(p => {
             let precioFinal = parseFloat(p.price);
             if (ofertasMap[p.id] !== undefined) precioFinal = ofertasMap[p.id];
-            else if (ofertaGeneral && !categoriasExcluidas.includes(p.categoria_id)) {
+            else if (ofertaGeneral && !categoriasExcluidas.includes(p.categoria_id) && campaniaLib.incluye(ofertaGeneral, p.id)) {
                 precioFinal = ofertaGeneral.tipo_descuento === 'porcentaje'
                     ? Math.round(p.price * (1 - ofertaGeneral.valor_descuento / 100) * 100) / 100
                     : Math.max(Math.round((p.price - ofertaGeneral.valor_descuento) * 100) / 100, 0);

@@ -1,0 +1,69 @@
+/* Asistente Black Friday */
+.bf [hidden] { display: none !important; }
+.bf-top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 14px; }
+.bf-top h2, .bf-top p, .bf-top form { margin: 0; }
+.bf-estado { padding: 6px 14px; border-radius: 999px; font-weight: 700; background: #eee; color: #555; }
+.bf-estado--verde { background: #dff5e3; color: #17692c; }
+.bf-estado--ambar { background: #fff1cc; color: #7a5600; }
+.bf-estado--rojo { background: #fde2e2; color: #9b1c1c; }
+.bf-apagar { background: #fff; border: 2px solid #b00020; color: #b00020; border-radius: 999px; padding: 6px 14px; font-weight: 700; cursor: pointer; }
+.bf-pasos { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0 0 22px; }
+.bf-pasos li { flex: 1; text-align: center; padding: 8px 4px; border-bottom: 5px solid #e5e5ea; font-weight: 700; font-size: .85rem; color: #8a8a8e; }
+.bf-pasos li.is-on { color: #800020; border-color: #800020; }
+.bf-pasos li.is-ok { color: #1e8a3c; border-color: #1e8a3c; }
+.bf h3 { font-size: 1.5rem; margin-bottom: 16px; }
+.bf h5 { margin: 24px 0 10px; }
+.bf-opciones { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.bf-opcion, .bf-fecha { flex: 1 1 190px; margin: 0; cursor: pointer; }
+.bf-opcion input { position: absolute; opacity: 0; }
+.bf-opcion span, .bf-fecha { display: block; border: 2px solid #d2d2d7; border-radius: 14px; padding: 14px 16px; background: #fff; text-align: left; color: #555; }
+.bf-opcion b, .bf-fecha b { display: block; font-size: 1.15rem; color: #1d1d1f; }
+.bf-opcion input:checked + span, .bf-fecha.is-on { border-color: #800020; background: #fbeff2; }
+.bf-opcion input:focus-visible + span { outline: 3px solid #0071e3; }
+.bf-ayuda { color: #6e6e73; margin: 10px 0; }
+.bf-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.bf-chip input { position: absolute; opacity: 0; }
+.bf-chip span { display: block; border: 2px solid #d2d2d7; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+.bf-chip input:checked + span { border-color: #b00020; background: #fde2e2; text-decoration: line-through; }
+.bf-buscar { width: 100%; padding: 12px 18px; font-size: 1.05rem; border: 2px solid #d2d2d7; border-radius: 999px; }
+.bf-link { background: none; border: 0; padding: 0; color: #0066cc; text-decoration: underline; cursor: pointer; }
+.bf-grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 420px; overflow-y: auto; padding: 2px; }
+.bf-prod { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0; padding: 10px; border: 2px solid #e5e5ea; border-radius: 14px; text-align: center; cursor: pointer; }
+.bf-prod input { position: absolute; top: 8px; left: 8px; width: 22px; height: 22px; accent-color: #800020; }
+.bf-prod img { width: 84px; height: 84px; object-fit: contain; }
+.bf-prod__n { font-size: .78rem; font-weight: 600; line-height: 1.25; }
+.bf-prod__p { font-size: .8rem; color: #800020; font-weight: 700; }
+.bf-prod:has(input:checked) { border-color: #800020; background: #fbeff2; }
+.bf-numeros { display: flex; flex-wrap: wrap; gap: 10px; }
+.bf-num { min-width: 92px; padding: 16px 0; font-size: 1.5rem; font-weight: 800; border: 2px solid #d2d2d7; border-radius: 14px; background: #fff; cursor: pointer; }
+.bf-num.is-on { background: #800020; border-color: #800020; color: #fff; }
+.bf-otro { display: block; margin: 16px 0; font-weight: 600; }
+.bf-otro input { width: 90px; padding: 8px 10px; margin: 0 6px; border: 2px solid #d2d2d7; border-radius: 10px; }
+.bf-ejemplos, .bf-resumen { list-style: none; padding: 0; margin: 0; }
+.bf-ejemplos li, .bf-resumen li { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
+.bf-ejemplos span { flex: 1 1 220px; }
+.bf-ejemplos s { color: #8a8a8e; }
+.bf-ejemplos b { color: #1e8a3c; font-size: 1.1rem; }
+.bf-resumen li { font-size: 1.05rem; }
+.bf-resumen span { color: #6e6e73; }
+.bf-resumen li.is-warn { background: #fff1cc; padding: 10px; border-radius: 10px; }
+.bf-fechas, .bf-dos { display: flex; flex-wrap: wrap; gap: 16px; }
+.bf-fechas label, .bf-campos { flex: 1 1 240px; font-weight: 600; }
+.bf-fechas input, .bf-campos input, .bf-campos textarea { display: block; width: 100%; margin: 4px 0 10px; padding: 10px 12px; border: 2px solid #d2d2d7; border-radius: 10px; font-weight: 400; }
+.bf-campos label { display: block; width: 100%; text-align: left; }
+.bf-si { display: block; margin: 12px 0; font-weight: 600; }
+.bf-si input { width: 20px; height: 20px; vertical-align: -4px; margin-right: 8px; accent-color: #800020; }
+.bf-previa { flex: 1 1 260px; align-self: flex-start; background: #0d0d0f; color: #fff; border-radius: 22px; padding: 28px 22px; text-align: center; overflow-wrap: anywhere; }
+.bf-previa h4 { color: #fff; font-weight: 800; letter-spacing: .06em; }
+.bf-previa p { color: #c9c9ce; }
+.bf-previa span { display: block; background: #fff; color: #0d0d0f; border-radius: 999px; padding: 11px; font-weight: 700; }
+.bf-error { color: #b00020; font-weight: 700; margin: 14px 0 0; min-height: 1.5em; }
+.bf-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; }
+.bf-btn { border: 0; border-radius: 999px; padding: 14px 30px; font-size: 1.1rem; font-weight: 700; background: #800020; color: #fff; cursor: pointer; }
+.bf-btn--atras { background: #eee; color: #1d1d1f; }
+.bf-btn--ok { background: #1e8a3c; }
+@media (max-width: 600px) {
+    .bf-pasos li { font-size: 0; }
+    .bf-pasos li.is-on { font-size: .8rem; flex: 3; }
+    .bf-btn { padding: 13px 18px; font-size: 1rem; }
+}

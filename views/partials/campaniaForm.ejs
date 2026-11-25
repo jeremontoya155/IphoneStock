@@ -4,125 +4,145 @@
     // Las columnas son "hora local" sin zona: se muestran tal cual quedaron guardadas
     const p2 = n => String(n).padStart(2, '0');
     const local = d => { const x = new Date(d); return x.getFullYear() + '-' + p2(x.getMonth() + 1) + '-' + p2(x.getDate()) + 'T' + p2(x.getHours()) + ':' + p2(x.getMinutes()); };
-    const hoy = new Date();
-    const anio = hoy.getFullYear();
     // Black Friday: viernes siguiente al cuarto jueves de noviembre
-    const viernes = a => { const primero = new Date(a, 10, 1).getDay(); return 1 + ((4 - primero + 7) % 7) + 22; };
-    const dia = viernes(anio);
-    const desde = o ? local(o.fecha_inicio) : anio + '-11-' + p2(dia) + 'T00:00';
-    const hasta = o ? local(o.fecha_fin) : anio + '-11-30T23:59';
-    const excluidas = o && o.categorias_excluidas ? o.categorias_excluidas.split(',') : [];
-
+    const anio = new Date().getFullYear();
+    const dia = 1 + ((4 - new Date(anio, 10, 1).getDay() + 7) % 7) + 22;
+    const bfDesde = anio + '-11-' + p2(dia) + 'T00:00';
+    const bfHasta = anio + '-11-30T23:59';
     const ahora = new Date().toLocaleString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).slice(0, 16).replace(' ', 'T');
-    let estado = ['Sin cargar', '#6c757d'];
+    const excluidas = o && o.categorias_excluidas ? o.categorias_excluidas.split(',') : [];
+    const valor = o && o.tipo_descuento === 'porcentaje' ? Number(o.valor_descuento) : 0;
+    const elegidos = (c.productos || []).map(Number);
+    const enStock = products.filter(p => Number(p.stock) > 0);
+
+    let estado = ['Todavía no cargaste la oferta', 'gris'];
     if (o) {
-        if (!o.activo) estado = ['Apagada', '#dc3545'];
-        else if (ahora < local(o.fecha_inicio)) estado = ['Programada: arranca sola en la fecha de inicio', '#b8860b'];
-        else if (ahora > local(o.fecha_fin)) estado = ['Terminada', '#6c757d'];
-        else estado = ['EN VIVO en la tienda', '#28a745'];
+        if (!o.activo) estado = ['Apagada', 'rojo'];
+        else if (ahora < local(o.fecha_inicio)) estado = ['Programada: arranca sola en la fecha de inicio', 'ambar'];
+        else if (ahora > local(o.fecha_fin)) estado = ['Terminada', 'gris'];
+        else estado = ['EN VIVO en la tienda', 'verde'];
     }
 %>
-<div class="ofertas-container">
-    <h2>🖤 Black Friday</h2>
-    <p>Estado: <strong style="color: <%= estado[1] %>;"><%= estado[0] %></strong></p>
-    <% if (campaniaMsg === 'guardada') { %><div class="alert alert-success">Campaña guardada.</div><% } %>
-    <% if (campaniaMsg === 'apagada') { %><div class="alert alert-warning">Campaña apagada. La tienda volvió a los precios normales.</div><% } %>
-
-    <form action="/admin/ofertas/campania" method="POST" class="form-oferta" id="form-campania">
-        <h5>1. El descuento</h5>
-        <div class="row">
-            <div class="col-md-4 form-group">
-                <label><strong>Nombre (se ve en cada producto)</strong></label>
-                <input type="text" class="form-control" name="nombre" maxlength="60" required value="<%= o ? o.nombre : 'Black Friday' %>">
-            </div>
-            <div class="col-md-4 form-group">
-                <label><strong>Tipo de descuento</strong></label>
-                <select class="form-control" name="tipo_descuento">
-                    <option value="porcentaje" <%= o && o.tipo_descuento === 'monto_fijo' ? '' : 'selected' %>>Porcentaje (%)</option>
-                    <option value="monto_fijo" <%= o && o.tipo_descuento === 'monto_fijo' ? 'selected' : '' %>>Monto fijo (en la moneda del producto)</option>
-                </select>
-            </div>
-            <div class="col-md-4 form-group">
-                <label><strong>Cuánto</strong></label>
-                <input type="number" step="0.01" min="0.01" class="form-control" name="valor_descuento" placeholder="Ej: 10" required value="<%= o ? Number(o.valor_descuento) : '' %>">
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-md-6 form-group">
-                <label><strong>Empieza</strong></label>
-                <input type="datetime-local" class="form-control" name="fecha_inicio" required value="<%= desde %>">
-            </div>
-            <div class="col-md-6 form-group">
-                <label><strong>Termina</strong></label>
-                <input type="datetime-local" class="form-control" name="fecha_fin" required value="<%= hasta %>">
-            </div>
-        </div>
-        <% if (categorias.length) { %>
-        <div class="form-group">
-            <label><strong>Categorías que NO entran en la oferta</strong></label>
-            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                <% categorias.forEach(cat => { %>
-                <label class="cat-excluir-label" style="padding: 6px 14px; border: 2px solid #dee2e6; border-radius: 8px; cursor: pointer;">
-                    <input type="checkbox" name="categorias_excluidas" value="<%= cat.id %>" <%= excluidas.includes(String(cat.id)) ? 'checked' : '' %>>
-                    <%= cat.icono || '📦' %> <%= cat.nombre %>
-                </label>
-                <% }); %>
-            </div>
-        </div>
+<link rel="stylesheet" href="/css/campania-admin.css?v=1">
+<div class="ofertas-container bf" id="campania-box">
+    <div class="bf-top">
+        <h2>🖤 Black Friday</h2>
+        <p class="bf-estado bf-estado--<%= estado[1] %>" id="bf-estado"><%= estado[0] %></p>
+        <% if (o && o.activo) { %>
+        <form action="/admin/ofertas/campania/apagar" method="POST" onsubmit="return confirm('¿Apagar la oferta y volver a los precios normales?')">
+            <button type="submit" class="bf-apagar">⏹ Apagar la oferta</button>
+        </form>
         <% } %>
-
-        <h5 class="mt-4">2. Cómo salen los productos</h5>
-        <div class="form-group">
-            <label class="d-block"><input type="radio" name="vista" value="primero" <%= c.vista === 'primero' ? 'checked' : '' %>> <strong>Ofertas primero</strong>: el catálogo muestra primero los productos en oferta y después el resto.</label>
-            <label class="d-block"><input type="radio" name="vista" value="solo" <%= c.vista === 'solo' ? 'checked' : '' %>> <strong>Solo ofertas</strong>: el catálogo abre con los productos en oferta, con un enlace "Ver todo el catálogo".</label>
-            <label class="d-block"><input type="radio" name="vista" value="normal" <%= c.vista === 'normal' ? 'checked' : '' %>> <strong>Orden de siempre</strong>: solo cambian los precios.</label>
-            <label class="d-block mt-2"><input type="checkbox" name="inicio" <%= c.inicio ? 'checked' : '' %>> Mostrar una sección Black Friday en la página de inicio (hasta 8 equipos)</label>
-        </div>
-
-        <h5 class="mt-4">3. El aviso al entrar</h5>
-        <div class="form-group">
-            <label><input type="checkbox" name="aviso" <%= c.aviso ? 'checked' : '' %>> <strong>Mostrar el aviso</strong> cuando alguien entra a la página</label>
-        </div>
-        <div class="row">
-            <div class="col-md-6 form-group">
-                <label><strong>Título</strong></label>
-                <input type="text" class="form-control" name="titulo" maxlength="60" value="<%= c.titulo %>">
-            </div>
-            <div class="col-md-6 form-group">
-                <label><strong>Texto del botón</strong></label>
-                <input type="text" class="form-control" name="boton" maxlength="30" value="<%= c.boton %>">
-            </div>
-        </div>
-        <div class="form-group">
-            <label><strong>Mensaje</strong></label>
-            <textarea class="form-control" name="mensaje" maxlength="220" rows="2"><%= c.mensaje %></textarea>
-        </div>
-        <button type="button" class="btn btn-dark mr-2" id="ver-aviso">👁 Vista previa del aviso</button>
-        <button type="submit" class="btn-oferta btn-crear">✅ Guardar y programar</button>
-    </form>
-
-    <% if (o && o.activo) { %>
-    <form action="/admin/ofertas/campania/apagar" method="POST" onsubmit="return confirm('¿Apagar la campaña y volver a los precios normales?')">
-        <button type="submit" class="btn-oferta btn-eliminar">⏹ Apagar campaña</button>
-    </form>
-    <% } %>
-</div>
-
-<div id="previa" style="display:none; position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,.65); align-items:center; justify-content:center; padding:20px; cursor:pointer;">
-    <div style="width:100%; max-width:420px; background:#0d0d0f; color:#fff; border-radius:24px; padding:38px 28px 28px; text-align:center;">
-        <h2 id="previa-titulo" style="color:#fff; font-weight:800; letter-spacing:.06em; overflow-wrap:anywhere;"></h2>
-        <p id="previa-mensaje" style="color:#c9c9ce; overflow-wrap:anywhere;"></p>
-        <span id="previa-boton" style="display:block; background:#fff; color:#0d0d0f; border-radius:999px; padding:13px; font-weight:700;"></span>
-        <small style="display:block; margin-top:12px; color:#888;">Vista previa. Hacé clic para cerrar.</small>
     </div>
+    <% if (campaniaMsg === 'guardada') { %><div class="alert alert-success">✅ Listo, quedó guardada. Mirá arriba el estado.</div><% } %>
+    <% if (campaniaMsg === 'apagada') { %><div class="alert alert-warning">La oferta se apagó. La tienda volvió a los precios normales.</div><% } %>
+
+    <ol class="bf-pasos" id="bf-pasos">
+        <li>1. Equipos</li><li>2. Descuento</li><li>3. Fechas</li><li>4. Aviso</li><li>5. Confirmar</li>
+    </ol>
+
+    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate>
+        <input type="hidden" name="nombre" value="<%= o ? o.nombre : 'Black Friday' %>">
+        <input type="hidden" name="tipo_descuento" value="porcentaje">
+        <input type="hidden" name="productos" id="bf-productos">
+
+        <!-- 1 -->
+        <section class="bf-paso">
+            <h3>¿Qué equipos van en oferta?</h3>
+            <div class="bf-opciones">
+                <label class="bf-opcion"><input type="radio" name="alcance" value="todos" <%= elegidos.length ? '' : 'checked' %>><span><b>Todos</b>Toda la tienda en oferta</span></label>
+                <label class="bf-opcion"><input type="radio" name="alcance" value="elegidos" <%= elegidos.length ? 'checked' : '' %>><span><b>Los elijo yo</b>Tocás las fotos que quieras</span></label>
+            </div>
+
+            <div id="bf-todos">
+                <% if (categorias.length) { %>
+                <p class="bf-ayuda">¿Querés dejar algo afuera? Tocá lo que <b>NO</b> lleva descuento:</p>
+                <div class="bf-chips">
+                    <% categorias.forEach(cat => { %>
+                    <label class="bf-chip bf-chip--no"><input type="checkbox" name="categorias_excluidas" value="<%= cat.id %>" <%= excluidas.includes(String(cat.id)) ? 'checked' : '' %>><span><%= cat.icono || '📦' %> <%= cat.nombre %></span></label>
+                    <% }); %>
+                </div>
+                <% } %>
+            </div>
+
+            <div id="bf-elegir">
+                <input type="search" id="bf-buscar" class="bf-buscar" placeholder="🔍 Buscar: 15 pro, airpods, 256..." autocomplete="off">
+                <p class="bf-ayuda"><b id="bf-cuantos">0</b> equipos elegidos. <button type="button" class="bf-link" id="bf-marcar">Elegir los que se ven</button> · <button type="button" class="bf-link" id="bf-limpiar">Quitar todos</button></p>
+                <div class="bf-grilla">
+                    <% enStock.forEach(p => { const usd = (p.moneda || 'USD') === 'USD'; %>
+                    <label class="bf-prod" data-id="<%= p.id %>" data-cat="<%= p.categoria_id || '' %>" data-precio="<%= p.price %>" data-moneda="<%= usd ? 'USD' : 'ARS $' %>" data-nombre="<%= p.name %>">
+                        <input type="checkbox" class="bf-check" value="<%= p.id %>" <%= elegidos.includes(Number(p.id)) ? 'checked' : '' %>>
+                        <img src="<%= String(p.img || '').replace('/upload/', '/upload/w_200,f_auto,q_auto/') %>" alt="" loading="lazy">
+                        <span class="bf-prod__n"><%= p.name %></span>
+                        <span class="bf-prod__p"><%= usd ? 'USD' : 'ARS $' %> <%= Number(p.price).toLocaleString('es-AR') %></span>
+                    </label>
+                    <% }); %>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2 -->
+        <section class="bf-paso">
+            <h3>¿Cuánto descuento?</h3>
+            <div class="bf-numeros">
+                <% [5, 10, 15, 20, 25, 30].forEach(n => { %><button type="button" class="bf-num" data-valor="<%= n %>"><%= n %>%</button><% }); %>
+            </div>
+            <label class="bf-otro">Otro número: <input type="number" name="valor_descuento" id="bf-valor" min="1" max="90" step="1" value="<%= valor || '' %>" inputmode="numeric"> %</label>
+            <p class="bf-ayuda">Así van a quedar los precios:</p>
+            <ul class="bf-ejemplos" id="bf-ejemplos"></ul>
+        </section>
+
+        <!-- 3 -->
+        <section class="bf-paso">
+            <h3>¿Cuándo?</h3>
+            <div class="bf-opciones">
+                <button type="button" class="bf-fecha" data-modo="bf" data-desde="<%= bfDesde %>" data-hasta="<%= bfHasta %>"><b>Black Friday</b>Del viernes <%= dia %> al lunes 30</button>
+                <button type="button" class="bf-fecha" data-modo="ya"><b>Desde ahora</b>Arranca ya y dura 3 días</button>
+            </div>
+            <div class="bf-fechas">
+                <label>Empieza <input type="datetime-local" name="fecha_inicio" value="<%= o ? local(o.fecha_inicio) : bfDesde %>"></label>
+                <label>Termina <input type="datetime-local" name="fecha_fin" value="<%= o ? local(o.fecha_fin) : bfHasta %>"></label>
+            </div>
+            <p class="bf-ayuda">Arranca y termina sola. No tenés que acordarte.</p>
+        </section>
+
+        <!-- 4 -->
+        <section class="bf-paso">
+            <h3>El aviso para los clientes</h3>
+            <label class="bf-si"><input type="checkbox" name="aviso" <%= c.aviso ? 'checked' : '' %>> Mostrar un aviso cuando alguien entra a la página</label>
+            <div class="bf-dos">
+                <div class="bf-campos">
+                    <label>Título <input type="text" name="titulo" maxlength="60" value="<%= c.titulo %>"></label>
+                    <label>Mensaje <textarea name="mensaje" maxlength="220" rows="3"><%= c.mensaje %></textarea></label>
+                    <label>Botón <input type="text" name="boton" maxlength="30" value="<%= c.boton %>"></label>
+                </div>
+                <div class="bf-previa" aria-label="Así lo ve el cliente">
+                    <h4 id="previa-titulo"></h4>
+                    <p id="previa-mensaje"></p>
+                    <span id="previa-boton"></span>
+                </div>
+            </div>
+            <h5>¿Cómo se ven los equipos en el catálogo?</h5>
+            <div class="bf-opciones">
+                <label class="bf-opcion"><input type="radio" name="vista" value="primero" <%= c.vista === 'primero' ? 'checked' : '' %>><span><b>Ofertas primero</b>Después, el resto</span></label>
+                <label class="bf-opcion"><input type="radio" name="vista" value="solo" <%= c.vista === 'solo' ? 'checked' : '' %>><span><b>Solo ofertas</b>Con botón "Ver todo"</span></label>
+                <label class="bf-opcion"><input type="radio" name="vista" value="normal" <%= c.vista === 'normal' ? 'checked' : '' %>><span><b>Como siempre</b>Solo cambia el precio</span></label>
+            </div>
+            <label class="bf-si"><input type="checkbox" name="inicio" <%= c.inicio ? 'checked' : '' %>> Mostrar también las ofertas en la página de inicio</label>
+        </section>
+
+        <!-- 5 -->
+        <section class="bf-paso">
+            <h3>Revisá antes de publicar</h3>
+            <ul class="bf-resumen" id="bf-resumen"></ul>
+        </section>
+
+        <p class="bf-error" id="bf-error" role="alert"></p>
+        <div class="bf-nav">
+            <button type="button" class="bf-btn bf-btn--atras" id="bf-atras">← Atrás</button>
+            <button type="button" class="bf-btn" id="bf-sigue">Siguiente →</button>
+            <button type="submit" class="bf-btn bf-btn--ok" id="bf-publicar">✅ Publicar la oferta</button>
+        </div>
+    </form>
 </div>
-<script>
-(function () {
-    var f = document.getElementById('form-campania'), previa = document.getElementById('previa');
-    document.getElementById('ver-aviso').addEventListener('click', function () {
-        ['titulo', 'mensaje', 'boton'].forEach(function (k) { document.getElementById('previa-' + k).textContent = f.elements[k].value; });
-        previa.style.display = 'flex';
-    });
-    previa.addEventListener('click', function () { previa.style.display = 'none'; });
-})();
-</script>
+<script src="/js/campania-admin.js?v=1"></script>
