@@ -74,3 +74,10 @@
 .bf-grupo small { color: #8a8a8e; white-space: nowrap; }
 .bf-grupo select { flex: 0 0 170px; padding: 9px 10px; border: 2px solid #d2d2d7; border-radius: 10px; background: #fff; font-weight: 600; }
 @media (max-width: 600px) { .bf-grupo { flex-wrap: wrap; } .bf-grupo select { flex: 1 1 100%; } }
+
+/* Edición rápida */
+.bf-cambiar { margin-left: 8px; border: 2px solid #800020; background: #fff; color: #800020; border-radius: 999px; padding: 4px 16px; font-weight: 700; cursor: pointer; }
+.bf-resumen li { align-items: center; }
+.bf-resumen li span { flex: 0 0 170px; }
+.bf-resumen li b { flex: 1 1 200px; text-align: right; }
+.bf-pendiente { background: #fff1cc; color: #7a5600; border-radius: 10px; padding: 8px 14px; font-weight: 600; }

@@ -13,7 +13,7 @@
     const excluidas = o && o.categorias_excluidas ? o.categorias_excluidas.split(',') : [];
     const valor = o && o.tipo_descuento === 'porcentaje' ? Number(o.valor_descuento) : 0;
     const elegidos = (c.productos || []).map(Number);
-    const enStock = products.filter(p => Number(p.stock) > 0);
+    const enStock = products.filter(p => Number(p.stock) > 0 || elegidos.includes(Number(p.id)));
 
     let estado = ['Todavía no cargaste la oferta', 'gris'];
     if (o) {
@@ -23,7 +23,7 @@
         else estado = ['EN VIVO en la tienda', 'verde'];
     }
 %>
-<link rel="stylesheet" href="/css/campania-admin.css?v=2">
+<link rel="stylesheet" href="/css/campania-admin.css?v=3">
 <div class="ofertas-container bf" id="campania-box">
     <div class="bf-top">
         <h2>🖤 Black Friday</h2>
@@ -41,7 +41,7 @@
         <li>1. Equipos</li><li>2. Descuento</li><li>3. Fechas</li><li>4. Aviso</li><li>5. Confirmar</li>
     </ol>
 
-    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate data-reglas="<%= JSON.stringify({ agrupar: c.agrupar, porGrupo: c.porGrupo }) %>">
+    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate data-editar="<%= o ? (o.activo ? 'si' : 'apagada') : '' %>" data-reglas="<%= JSON.stringify({ agrupar: c.agrupar, porGrupo: c.porGrupo }) %>">
         <input type="hidden" name="por_grupo" id="bf-porgrupo">
         <input type="hidden" name="nombre" value="<%= o ? o.nombre : 'Black Friday' %>">
         <input type="hidden" name="tipo_descuento" value="porcentaje">
@@ -142,11 +142,13 @@
 
         <!-- 5 -->
         <section class="bf-paso">
-            <h3>Revisá antes de publicar</h3>
+            <h3 id="bf-resumen-titulo">Revisá antes de publicar</h3>
+            <p class="bf-ayuda" id="bf-resumen-ayuda" hidden>Tocá <b>Cambiar</b> solo en lo que quieras tocar y después guardá. No hace falta repetir los pasos.</p>
             <ul class="bf-resumen" id="bf-resumen"></ul>
         </section>
 
         <p class="bf-error" id="bf-error" role="alert"></p>
+        <p class="bf-pendiente" id="bf-sinGuardar" hidden>Tenés cambios sin guardar. La tienda no cambia hasta que guardes.</p>
         <div class="bf-nav">
             <button type="button" class="bf-btn bf-btn--atras" id="bf-atras">← Atrás</button>
             <button type="button" class="bf-btn" id="bf-sigue">Siguiente →</button>
@@ -154,4 +156,4 @@
         </div>
     </form>
 </div>
-<script src="/js/campania-admin.js?v=2"></script>
+<script src="/js/campania-admin.js?v=3"></script>

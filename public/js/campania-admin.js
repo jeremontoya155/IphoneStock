@@ -6,6 +6,9 @@
     var todos = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
     var pasos = todos('.bf-paso'), marcas = todos('#bf-pasos li'), prods = todos('.bf-prod');
     var actual = 0;
+    // Con una oferta ya cargada: se abre en el resumen y cada dato se cambia por separado
+    var editar = f.getAttribute('data-editar');
+    var ultimo = pasos.length - 1;
 
     function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
     function plata(p, n) { return p.getAttribute('data-moneda') + ' ' + n.toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
@@ -139,7 +142,17 @@
             if (l[0].indexOf('⚠️') === 0) li.className = 'is-warn';
             var k = document.createElement('span'); k.textContent = l[0];
             var v = document.createElement('b'); v.textContent = l[1];
-            li.appendChild(k); li.appendChild(v); ul.appendChild(li);
+            li.appendChild(k); li.appendChild(v);
+            var paso = { 'Equipos en oferta': 0, 'Descuento': 1, 'Empieza': 2, 'Termina': 2, 'Aviso al entrar': 3, 'Catálogo': 3 }[l[0]];
+            if (editar && paso !== undefined) {
+                var boton = document.createElement('button');
+                boton.type = 'button'; boton.className = 'bf-cambiar'; boton.textContent = 'Cambiar';
+                boton.setAttribute('data-paso', paso);
+                boton.setAttribute('aria-label', 'Cambiar ' + l[0].toLowerCase());
+                boton.addEventListener('click', function () { ir(paso); $('campania-box').scrollIntoView(); });
+                li.appendChild(boton);
+            }
+            ul.appendChild(li);
         });
     }
 
@@ -161,9 +174,17 @@
         actual = i;
         pasos.forEach(function (p, n) { p.hidden = n !== i; });
         marcas.forEach(function (m, n) { m.className = n === i ? 'is-on' : (n < i ? 'is-ok' : ''); });
-        $('bf-atras').style.visibility = i ? 'visible' : 'hidden';
-        $('bf-sigue').hidden = i === pasos.length - 1;
-        $('bf-publicar').hidden = i !== pasos.length - 1;
+        if (editar) {
+            marcas.forEach(function (m, n) { m.className = n === i ? 'is-on' : 'is-ok'; });
+            $('bf-atras').style.visibility = i === ultimo ? 'hidden' : 'visible';
+            $('bf-atras').textContent = '← Volver al resumen';
+            $('bf-sigue').hidden = true;
+            $('bf-publicar').hidden = false;
+        } else {
+            $('bf-atras').style.visibility = i ? 'visible' : 'hidden';
+            $('bf-sigue').hidden = i === ultimo;
+            $('bf-publicar').hidden = i !== ultimo;
+        }
         $('bf-error').textContent = '';
         pintar();
         if (i === pasos.length - 1) resumen();
@@ -177,7 +198,7 @@
     }
 
     $('bf-sigue').addEventListener('click', avanzar);
-    $('bf-atras').addEventListener('click', function () { ir(actual - 1); });
+    $('bf-atras').addEventListener('click', function () { ir(editar ? ultimo : actual - 1); });
     f.addEventListener('input', function () { $('bf-error').textContent = ''; pintar(); });
     f.addEventListener('change', pintar);
     // Enter no debe publicar a medias
@@ -188,7 +209,7 @@
         for (var i = 0; i < pasos.length - 1; i++) {
             if (falta(i)) { e.preventDefault(); var msg = falta(i); ir(i); $('bf-error').textContent = msg; return; }
         }
-        if (actual !== pasos.length - 1) { e.preventDefault(); return; }
+        if (!editar && actual !== ultimo) { e.preventDefault(); return; }
         $('bf-porgrupo').value = JSON.stringify(agrupar() === 'no' ? {} : porGrupo[agrupar()]);
         $('bf-productos').value = alcance() === 'elegidos' ? prods.filter(marcado).map(function (p) { return p.getAttribute('data-id'); }).join(',') : '';
         $('bf-publicar').disabled = true;
@@ -224,5 +245,19 @@
     $('bf-marcar').addEventListener('click', function () { prods.forEach(function (p) { if (!p.hidden) p.querySelector('.bf-check').checked = true; }); pintar(); });
     $('bf-limpiar').addEventListener('click', function () { prods.forEach(function (p) { p.querySelector('.bf-check').checked = false; }); pintar(); });
 
-    ir(0);
+    if (editar) {
+        $('bf-resumen-titulo').textContent = 'Tu oferta';
+        $('bf-resumen-ayuda').hidden = false;
+        $('bf-publicar').textContent = editar === 'apagada' ? '▶ Volver a encender' : '💾 Guardar cambios';
+        marcas.forEach(function (m, n) {
+            m.tabIndex = 0; m.setAttribute('role', 'button'); m.style.cursor = 'pointer';
+            m.addEventListener('click', function () { ir(n); });
+            m.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ir(n); } });
+        });
+        f.addEventListener('change', function () { $('bf-sinGuardar').hidden = false; });
+        todos('.bf-num, .bf-fecha, #bf-marcar, #bf-limpiar').forEach(function (b) {
+            b.addEventListener('click', function () { $('bf-sinGuardar').hidden = false; });
+        });
+    }
+    ir(editar ? ultimo : 0);
 })();
