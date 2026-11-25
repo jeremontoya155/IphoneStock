@@ -10,6 +10,7 @@ const cors = require('cors');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const compression = require('compression');
+const campaniaLib = require('./campania');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -340,6 +341,15 @@ app.get('/about', (req, res) => {
     });
 });
 
+// Campaña vigente (aviso y orden de productos) para las páginas públicas
+app.use(async (req, res, next) => {
+    res.locals.campania = null;
+    if (req.method !== 'GET' || !(req.path === '/' || req.path === '/cart' || req.path.startsWith('/product/'))) return next();
+    try { res.locals.campania = await campaniaLib.vigente(pool); }
+    catch (e) { console.error('No se pudo leer la campaña:', e.message); }
+    next();
+});
+
 // Ruta principal para renderizar la página principal
 app.get('/', async (req, res) => {
     try {
@@ -363,12 +373,7 @@ app.get('/', async (req, res) => {
         let ofertaGeneral = null;
         let categoriasExcluidas = [];
         try {
-            const ofertaGeneralResult = await pool.query(`
-                SELECT * FROM ofertas_generales
-                WHERE activo = TRUE
-                ORDER BY created_at DESC
-                LIMIT 1
-            `);
+            const ofertaGeneralResult = await pool.query(campaniaLib.SQL_GENERAL_VIGENTE);
             ofertaGeneral = ofertaGeneralResult.rows[0];
             categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
                 ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
@@ -423,7 +428,11 @@ app.get('/', async (req, res) => {
             img: optimizeCloudinaryUrl(p.img, 500)
         }));
 
-        res.render('index', { products: productsOpt, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        const enOferta = res.locals.campania && res.locals.campania.inicio
+            ? productsOpt.filter(p => p.tiene_oferta_vigente && p.stock > 0).sort((a, b) => b.price - a.price).slice(0, 8)
+            : [];
+
+        res.render('index', { enOferta, products: productsOpt, carouselItems, about, logoUrl, imagen2Url, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener datos:', err);
         res.status(500).send('Error interno del servidor');
@@ -458,7 +467,7 @@ app.get('/cart', async (req, res) => {
         let ofertaGeneral = null;
         let categoriasExcluidas = [];
         try {
-            const ofertaGeneralResult = await pool.query(`SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1`);
+            const ofertaGeneralResult = await pool.query(campaniaLib.SQL_GENERAL_VIGENTE);
             ofertaGeneral = ofertaGeneralResult.rows[0];
             categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
                 ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)) : [];
@@ -501,7 +510,10 @@ app.get('/cart', async (req, res) => {
         const logoUrl = images.imagen1;
         const imagenUrl2 = images.imagen2;
 
-        res.render('cart', { products: products.map(p => ({...p, img: optimizeCloudinaryUrl(p.img, 500)})), about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
+        const verTodo = req.query.todo === '1';
+        const visibles = campaniaLib.ordenar(products, res.locals.campania, verTodo);
+
+        res.render('cart', { verTodo, products: visibles.map(p => ({...p, img: optimizeCloudinaryUrl(p.img, 500)})), about, logoUrl, imagenUrl2, isAdmin: req.session.isAdmin, cotizacionDolar, mostrarPrecioPesos });
     } catch (err) {
         console.error('Error al obtener productos para el carrito:', err);
         res.status(500).send('Error interno del servidor');
@@ -749,7 +761,7 @@ app.get('/product/:id', async (req, res) => {
                 tiene_oferta_vigente: true, es_oferta_general: false };
         } else {
             // Verificar oferta general
-            const ofertaGeneralResult = await pool.query(`SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1`);
+            const ofertaGeneralResult = await pool.query(campaniaLib.SQL_GENERAL_VIGENTE);
             if (ofertaGeneralResult.rows.length > 0) {
                 const ofertaGeneral = ofertaGeneralResult.rows[0];
                 const categoriasExcluidas = ofertaGeneral.categorias_excluidas
@@ -1316,7 +1328,7 @@ async function cargarProductosPublicos(ids) {
     // Las 3 consultas son independientes: se lanzan en paralelo (la BD es remota y cada ida y vuelta cuesta)
     const [prodsRes, generalRes, especificasRes] = await Promise.all([
         pool.query('SELECT * FROM products WHERE id = ANY($1::int[])', [ids]),
-        pool.query('SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1').catch(() => null),
+        pool.query(campaniaLib.SQL_GENERAL_VIGENTE).catch(() => null),
         pool.query(`
             SELECT o.product_id,
                 CASE WHEN o.tipo_descuento = 'porcentaje' THEN ROUND(p.price * (1 - o.valor_descuento / 100), 2)
@@ -2082,7 +2094,11 @@ app.get('/admin/ofertas', requireAdmin, async (req, res) => {
         `);
         const ofertasGeneralesResult = await pool.query(`SELECT * FROM ofertas_generales ORDER BY created_at DESC`);
         const categoriasResult = await pool.query('SELECT * FROM categorias ORDER BY orden, nombre');
+        const campaniaCfg = await campaniaLib.leer(pool);
+        const campaniaOferta = ofertasGeneralesResult.rows.find(o => String(o.id) === String(campaniaCfg.oferta_id)) || null;
         res.render('ofertas', {
+            campaniaCfg, campaniaOferta,
+            campaniaMsg: req.query.campania || '',
             products: productsResult.rows,
             ofertasActivas: ofertasActivasResult.rows,
             todasOfertas: todasOfertasResult.rows,
@@ -2186,6 +2202,64 @@ app.get('/api/productos-ofertas', async (req, res) => {
     } catch (err) {
         console.error('Error al obtener productos con ofertas:', err);
         res.status(500).json({ error: 'Error interno del servidor' });
+    }
+});
+
+// ==================== CAMPAÑA BLACK FRIDAY ====================
+
+app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
+    try {
+        const b = req.body;
+        const nombre = String(b.nombre || '').trim().slice(0, 60);
+        const tipo = b.tipo_descuento === 'monto_fijo' ? 'monto_fijo' : 'porcentaje';
+        const valor = parseFloat(b.valor_descuento);
+        const ini = String(b.fecha_inicio || '');
+        const fin = String(b.fecha_fin || '');
+        if (!nombre || !ini || !fin || !(valor > 0)) return res.status(400).send('Completá nombre, descuento y fechas');
+        if (tipo === 'porcentaje' && valor >= 100) return res.status(400).send('El porcentaje debe ser menor a 100');
+        if (fin <= ini) return res.status(400).send('La fecha de fin debe ser posterior a la de inicio');
+        const excluidas = [].concat(b.categorias_excluidas || []).join(',');
+
+        const cfg = await campaniaLib.leer(pool);
+        // Solo puede haber una oferta general encendida
+        await pool.query('UPDATE ofertas_generales SET activo = FALSE WHERE activo = TRUE');
+        let id = null;
+        if (cfg.oferta_id) {
+            const up = await pool.query(
+                'UPDATE ofertas_generales SET nombre = $1, tipo_descuento = $2, valor_descuento = $3, fecha_inicio = $4, fecha_fin = $5, categorias_excluidas = $6, activo = TRUE, updated_at = NOW() WHERE id = $7 RETURNING id',
+                [nombre, tipo, valor, ini, fin, excluidas, cfg.oferta_id]);
+            if (up.rows.length) id = up.rows[0].id;
+        }
+        if (!id) {
+            const ins = await pool.query(
+                'INSERT INTO ofertas_generales (nombre, descripcion, tipo_descuento, valor_descuento, fecha_inicio, fecha_fin, activo, categorias_excluidas) VALUES ($1, NULL, $2, $3, $4, $5, TRUE, $6) RETURNING id',
+                [nombre, tipo, valor, ini, fin, excluidas]);
+            id = ins.rows[0].id;
+        }
+        await campaniaLib.guardar(pool, {
+            oferta_id: id,
+            vista: campaniaLib.VISTAS.includes(b.vista) ? b.vista : 'primero',
+            inicio: b.inicio === 'on',
+            aviso: b.aviso === 'on',
+            titulo: String(b.titulo || '').trim().slice(0, 60) || nombre,
+            mensaje: String(b.mensaje || '').trim().slice(0, 220),
+            boton: String(b.boton || '').trim().slice(0, 30) || campaniaLib.DEFAULTS.boton
+        });
+        res.redirect('/admin/ofertas?campania=guardada');
+    } catch (err) {
+        console.error('Error al guardar la campaña:', err);
+        res.status(500).send('Error al guardar la campaña');
+    }
+});
+
+app.post('/admin/ofertas/campania/apagar', requireAdmin, async (req, res) => {
+    try {
+        const cfg = await campaniaLib.leer(pool);
+        if (cfg.oferta_id) await pool.query('UPDATE ofertas_generales SET activo = FALSE WHERE id = $1', [cfg.oferta_id]);
+        res.redirect('/admin/ofertas?campania=apagada');
+    } catch (err) {
+        console.error('Error al apagar la campaña:', err);
+        res.status(500).send('Error al apagar la campaña');
     }
 });
 
@@ -2369,7 +2443,7 @@ app.get('/admin/cotizador', requireLogin, async (req, res) => {
         let categoriasExcluidas = [];
         const ofertasMap = {};
         try {
-            ofertaGeneral = (await pool.query('SELECT * FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1')).rows[0];
+            ofertaGeneral = (await pool.query(campaniaLib.SQL_GENERAL_VIGENTE)).rows[0];
             categoriasExcluidas = ofertaGeneral && ofertaGeneral.categorias_excluidas
                 ? ofertaGeneral.categorias_excluidas.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
                 : [];
@@ -2636,7 +2710,7 @@ app.get('/panel', requireLogin, async (req, res) => {
                     COUNT(*) FILTER (WHERE stock IS NULL OR stock <= 0)::int AS sin_stock,
                     COUNT(*) FILTER (WHERE stock BETWEEN 1 AND 2)::int AS poco_stock FROM products`) : null,
             esAdmin ? q('SELECT COUNT(*)::int AS n FROM ofertas WHERE activo = TRUE') : null,
-            esAdmin ? q('SELECT nombre, tipo_descuento, valor_descuento FROM ofertas_generales WHERE activo = TRUE ORDER BY created_at DESC LIMIT 1') : null,
+            esAdmin ? q(campaniaLib.SQL_GENERAL_VIGENTE) : null,
             esAdmin ? q("SELECT valor FROM configuracion WHERE clave = 'cotizacion_dolar'") : null,
             q(`SELECT COUNT(*)::int AS n FROM facturas WHERE fecha::date = (NOW() AT TIME ZONE 'America/Argentina/Buenos_Aires')::date${soloMias}`, pv),
             q(`SELECT id, numero_factura, cliente_nombre, total, fecha FROM facturas WHERE TRUE${soloMias} ORDER BY fecha DESC LIMIT 5`, pv)

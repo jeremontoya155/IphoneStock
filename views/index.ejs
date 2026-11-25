@@ -47,7 +47,7 @@
     <link rel="stylesheet" href="/css/index.css?v=carousel-mobile-4">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="/css/store.css?v=6">
+    <link rel="stylesheet" href="/css/store.css?v=7">
     sc
     <!-- Incluir Font Awesome -->
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
@@ -149,6 +149,21 @@
                 <p>¿Estás listo para encontrar tu iPhone ideal?</p>
                 <img src="/imgs/icons-arrow.png" alt="flecha" class="welcome-flecha" />
             </section>
+
+            <% if (typeof enOferta !== 'undefined' && enOferta.length) { %>
+            <section class="campania-sec">
+                <header class="campania-sec__head">
+                    <h2><%= campania.titulo %></h2>
+                    <p><%= campania.mensaje %></p>
+                </header>
+                <div class="products-container">
+                    <% enOferta.forEach(product => { %>
+                        <%- include('partials/productCard', { product: product }) %>
+                    <% }); %>
+                </div>
+                <div class="ver-mas"><a href="/cart" class="btn-generico"><%= campania.boton %></a></div>
+            </section>
+            <% } %>
 
             <!-- Cards de productos -->
             <section class="featured-products fade-in-section">

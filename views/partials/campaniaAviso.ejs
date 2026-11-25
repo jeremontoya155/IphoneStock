@@ -1,0 +1,23 @@
+<!-- Aviso de campaña: aparece una vez por visita -->
+<div class="campania-aviso" id="campania-aviso" role="dialog" aria-modal="true" aria-labelledby="campania-aviso-titulo" data-clave="iloop_aviso_<%= c.oferta_id %>" hidden>
+    <div class="campania-aviso__box">
+        <button type="button" class="campania-aviso__x" aria-label="Cerrar">&times;</button>
+        <h2 id="campania-aviso-titulo"><%= c.titulo %></h2>
+        <p><%= c.mensaje %></p>
+        <a class="campania-aviso__cta" href="/cart"><%= c.boton %></a>
+    </div>
+</div>
+<script>
+(function () {
+    var aviso = document.getElementById('campania-aviso');
+    var clave = aviso.getAttribute('data-clave');
+    try { if (sessionStorage.getItem(clave)) return; } catch (e) { }
+    function cerrar() { aviso.hidden = true; }
+    aviso.hidden = false;
+    try { sessionStorage.setItem(clave, '1'); } catch (e) { }
+    aviso.querySelector('.campania-aviso__x').addEventListener('click', cerrar);
+    aviso.querySelector('.campania-aviso__cta').addEventListener('click', cerrar);
+    aviso.addEventListener('click', function (e) { if (e.target === aviso) cerrar(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+})();
+</script>

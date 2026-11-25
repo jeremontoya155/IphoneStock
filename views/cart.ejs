@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="/css/index.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="/css/store.css?v=6">
+    <link rel="stylesheet" href="/css/store.css?v=7">
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-P7BHKK1V4G"></script>
 <script>
@@ -210,6 +210,16 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
                     <% }); %>
                 </div>
             </div>
+
+            <% if (typeof campania !== 'undefined' && campania) { %>
+            <div class="campania-barra">
+                <strong><%= campania.titulo %></strong>
+                <span><%= campania.mensaje %></span>
+                <% if (campania.vista === 'solo') { %>
+                <a href="<%= verTodo ? '/cart' : '/cart?todo=1' %>"><%= verTodo ? 'Ver solo ofertas' : 'Ver todo el catálogo' %></a>
+                <% } %>
+            </div>
+            <% } %>
 
             <section class="featured-products" style="min-height: 90vh;">
                 <div class="products-container row" id="cart-items">

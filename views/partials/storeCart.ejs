@@ -32,3 +32,7 @@
 <% } %>
 
 <script src="/js/store-cart.js?v=5" defer></script>
+
+<% if (typeof campania !== 'undefined' && campania && campania.aviso) { %>
+<%- include('campaniaAviso', { c: campania }) %>
+<% } %>
