@@ -88,7 +88,7 @@
             <!-- ===== Imagen ===== -->
             <section class="pp-media">
                 <% if (tieneOferta) { %>
-                <span class="pp-badge"><%= product.tipo_descuento === 'porcentaje' ? '-' + product.valor_descuento + '%' : 'OFERTA' %></span>
+                <span class="pp-badge"><%= product.tipo_descuento === 'porcentaje' ? '-' + Math.round(Number(product.valor_descuento)) + '%' : 'OFERTA' %></span>
                 <% } %>
                 <% if (product.img) { %>
                 <img src="<%= product.img %>" alt="<%= product.name %>" width="640" height="640">

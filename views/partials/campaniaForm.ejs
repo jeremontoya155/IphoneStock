@@ -11,7 +11,7 @@
     const bfHasta = anio + '-11-30T23:59';
     const ahora = new Date().toLocaleString('sv-SE', { timeZone: 'America/Argentina/Buenos_Aires' }).slice(0, 16).replace(' ', 'T');
     const excluidas = o && o.categorias_excluidas ? o.categorias_excluidas.split(',') : [];
-    const valor = o && o.tipo_descuento === 'porcentaje' ? Number(o.valor_descuento) : 0;
+    const valor = c.modo !== 'precio' && o && o.tipo_descuento === 'porcentaje' ? Number(o.valor_descuento) : 0;
     const elegidos = (c.productos || []).map(Number);
     const enStock = products.filter(p => Number(p.stock) > 0 || elegidos.includes(Number(p.id)));
 
@@ -23,7 +23,7 @@
         else estado = ['EN VIVO en la tienda', 'verde'];
     }
 %>
-<link rel="stylesheet" href="/css/campania-admin.css?v=3">
+<link rel="stylesheet" href="/css/campania-admin.css?v=4">
 <div class="ofertas-container bf" id="campania-box">
     <div class="bf-top">
         <h2>🖤 Black Friday</h2>
@@ -41,8 +41,9 @@
         <li>1. Equipos</li><li>2. Descuento</li><li>3. Fechas</li><li>4. Aviso</li><li>5. Confirmar</li>
     </ol>
 
-    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate data-editar="<%= o ? (o.activo ? 'si' : 'apagada') : '' %>" data-reglas="<%= JSON.stringify({ agrupar: c.agrupar, porGrupo: c.porGrupo }) %>">
+    <form action="/admin/ofertas/campania" method="POST" id="form-campania" novalidate data-editar="<%= o ? (o.activo ? 'si' : 'apagada') : '' %>" data-reglas="<%= JSON.stringify({ agrupar: c.agrupar, porGrupo: c.porGrupo, precios: c.precios }) %>">
         <input type="hidden" name="por_grupo" id="bf-porgrupo">
+        <input type="hidden" name="precios" id="bf-precios">
         <input type="hidden" name="nombre" value="<%= o ? o.nombre : 'Black Friday' %>">
         <input type="hidden" name="tipo_descuento" value="porcentaje">
         <input type="hidden" name="productos" id="bf-productos">
@@ -85,6 +86,24 @@
         <!-- 2 -->
         <section class="bf-paso">
             <h3>¿Cuánto descuento?</h3>
+            <div class="bf-opciones">
+                <label class="bf-opcion"><input type="radio" name="modo" value="porcentaje" <%= c.modo === 'precio' ? '' : 'checked' %>><span><b>Con porcentaje</b>Ej: 10% menos. La cuenta se hace sola</span></label>
+                <label class="bf-opcion"><input type="radio" name="modo" value="precio" <%= c.modo === 'precio' ? 'checked' : '' %>><span><b>Escribo el precio</b>Vos ponés cuánto sale cada uno</span></label>
+            </div>
+
+            <div id="bf-modo-precio">
+                <input type="search" id="bf-pbuscar" class="bf-buscar" placeholder="🔍 Buscar para ver un grupo: iphone 15 128..." autocomplete="off">
+                <div class="bf-varios">
+                    <label>Mismo precio a los <b id="bf-pvisibles">0</b> que se ven: <input type="number" id="bf-pvarios" min="0" step="0.01" inputmode="decimal" placeholder="Precio"></label>
+                    <button type="button" class="bf-aplicar" id="bf-paplicar">Poner a todos</button>
+                    <button type="button" class="bf-link" id="bf-pborrar">Borrar los que se ven</button>
+                </div>
+                <p class="bf-aviso-varios" id="bf-pmsg" role="status"></p>
+                <p class="bf-ayuda">Escribí el precio de oferta al lado de cada equipo. <b>El que dejes vacío no va en oferta.</b> <b id="bf-pcargados">0</b> con precio.</p>
+                <div class="bf-lista" id="bf-lista"></div>
+            </div>
+
+            <div id="bf-modo-pct">
             <div class="bf-numeros">
                 <% [5, 10, 15, 20, 25, 30].forEach(n => { %><button type="button" class="bf-num" data-valor="<%= n %>"><%= n %>%</button><% }); %>
             </div>
@@ -99,6 +118,7 @@
 
             <p class="bf-ayuda">Así van a quedar los precios:</p>
             <ul class="bf-ejemplos" id="bf-ejemplos"></ul>
+            </div>
         </section>
 
         <!-- 3 -->
@@ -156,4 +176,4 @@
         </div>
     </form>
 </div>
-<script src="/js/campania-admin.js?v=3"></script>
+<script src="/js/campania-admin.js?v=4"></script>

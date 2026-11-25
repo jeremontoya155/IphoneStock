@@ -2212,7 +2212,19 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         const b = req.body;
         const nombre = String(b.nombre || '').trim().slice(0, 60);
         const tipo = b.tipo_descuento === 'monto_fijo' ? 'monto_fijo' : 'porcentaje';
-        const valor = parseFloat(b.valor_descuento);
+        const modo = b.modo === 'precio' ? 'precio' : 'porcentaje';
+        const precios = {};
+        if (modo === 'precio') {
+            let crudo = {};
+            try { crudo = JSON.parse(b.precios || '{}'); } catch (e) { }
+            Object.entries(crudo || {}).slice(0, 2000).forEach(([id, v]) => {
+                const n = Math.round(Number(v) * 100) / 100;
+                if (/^[1-9][0-9]{0,8}$/.test(id) && n > 0 && n < 1e9) precios[id] = n;
+            });
+            if (!Object.keys(precios).length) return res.status(400).send('Escribí al menos un precio de oferta');
+        }
+        // En modo precio la columna del porcentaje no se usa (la tabla la exige)
+        const valor = modo === 'precio' ? 1 : parseFloat(b.valor_descuento);
         const ini = String(b.fecha_inicio || '');
         const fin = String(b.fecha_fin || '');
         if (!nombre || !ini || !fin || !(valor > 0)) return res.status(400).send('Completá nombre, descuento y fechas');
@@ -2253,6 +2265,8 @@ app.post('/admin/ofertas/campania', requireAdmin, async (req, res) => {
         await campaniaLib.guardar(pool, {
             oferta_id: id,
             productos,
+            modo,
+            precios,
             agrupar,
             porGrupo,
             vista: campaniaLib.VISTAS.includes(b.vista) ? b.vista : 'primero',

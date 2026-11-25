@@ -3,7 +3,7 @@
   const tieneOferta = product.tiene_oferta_vigente;
   const precioOriginal = Number(product.price);
   const precioFinal = Number(product.precio_final || product.price);
-  const porcentajeDescuento = tieneOferta && product.tipo_descuento === 'porcentaje' ? product.valor_descuento : null;
+  const porcentajeDescuento = tieneOferta && product.tipo_descuento === 'porcentaje' ? Math.round(Number(product.valor_descuento)) : null;
   const esOfertaGeneral = product.es_oferta_general || false;
   const nombreOfertaGeneral = product.nombre_oferta_general || '';
 

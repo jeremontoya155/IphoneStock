@@ -21,6 +21,13 @@ function reglas(oferta) {
 // Porcentaje que le toca a un producto: el de su grupo, o el general.
 function descuento(oferta, product) {
     const cfg = reglas(oferta);
+    // Precio escrito a mano: se expresa como porcentaje exacto, así el resto de la tienda calcula igual.
+    // Si no tiene precio, o ya cuesta menos que eso, no hay oferta.
+    if (cfg.modo === 'precio') {
+        const nuevo = cfg.precios && Object.prototype.hasOwnProperty.call(cfg.precios, product.id) ? Number(cfg.precios[product.id]) : 0;
+        const actual = Number(product.price);
+        return nuevo > 0 && nuevo < actual ? (1 - nuevo / actual) * 100 : 0;
+    }
     const clave = cfg.agrupar === 'categoria' ? String(product.categoria_id || 0)
         : cfg.agrupar === 'modelo' ? modelo(product.name) : null;
     if (clave !== null && cfg.porGrupo && Object.prototype.hasOwnProperty.call(cfg.porGrupo, clave)) return cfg.porGrupo[clave];
@@ -38,6 +45,8 @@ const VISTAS = ['primero', 'solo', 'normal'];
 const DEFAULTS = {
     oferta_id: null,
     productos: [],      // vacío = todos
+    modo: 'porcentaje', // 'porcentaje' | 'precio'
+    precios: {},        // { idProducto: precio de oferta }
     agrupar: 'no',      // 'no' | 'categoria' | 'modelo'
     porGrupo: {},       // { grupo: porcentaje }, 0 = sin descuento
     vista: 'primero',
