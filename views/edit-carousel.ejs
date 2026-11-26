@@ -17,6 +17,32 @@
         <h1 class="text-center">Editar Carrusel</h1>
         <p class="text-center text-muted">Las imágenes se suben automáticamente a Cloudinary. La primera de la lista es la primera que se muestra al entrar.</p>
         
+        <%
+            const visibles = (carouselItems || []).filter(item => !item.oculto);
+            const primera = visibles.length ? visibles[0].id : null;
+        %>
+        <% if (carouselItems && carouselItems.length > 0) { %>
+            <div class="mb-5 p-3 border rounded">
+                <h3>Orden y visibilidad</h3>
+                <p class="text-muted">La de más arriba es la primera que se ve. <strong>Ocultar</strong> la saca de la portada sin borrarla. Se guarda al tocar el botón.</p>
+                <% if (!visibles.length) { %><p class="alert alert-warning">Están todas ocultas: la portada queda sin carrusel.</p><% } %>
+                <% carouselItems.forEach((item, index) => { %>
+                    <form action="/orden-carousel" method="POST" class="d-flex flex-wrap align-items-center border-top py-2">
+                        <input type="hidden" name="id" value="<%= item.id %>">
+                        <strong class="mr-3"><%= index + 1 %></strong>
+                        <img src="<%= item.img %>" alt="<%= item.text %>" class="rounded border mr-3 my-1" style="width: 220px; max-width: 60%;<%= item.oculto ? ' opacity: .35; filter: grayscale(1);' : '' %>">
+                        <span class="badge badge-pill <%= item.oculto ? 'badge-warning' : 'badge-success' %> mr-2"><%= item.oculto ? 'Oculta' : 'Se ve' %></span>
+                        <div class="ml-auto my-1">
+                            <button type="submit" name="mover" value="primero" class="btn btn-sm btn-dark" <%= index === 0 ? 'disabled' : '' %>>Poner primera</button>
+                            <button type="submit" name="mover" value="subir" class="btn btn-sm btn-outline-dark" <%= index === 0 ? 'disabled' : '' %>>↑ Subir</button>
+                            <button type="submit" name="mover" value="bajar" class="btn btn-sm btn-outline-dark" <%= index === carouselItems.length - 1 ? 'disabled' : '' %>>↓ Bajar</button>
+                            <button type="submit" name="mover" value="<%= item.oculto ? 'mostrar' : 'ocultar' %>" class="btn btn-sm <%= item.oculto ? 'btn-success' : 'btn-warning' %>"><%= item.oculto ? 'Mostrar' : 'Ocultar' %></button>
+                        </div>
+                    </form>
+                <% }); %>
+            </div>
+        <% } %>
+
         <!-- Formulario para agregar nuevo elemento al carrusel -->
         <form action="/add-carousel" method="POST" enctype="multipart/form-data" class="mb-5 p-3 border rounded">
             <h3>Agregar imagen</h3>
@@ -41,7 +67,7 @@
         <% if (carouselItems && carouselItems.length > 0) { %>
             <% carouselItems.forEach((item, index) => { %>
                 <form action="/edit-carousel" method="POST" enctype="multipart/form-data" class="mb-4 p-3 border rounded">
-                    <h4>Imagen <%= index + 1 %><%= index === 0 ? ' (primera al entrar)' : '' %></h4>
+                    <h4>Imagen <%= index + 1 %><%= item.id === primera ? ' (primera al entrar)' : '' %><%= item.oculto ? ' (oculta)' : '' %></h4>
                     <input type="hidden" name="id" value="<%= item.id %>">
                     <div class="form-group">
                         <label for="text<%= item.id %>">Texto alternativo</label>

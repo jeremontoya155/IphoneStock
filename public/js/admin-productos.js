@@ -9,11 +9,12 @@
     var total = rows.length;
 
     function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
-    rows.forEach(function (r) {
+    function indexar(r) {
         r._n = norm([r.getAttribute('data-name'), r.getAttribute('data-x-cat'), r.getAttribute('data-estado'), r.getAttribute('data-x-alm'),
             r.getAttribute('data-x-bateria'), r.getAttribute('data-x-precio')].join(' '));
         r._c = r._n.replace(/\s+/g, '');
-    });
+    }
+    rows.forEach(indexar);
     function matches(r, text) {
         return text.split(/\s+/).every(function (t) { return r._n.indexOf(t) !== -1 || r._c.indexOf(t) !== -1; });
     }
@@ -117,6 +118,136 @@
         XLSX.utils.book_append_sheet(wb, ws, 'Productos');
         XLSX.writeFile(wb, 'productos-' + new Date().toISOString().slice(0, 10) + '.xlsx');
         showToast('Descargando ' + (data.length - 1) + ' productos');
+    });
+
+    // ---- Cambio rápido de precios ----
+    var modo = false, tabla = $('pr-table'), panel = $('pr-px'), barra = $('pr-px-barra'),
+        boton = $('pr-precios'), guardar = $('pr-px-guardar'), pxDialog = $('pr-px-dialog'), msg = $('pr-px-msg');
+
+    // Acepta "450", "1399,99", "1.399,99" y "1.250" (mil doscientos cincuenta). NaN si no se entiende.
+    function leerPrecio(t) {
+        t = t.replace(/\s/g, '');
+        if (t.indexOf(',') !== -1) t = t.replace(/\./g, '').replace(',', '.');
+        else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+        return /^\d+(\.\d{1,2})?$/.test(t) && Number(t) > 0 ? Number(t) : NaN;
+    }
+    function fmt(n) { return Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 }); }
+    function moneda(r) { return r.getAttribute('data-x-moneda') === 'USD' ? 'USD' : 'ARS $'; }
+    function actual(r) { return parseFloat(r.getAttribute('data-x-precio')) || 0; }
+    function campo(r) { return r.querySelector('.pr-price input'); }
+
+    // null = no se toca; NaN = mal escrito
+    function nuevo(r) {
+        var i = campo(r);
+        if (!i || !i.value.trim()) return null;
+        var n = leerPrecio(i.value);
+        return n === actual(r) ? null : n;
+    }
+
+    function revisar() {
+        var bien = 0, mal = 0;
+        rows.forEach(function (r) {
+            if (!campo(r)) return;
+            var n = nuevo(r), clase = '', texto = '';
+            if (n !== null && isNaN(n)) { mal++; clase = 'is-mal'; texto = 'No se entiende'; }
+            else if (n !== null) {
+                bien++;
+                var raro = actual(r) && Math.abs(n / actual(r) - 1) > 0.3;
+                clase = raro ? 'is-ojo' : 'is-ok';
+                texto = 'Antes ' + fmt(actual(r)) + (raro ? ' · ¿Está bien?' : '');
+            }
+            r.querySelector('.pr-price').className = 'pr-price ' + clase;
+            r.querySelector('.pr-price em').textContent = texto;
+        });
+        $('pr-px-n').textContent = mal ? 'Corregí ' + mal + (mal === 1 ? ' precio' : ' precios') :
+            bien ? bien + (bien === 1 ? ' precio cambiado' : ' precios cambiados') : 'Sin cambios';
+        guardar.disabled = !bien || mal > 0;
+    }
+    function pendientes() { return modo && rows.some(function (r) { return nuevo(r) !== null; }); }
+
+    function pintar(r) {
+        var cel = r.querySelector('.pr-price');
+        cel.className = 'pr-price';
+        if (!modo) { cel.textContent = moneda(r) + ' ' + fmt(actual(r)); return; }
+        cel.innerHTML = '<label><b></b><input type="text" inputmode="decimal" autocomplete="off"></label><em></em>';
+        cel.querySelector('b').textContent = moneda(r);
+        var i = cel.querySelector('input');
+        i.value = String(actual(r)).replace('.', ',');
+        i.setAttribute('aria-label', 'Precio de ' + r.getAttribute('data-x-nombre'));
+        i.addEventListener('focus', function () { i.select(); });
+        i.addEventListener('input', revisar);
+        i.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            var v = visibleRows(), sig = v[v.indexOf(r) + 1];
+            if (sig) campo(sig).focus();
+        });
+    }
+    function ponerModo(si) {
+        modo = si;
+        tabla.classList.toggle('is-precios', si);
+        panel.hidden = !si; barra.hidden = !si; boton.hidden = si;
+        $('pr-px-todos').value = ''; msg.textContent = '';
+        rows.forEach(pintar);
+        revisar();
+    }
+
+    boton.addEventListener('click', function () { ponerModo(true); });
+    $('pr-px-salir').addEventListener('click', function () {
+        if (pendientes() && !window.confirm('Hay precios sin guardar. ¿Salir igual?')) return;
+        ponerModo(false);
+    });
+    window.addEventListener('beforeunload', function (e) { if (pendientes()) { e.preventDefault(); e.returnValue = ''; } });
+
+    $('pr-px-aplicar').addEventListener('click', function () {
+        var n = leerPrecio($('pr-px-todos').value), v = visibleRows();
+        if (isNaN(n)) { msg.textContent = 'Escribí un precio.'; return; }
+        if (!v.length) { msg.textContent = 'No hay productos a la vista.'; return; }
+        if (v.some(function (r) { return moneda(r) !== moneda(v[0]); })) { msg.textContent = 'Hay precios en dólares y en pesos a la vista. Filtrá mejor.'; return; }
+        v.forEach(function (r) { campo(r).value = String(n).replace('.', ','); });
+        msg.textContent = 'Precio puesto en ' + v.length + (v.length === 1 ? ' producto.' : ' productos.') + ' Falta guardar.';
+        revisar();
+    });
+    $('pr-px-todos').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('pr-px-aplicar').click(); } });
+
+    function cambiados() { return rows.filter(function (r) { var n = nuevo(r); return n !== null && !isNaN(n); }); }
+
+    guardar.addEventListener('click', function () {
+        var c = cambiados(), lista = $('pr-px-lista');
+        $('pr-px-title').textContent = c.length === 1 ? '¿Guardar este precio?' : '¿Guardar ' + c.length + ' precios?';
+        lista.textContent = '';
+        c.forEach(function (r) {
+            var li = document.createElement('li'), nombre = document.createElement('span'), cambio = document.createElement('strong');
+            nombre.textContent = r.getAttribute('data-x-nombre');
+            cambio.textContent = moneda(r) + ' ' + fmt(actual(r)) + ' → ' + fmt(nuevo(r));
+            li.appendChild(nombre); li.appendChild(cambio); lista.appendChild(li);
+        });
+        pxDialog.showModal();
+    });
+    $('pr-px-no').addEventListener('click', function () { pxDialog.close(); });
+    $('pr-px-si').addEventListener('click', function () {
+        var btn = this, c = cambiados();
+        var cambios = c.map(function (r) { return { id: Number(r.getAttribute('data-id')), precio: nuevo(r) }; });
+        btn.disabled = true; btn.textContent = 'Guardando…';
+        fetch('/admin/productos/precios', {
+            method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ cambios: cambios })
+        })
+            .then(function (r) {
+                return r.json().catch(function () { throw new Error('se cerró tu sesión, volvé a entrar'); });
+            })
+            .then(function (d) {
+                if (!d.success) throw new Error(d.message || 'no se pudo guardar');
+                c.forEach(function (r, k) {
+                    if (d.ids.indexOf(cambios[k].id) === -1) return;
+                    r.setAttribute('data-x-precio', cambios[k].precio); indexar(r);
+                });
+                ponerModo(false);
+                showToast(d.ids.length === cambios.length ? 'Precios guardados: ' + d.ids.length :
+                    'Se guardaron ' + d.ids.length + ' de ' + cambios.length + '. Actualizá la página.');
+            })
+            .catch(function (e) { showToast('Error: ' + e.message); })
+            .then(function () { btn.disabled = false; btn.textContent = 'Sí, guardar'; pxDialog.close(); });
     });
 
     applyFilters();

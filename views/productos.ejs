@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex">
     <title>Productos | iLoop</title>
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/admin.css?v=4">
+    <link rel="stylesheet" href="/css/admin.css?v=5">
 </head>
 <body class="adm-page">
     <%- include('partials/navbarUser') %>
@@ -24,6 +24,7 @@
             </div>
             <div class="adm-actions">
                 <a class="adm-btn adm-btn--primary" href="/new">＋ Nuevo producto</a>
+                <button type="button" class="adm-btn adm-btn--ghost" id="pr-precios">💲 Cambiar precios</button>
                 <button type="button" class="adm-btn adm-btn--ghost" id="pr-download">⬇ Descargar lista (Excel)</button>
             </div>
         </header>
@@ -44,6 +45,16 @@
                 <option value="poco">Quedan 1–2</option>
                 <option value="sin">Sin stock</option>
             </select>
+        </section>
+
+        <section class="pr-px" id="pr-px" hidden aria-label="Cambiar precios">
+            <p><strong>Escribí el precio nuevo</strong> en los que quieras cambiar. Los demás quedan igual.</p>
+            <div class="pr-px__varios">
+                <label for="pr-px-todos">Mismo precio a los que se ven</label>
+                <input type="text" inputmode="decimal" id="pr-px-todos" autocomplete="off" placeholder="Ej: 450">
+                <button type="button" class="adm-btn adm-btn--ghost adm-btn--sm" id="pr-px-aplicar">Poner a todos</button>
+                <span id="pr-px-msg" role="status"></span>
+            </div>
         </section>
 
         <div class="pr-meta">
@@ -92,6 +103,12 @@
             <% }); %>
             <div class="pr-empty" id="pr-empty" hidden>Ningún producto coincide con los filtros.</div>
         </section>
+
+        <div class="pr-px__barra" id="pr-px-barra" hidden>
+            <strong id="pr-px-n">Sin cambios</strong>
+            <button type="button" class="adm-btn adm-btn--ghost" id="pr-px-salir">Salir</button>
+            <button type="button" class="adm-btn adm-btn--primary" id="pr-px-guardar" disabled>Guardar precios</button>
+        </div>
     </main>
 
     <dialog class="adm-dialog" id="pr-dialog">
@@ -102,9 +119,17 @@
             <button type="button" class="adm-btn adm-btn--danger" id="pr-dialog-yes">Sí, eliminar</button>
         </div>
     </dialog>
+    <dialog class="adm-dialog" id="pr-px-dialog">
+        <h3 id="pr-px-title">¿Guardar los precios?</h3>
+        <ul class="pr-px__lista" id="pr-px-lista"></ul>
+        <div class="adm-dialog__acts">
+            <button type="button" class="adm-btn adm-btn--ghost" id="pr-px-no">Revisar</button>
+            <button type="button" class="adm-btn adm-btn--primary" id="pr-px-si">Sí, guardar</button>
+        </div>
+    </dialog>
     <div class="adm-toast" id="adm-toast" role="status" aria-live="polite"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
-    <script src="/js/admin-productos.js?v=2"></script>
+    <script src="/js/admin-productos.js?v=3"></script>
 </body>
 </html>

@@ -314,16 +314,56 @@ app.get('/logoImageUrl', (req, res) => {
     });
 });
 
-// Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
-app.get('/edit-carousel', requireAdmin, (req, res) => {
-    pool.query('SELECT * FROM carousel ORDER BY id ASC', (err, result) => {
-        if (err) {
-            console.error('Error al obtener elementos del carrusel:', err);
-            res.status(500).send('Error interno del servidor');
-            return;
+// Banners en el orden elegido por el admin, con la marca de ocultos (listas de ids en "configuracion").
+// Los que no están en la lista de orden (recién cargados) van al final.
+async function carruselOrdenado() {
+    const { rows } = await pool.query('SELECT * FROM carousel ORDER BY id ASC');
+    const listas = {};
+    try {
+        const r = await pool.query("SELECT clave, valor FROM configuracion WHERE clave IN ('carrusel_orden', 'carrusel_ocultos')");
+        r.rows.forEach(f => { listas[f.clave] = f.valor.split(',').map(Number); });
+    } catch (e) { console.log('Tabla configuracion no existe aún'); }
+    const orden = listas.carrusel_orden || [];
+    const ocultos = listas.carrusel_ocultos || [];
+    const lugar = item => orden.includes(item.id) ? orden.indexOf(item.id) : orden.length;
+    return rows.sort((a, b) => lugar(a) - lugar(b)).map(item => ({ ...item, oculto: ocultos.includes(item.id) }));
+}
+
+const guardarListaCarrusel = (clave, ids) => pool.query(
+    'INSERT INTO configuracion (clave, valor, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (clave) DO UPDATE SET valor = $2, updated_at = NOW()',
+    [clave, ids.join(',')]
+);
+
+app.post('/orden-carousel', requireAdmin, async (req, res) => {
+    try {
+        const items = await carruselOrdenado();
+        const ids = items.map(item => item.id);
+        const id = Number(req.body.id);
+        const desde = ids.indexOf(id);
+        const hasta = { primero: 0, subir: desde - 1, bajar: desde + 1 }[req.body.mover];
+        if (desde >= 0 && (req.body.mover === 'ocultar' || req.body.mover === 'mostrar')) {
+            const ocultos = items.filter(item => item.oculto && item.id !== id).map(item => item.id);
+            if (req.body.mover === 'ocultar') ocultos.push(id);
+            await guardarListaCarrusel('carrusel_ocultos', ocultos);
+        } else if (desde >= 0 && hasta >= 0 && hasta < ids.length) {
+            ids.splice(hasta, 0, ids.splice(desde, 1)[0]);
+            await guardarListaCarrusel('carrusel_orden', ids);
         }
-        res.render('edit-carousel', { carouselItems: result.rows, isAdmin: req.session.isAdmin });
-    });
+        res.redirect('/edit-carousel');
+    } catch (err) {
+        console.error('Error al ordenar el carrusel:', err);
+        res.status(500).send('No se pudo guardar el orden');
+    }
+});
+
+// Ruta para mostrar el formulario de edición del carrusel (requiere autenticación de administrador)
+app.get('/edit-carousel', requireAdmin, async (req, res) => {
+    try {
+        res.render('edit-carousel', { carouselItems: await carruselOrdenado(), isAdmin: req.session.isAdmin });
+    } catch (err) {
+        console.error('Error al obtener elementos del carrusel:', err);
+        res.status(500).send('Error interno del servidor');
+    }
 });
 
 
@@ -365,7 +405,7 @@ app.get('/', async (req, res) => {
 
         // Consulta con JOIN a categorías para cuotas
         const productsResult = await pool.query('SELECT p.*, c.nombre as categoria_nombre, c.icono as categoria_icono, c.color as categoria_color, c.cuotas_max, c.interes_cuotas, c.cuotas_planes FROM products p LEFT JOIN categorias c ON p.categoria_id = c.id');
-        const carouselResult = await pool.query('SELECT * FROM carousel ORDER BY id ASC');
+        const carouselRows = await carruselOrdenado();
         const aboutResult = await pool.query('SELECT * FROM about LIMIT 1');
         const imagesResult = await pool.query('SELECT imagen1, imagen2 FROM imagenes LIMIT 1');
         
@@ -412,7 +452,7 @@ app.get('/', async (req, res) => {
             return { ...product, tiene_oferta_vigente: false, precio_final: product.price };
         });
 
-        const carouselItems = carouselResult.rows.map(item => ({
+        const carouselItems = carouselRows.filter(item => !item.oculto).map(item => ({
             ...item,
             img:         optimizeCloudinaryUrl(item.img, 1200),
             imagenmobile: optimizeCloudinaryUrl(item.imagenmobile, 600)
@@ -1274,6 +1314,25 @@ app.post('/edit/:id', requireAdmin, upload.single('image'), async (req, res) => 
     } catch (err) {
         console.error('Error al actualizar producto:', err);
         res.status(500).send('Error interno del servidor');
+    }
+});
+
+// Cambio rápido de precios desde el listado: solo toca el precio, todos juntos o ninguno
+app.post('/admin/productos/precios', requireAdmin, async (req, res) => {
+    const cambios = Array.isArray(req.body.cambios) ? req.body.cambios : [];
+    const valido = c => c && Number.isInteger(c.id) && c.id > 0 && typeof c.precio === 'number' && c.precio > 0 && c.precio < 100000000;
+    if (!cambios.length || !cambios.every(valido)) {
+        return res.status(400).json({ success: false, message: 'Hay un precio que no es válido' });
+    }
+    try {
+        const r = await pool.query(
+            'UPDATE products SET price = v.precio FROM unnest($1::int[], $2::numeric[]) AS v(id, precio) WHERE products.id = v.id RETURNING products.id',
+            [cambios.map(c => c.id), cambios.map(c => c.precio)]
+        );
+        res.json({ success: true, ids: r.rows.map(x => x.id) });
+    } catch (err) {
+        console.error('Error al cambiar precios:', err);
+        res.status(500).json({ success: false, message: 'No se pudieron guardar los precios' });
     }
 });
 

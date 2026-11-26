@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Productos | iLoop</title>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/admin.css?v=4">
+</head>
+<body class="adm-page">
+    <%- include('partials/navbarUser') %>
+    <%- include('partials/adminHeader') %>
+
+    <main class="adm-wrap">
+        <%
+            const fmt = (n) => Number(n).toLocaleString('es-AR', { maximumFractionDigits: 2 });
+            const estados = [...new Set(products.map(p => (p.estado || '').toUpperCase()).filter(Boolean))].sort();
+        %>
+        <header class="adm-head">
+            <div>
+                <h1>Productos</h1>
+                <p>Editá precios y stock, o dá de alta un equipo nuevo.</p>
+            </div>
+            <div class="adm-actions">
+                <a class="adm-btn adm-btn--primary" href="/new">＋ Nuevo producto</a>
+                <button type="button" class="adm-btn adm-btn--ghost" id="pr-download">⬇ Descargar lista (Excel)</button>
+            </div>
+        </header>
+
+        <section class="pr-tools" aria-label="Filtros">
+            <input type="search" id="pr-q" placeholder="🔍 Buscar por nombre…" autocomplete="off">
+            <select id="pr-estado" aria-label="Estado">
+                <option value="">Todos los estados</option>
+                <% estados.forEach(e => { %><option value="<%= e %>"><%= e %></option><% }); %>
+            </select>
+            <select id="pr-cat" aria-label="Categoría">
+                <option value="">Todas las categorías</option>
+                <% categorias.forEach(c => { %><option value="<%= c.id %>"><%= c.nombre %></option><% }); %>
+            </select>
+            <select id="pr-stock" aria-label="Stock">
+                <option value="">Todo el stock</option>
+                <option value="con">Con stock</option>
+                <option value="poco">Quedan 1–2</option>
+                <option value="sin">Sin stock</option>
+            </select>
+        </section>
+
+        <div class="pr-meta">
+            <span id="pr-count">Mostrando <%= products.length %> de <%= products.length %></span>
+            <div class="pr-bulk" id="pr-bulk">
+                <span><span id="pr-sel">0</span> seleccionados</span>
+                <button type="button" class="adm-btn adm-btn--danger adm-btn--sm" id="pr-delete">🗑 Eliminar</button>
+                <button type="button" class="adm-btn adm-btn--ghost adm-btn--sm" id="pr-clear">Cancelar</button>
+            </div>
+        </div>
+
+        <section class="pr-table" id="pr-table">
+            <div class="pr-row pr-row--head" role="row">
+                <span class="pr-chk"><input type="checkbox" id="pr-all" aria-label="Seleccionar todos los visibles"></span>
+                <span>Producto</span><span>Estado</span><span>Categoría</span><span>Precio</span><span>Stock</span><span></span>
+            </div>
+            <% products.forEach(p => {
+                const stockN = parseInt(p.stock) || 0;
+                const nombre = String(p.name || '');
+                const partes = nombre.split('/').map(s => s.trim()).filter(Boolean);
+            %>
+            <div class="pr-row" data-id="<%= p.id %>"
+                 data-name="<%= nombre.toLowerCase() %>" data-estado="<%= (p.estado || '').toUpperCase() %>"
+                 data-cat="<%= p.categoria_id || '' %>" data-stock="<%= stockN %>"
+                 data-x-nombre="<%= nombre %>" data-x-cat="<%= p.categoria_nombre || '' %>" data-x-precio="<%= p.price %>"
+                 data-x-moneda="<%= p.moneda || 'USD' %>" data-x-bateria="<%= p.bateria || '' %>" data-x-alm="<%= p.almacenamiento || '' %>">
+                <span class="pr-chk"><input type="checkbox" class="pr-check" value="<%= p.id %>" aria-label="Seleccionar <%= nombre %>"></span>
+                <div class="pr-prod">
+                    <% if (p.img) { %><img src="<%= p.img %>" alt="" loading="lazy" width="52" height="52"><% } else { %><span class="pr-prod__noimg">📦</span><% } %>
+                    <div>
+                        <div class="pr-prod__t"><%= partes[0] || nombre %></div>
+                        <div class="pr-prod__s"><%= [partes.slice(1).join(' · '), p.bateria ? '🔋 ' + p.bateria + '%' : ''].filter(Boolean).join(' · ') %></div>
+                    </div>
+                </div>
+                <div class="pr-cells">
+                    <span><% if (p.estado) { %><span class="pr-pill"><%= p.estado %></span><% } else { %>—<% } %></span>
+                    <span><%= p.categoria_nombre || 'Sin categoría' %></span>
+                    <span class="pr-price"><%= (p.moneda || 'USD') === 'USD' ? 'USD' : 'ARS $' %> <%= fmt(p.price) %></span>
+                    <span class="pr-stock <%= stockN <= 0 ? 'is-out' : (stockN <= 2 ? 'is-low' : '') %>"><%= stockN <= 0 ? 'Sin stock' : stockN + ' u.' %></span>
+                </div>
+                <div class="pr-acts">
+                    <a class="adm-btn adm-btn--ghost adm-btn--sm" href="/product/<%= p.id %>" target="_blank" rel="noopener" title="Ver en la tienda">Ver</a>
+                    <a class="adm-btn adm-btn--primary adm-btn--sm" href="/edit/<%= p.id %>">Editar</a>
+                </div>
+            </div>
+            <% }); %>
+            <div class="pr-empty" id="pr-empty" hidden>Ningún producto coincide con los filtros.</div>
+        </section>
+    </main>
+
+    <dialog class="adm-dialog" id="pr-dialog">
+        <h3 id="pr-dialog-title">¿Eliminar productos?</h3>
+        <p id="pr-dialog-text">Esta acción no se puede deshacer.</p>
+        <div class="adm-dialog__acts">
+            <button type="button" class="adm-btn adm-btn--ghost" id="pr-dialog-no">Cancelar</button>
+            <button type="button" class="adm-btn adm-btn--danger" id="pr-dialog-yes">Sí, eliminar</button>
+        </div>
+    </dialog>
+    <div class="adm-toast" id="adm-toast" role="status" aria-live="polite"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <script src="/js/admin-productos.js?v=2"></script>
+</body>
+</html>
